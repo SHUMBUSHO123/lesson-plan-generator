@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 SECRET_KEY = 'django-insecure-ny6)o(-sbi1^e*1%nzne*pt%v7ylfl(8ah&f_uidk3c7676id1'
 DEBUG = True
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["lesson-plan-generator-va4h.onrender.com"]
 
 # Application definition
 INSTALLED_APPS = [
