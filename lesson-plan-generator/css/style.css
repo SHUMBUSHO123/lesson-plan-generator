@@ -1,0 +1,346 @@
+/* ================================
+   GLOBAL RESET & BASE STYLING
+================================= */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    min-height: 100vh;
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ================================
+   HEADER STYLING
+================================= */
+.header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    text-align: center;
+    border-radius: 15px;
+    padding: 40px 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.header h1 {
+    font-size: 2.2em;
+    margin-bottom: 10px;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.header p {
+    font-size: 1.1em;
+    color: #f0f0f0;
+}
+
+/* ================================
+   FORM STYLING
+================================= */
+.form-container {
+    background: white;
+    border-radius: 15px;
+    padding: 35px 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    margin-bottom: 30px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+label {
+    font-weight: 500;
+    margin-bottom: 8px;
+    font-size: 0.95em;
+}
+
+label.required::after {
+    content: " *";
+    color: red;
+}
+
+label.optional {
+    color: #2563eb;
+    font-weight: 400;
+}
+
+input, select, textarea {
+    padding: 12px 15px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 0.95em;
+    transition: all 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+}
+
+/* DOUBLE INPUT (Lesson No / Total) */
+.double-input {
+    display: flex;
+    gap: 12px;
+}
+
+.double-input input {
+    flex: 1;
+}
+
+/* GENERATE BUTTON */
+.generate-btn, .premium-btn {
+    padding: 15px 40px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: block;
+    margin: 25px auto 0 auto;
+}
+
+.generate-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.generate-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+}
+
+.generate-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* PREMIUM BUTTON (For Paid Users) */
+.premium-btn {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+}
+
+.premium-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* ERROR MESSAGES */
+.error-message {
+    color: red;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 0.9em;
+}
+
+/* ================================
+   RESULT / LESSON PLAN STYLING
+================================= */
+.result-container {
+    background: white;
+    border-radius: 15px;
+    padding: 30px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    display: none;
+}
+
+.result-container.show {
+    display: block;
+}
+
+.download-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.download-btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.download-btn:hover {
+    transform: scale(1.05);
+}
+
+/* Word & PDF Buttons */
+.btn-word {
+    background: #10b981;
+    color: white;
+}
+
+.btn-pdf {
+    background: #8b5cf6;
+    color: white;
+}
+
+/* LESSON PLAN CONTENT */
+.lesson-plan {
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+.lesson-plan table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10px;
+}
+
+.lesson-plan td {
+    border: 1px solid black;
+    padding: 6px;
+    vertical-align: top;
+}
+
+.lesson-plan .bold {
+    font-weight: bold;
+}
+
+.lesson-plan ul {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.lesson-plan li {
+    margin: 2px 0;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* ================================
+   PRINT STYLING
+================================= */
+@media print {
+    body {
+        background: white;
+        padding: 0;
+        color: black;
+    }
+
+    .header, .form-container, .download-buttons {
+        display: none !important;
+    }
+
+    .result-container {
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .lesson-plan {
+        font-size: 9pt;
+    }
+}
+
+.btn-pay {
+    background: #f59e0b;
+    color: white;
+}
+.btn-pay:hover {
+    transform: scale(1.05);
+}
+
+/* ================================
+   APP UI ENHANCEMENTS (MOBILE + TABLET)
+   SAFE TO ADD – NO BREAKING CHANGES
+================================ */
+
+/* Better touch scrolling */
+html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent ugly zoom on mobile */
+input, select, textarea, button {
+    font-size: 16px;
+}
+
+/* App-like container spacing */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .header {
+        padding: 25px 15px;
+        border-radius: 12px;
+    }
+
+    .header h1 {
+        font-size: 1.6em;
+    }
+
+    .header p {
+        font-size: 1em;
+    }
+
+    .form-container,
+    .result-container {
+        padding: 20px 15px;
+        border-radius: 12px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .generate-btn,
+    .premium-btn {
+        width: 100%;
+        padding: 16px;
+        font-size: 1.05em;
+        border-radius: 14px;
+    }
+
+    .download-buttons {
+        flex-direction: column;
+    }
+
+    .download-btn {
+        width: 100%;
+        padding: 14px;
+    }
+}
+
+/* Tablet optimization */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container {
+        max-width: 900px;
+    }
+
+    .header h1 {
+        font-size: 2em;
+    }
+}

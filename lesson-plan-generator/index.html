@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- External Libraries for Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</h1>
+        <p>Fill in the mandatory fields below to generate a complete lesson plan.</p>
+    </div>
+
+    <div class="form-container">
+        <form id="lessonForm">
+            <div class="form-grid">
+                <!-- Other form fields remain unchanged -->
+                <div class="form-group">
+                    <label class="required">School Name</label>
+                    <input type="text" id="schoolName" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Teacher's Name</label>
+                    <input type="text" id="teacherName" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Term</label>
+                    <select id="term" required>
+                        <option value="">Select Term</option>
+                        <option value="I">Term I</option>
+                        <option value="II">Term II</option>
+                        <option value="III">Term III</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="required">Date</label>
+                    <input type="date" id="date" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Subject</label>
+                    <input type="text" id="subject" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Class</label>
+                    <input type="text" id="className" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Unit No</label>
+                    <input type="number" id="unitNo" required>
+                </div>
+
+                <!-- Updated Lesson No / Total -->
+                <div class="form-group double-labels">
+                    <div class="double-input">
+                        <div class="input-group">
+                            <label class="required">Lesson No</label>
+                            <input type="number" id="lessonNo" required>
+                        </div>
+                        <div class="input-group">
+                            <label class="required">Total Lessons</label>
+                            <input type="number" id="totalLessons" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="required">Duration (minutes)</label>
+                    <input type="number" id="duration" required>
+                </div>
+                <div class="form-group">
+                    <label class="required">Class Size</label>
+                    <input type="number" id="classSize" required>
+                </div>
+                <div class="form-group full-width">
+                    <label class="required">Unit Title</label>
+                    <input type="text" id="unitTitle" required>
+                </div>
+                <div class="form-group full-width">
+                    <label class="required">Lesson Title</label>
+                    <input type="text" id="lessonTitle" required>
+                </div>
+                <div class="form-group full-width">
+                    <label class="optional">Special Educational Needs</label>
+                    <input type="text" id="specialNeeds">
+                </div>
+                <div class="form-group full-width">
+                    <label class="optional">References</label>
+                    <input type="text" id="references">
+                </div>
+            </div>
+
+            <button type="submit" class="generate-btn">✨ Generate Lesson Plan</button>
+        </form>
+    </div>
+
+    <!-- RESULT & DOWNLOADS -->
+    <div id="resultContainer" class="result-container">
+        <div class="download-buttons">
+            <button class="download-btn btn-word" onclick="checkPremium(copyToWord)">📄 Copy to Word</button>
+            <button class="download-btn btn-pdf" onclick="checkPremium(downloadPDF)">📑 Download PDF</button>
+            <button class="download-btn btn-word" onclick="checkPremium(downloadDOCX)">📝 Download DOCX</button>
+        </div>
+        <div id="lessonPlanContent" class="lesson-plan"></div>
+    </div>
+</div>
+
+<!-- SUBSCRIPTION MODAL -->
+<div id="subscribeModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2>💳 Subscribe for Full Access</h2>
+        <p>Subscribe for only <strong>50 RWF/month</strong> to unlock:</p>
+        <ul>
+            <li>Copy to Word</li>
+            <li>Download PDF</li>
+            <li>Download DOCX</li>
+        </ul>
+        <button class="generate-btn" onclick="subscribe()">Subscribe Now</button>
+    </div>
+</div>
+
+<script src="js/script.js"></script>
+<script>
+    // ===== PREMIUM CHECK =====
+    function checkPremium(callback) {
+        if (window.isPremiumUser) {
+            callback();
+        } else {
+            document.getElementById('subscribeModal').style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('subscribeModal').style.display = 'none';
+    }
+
+    function subscribe() {
+        // TODO: Integrate payment gateway here (e.g., Flutterwave, PayPal)
+        alert('Payment successful! You are now a premium user ✅');
+        window.isPremiumUser = true;
+        closeModal();
+    }
+</script>
+
+<!-- MODAL STYLES -->
+<style>
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 999;
+    padding-top: 100px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: rgba(0,0,0,0.6);
+}
+.modal-content {
+    background-color: #fff;
+    margin: auto;
+    padding: 30px;
+    border-radius: 15px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+}
+.modal-content h2 {
+    color: #667eea;
+    margin-bottom: 15px;
+}
+.modal-content .close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-content ul {
+    text-align: left;
+    margin: 15px 0;
+}
+</style>
+
+</body>
+</html>
