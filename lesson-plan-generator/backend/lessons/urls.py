@@ -1,7 +1,6 @@
-from django.contrib import admin
 from django.urls import path, include
-from rest_framework import routers
-from lessons.views import (
+from rest_framework.routers import DefaultRouter
+from .views import (
     index,
     LevelViewSet,
     ClassViewSet,
@@ -12,17 +11,22 @@ from lessons.views import (
     confirm_payment
 )
 
-router = routers.DefaultRouter()
+# -----------------------------
+# Router for CRUD endpoints
+# -----------------------------
+router = DefaultRouter()
 router.register(r'levels', LevelViewSet, basename='level')
 router.register(r'classes', ClassViewSet, basename='class')
 router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'units', UnitViewSet, basename='unit')
 router.register(r'lessons', LessonViewSet, basename='lesson')
 
+# -----------------------------
+# URL Patterns
+# -----------------------------
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', index, name='index'),
-    path('api/', include(router.urls)),
+    path('', index, name='index'),  # Homepage
     path('api/generate/', generate_lesson_plan, name='generate_lesson_plan'),
     path('api/confirm-payment/', confirm_payment, name='confirm_payment'),
+    path('api/', include(router.urls)),  # Include all CRUD API routes
 ]

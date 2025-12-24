@@ -1,46 +1,74 @@
-
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Level, Class, Subject, Unit, Lesson, DeviceAccess
+from .models import Level, Class as ClassModel, Subject, Unit, Lesson, DeviceAccess
 from .serializers import LevelSerializer, ClassSerializer, SubjectSerializer, UnitSerializer, LessonSerializer
-from django.utils import timezone
+from django.shortcuts import render
 
 # -----------------------------
-# Existing ViewSets for CRUD
+# Index view
 # -----------------------------
+def index(request):
+    return render(request, 'index.html')
 
+
+# -----------------------------
+# ViewSets for CRUD with filtering
+# -----------------------------
 class LevelViewSet(viewsets.ModelViewSet):
     queryset = Level.objects.all()
     serializer_class = LevelSerializer
 
+
 class ClassViewSet(viewsets.ModelViewSet):
-    queryset = Class.objects.all()
     serializer_class = ClassSerializer
 
+    def get_queryset(self):
+        qs = ClassModel.objects.all()
+        level_id = self.request.query_params.get('level_id')
+        if level_id:
+            qs = qs.filter(level_id=level_id)
+        return qs
+
+
 class SubjectViewSet(viewsets.ModelViewSet):
-    queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
 
+    def get_queryset(self):
+        qs = Subject.objects.all()
+        class_id = self.request.query_params.get('class_id')
+        if class_id:
+            qs = qs.filter(class_field_id=class_id)
+        return qs
+
+
 class UnitViewSet(viewsets.ModelViewSet):
-    queryset = Unit.objects.all()
     serializer_class = UnitSerializer
 
+    def get_queryset(self):
+        qs = Unit.objects.all()
+        subject_id = self.request.query_params.get('subject_id')
+        if subject_id:
+            qs = qs.filter(subject_id=subject_id)
+        return qs
+
+
 class LessonViewSet(viewsets.ModelViewSet):
-    queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+
+    def get_queryset(self):
+        qs = Lesson.objects.all()
+        unit_id = self.request.query_params.get('unit_id')
+        if unit_id:
+            qs = qs.filter(unit_id=unit_id)
+        return qs
+
 
 # -----------------------------
 # Device-based Lesson Plan APIs
 # -----------------------------
-
 @api_view(['POST'])
 def generate_lesson_plan(request):
-    """
-    Generate a lesson plan for a device.
-    New device: 3 free plans.
-    After limit: prompt payment for 3 months premium.
-    """
     device_id = request.data.get('device_id')
     if not device_id:
         return Response({"error": "device_id is required"}, status=400)
@@ -49,7 +77,6 @@ def generate_lesson_plan(request):
 
     if device.can_generate_plan():
         device.use_plan()
-        # Example: return dummy lesson plan data (replace with real generation logic)
         lesson_plan_data = {
             "message": "Lesson plan generated successfully",
             "free_plans_used": device.free_plans_used,
@@ -66,11 +93,9 @@ def generate_lesson_plan(request):
             "error": "Free lesson plan limit reached. Please pay 250 for 3 months premium access."
         }, status=403)
 
+
 @api_view(['POST'])
 def confirm_payment(request):
-    """
-    Confirm payment from device and activate premium for 90 days
-    """
     device_id = request.data.get('device_id')
     payment_confirmed = request.data.get('payment_confirmed', False)
 
