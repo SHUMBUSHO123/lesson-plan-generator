@@ -1,17 +1,21 @@
 from pathlib import Path
+import os
+from dotenv import load_dotenv
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+# Load environment variables from .env
+load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = 'django-insecure-ny6)o(-sbi1^e*1%nzne*pt%v7ylfl(8ah&f_uidk3c7676id1'
-DEBUG = True
+# SECURITY
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
 ALLOWED_HOSTS = [
     "lesson-plan-generator-va4h.onrender.com",
     "127.0.0.1",
     "localhost"
 ]
-
 
 # Application definition
 INSTALLED_APPS = [
@@ -21,14 +25,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'rest_framework',  # Django REST Framework
-    'lessons',   
-    'corsheaders',      # Our lessons app
+    'rest_framework',
+    'lessons',
+    'corsheaders',
 ]
 
+# Middleware (Whitenoise must be near top)
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware', 
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # serves static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -36,13 +42,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-CORS_ALLOW_ALL_ORIGINS = True  # for dev only
+
+CORS_ALLOW_ALL_ORIGINS = True  # dev only
 ROOT_URLCONF = 'cbc_backend.urls'
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-
-
+# Templates
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -63,7 +67,7 @@ WSGI_APPLICATION = 'cbc_backend.wsgi.application'
 # Database
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # You can switch to PostgreSQL later
+        'ENGINE': 'django.db.backends.sqlite3',  # For local dev
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
@@ -82,5 +86,8 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
-STATIC_URL = 'static/'
+# Static files (CSS, JS, Images)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']  # development static
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
