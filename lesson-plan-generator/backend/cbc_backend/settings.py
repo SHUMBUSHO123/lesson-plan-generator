@@ -1,23 +1,23 @@
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+import dj_database_url
 
 # Load environment variables from .env
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# ---------------------------
 # SECURITY
+# ---------------------------
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
-ALLOWED_HOSTS = [
-    "lesson-plan-generator-va4h.onrender.com",
-    "127.0.0.1",
-    "localhost"
-]
-
-# Application definition
+# ---------------------------
+# APPLICATIONS
+# ---------------------------
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -30,11 +30,13 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
-# Middleware (Whitenoise must be near top)
+# ---------------------------
+# MIDDLEWARE
+# ---------------------------
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # serves static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # for static files in production
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -43,10 +45,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # dev only
+CORS_ALLOW_ALL_ORIGINS = True  # for dev only, restrict in production
 ROOT_URLCONF = 'cbc_backend.urls'
 
-# Templates
+# ---------------------------
+# TEMPLATES
+# ---------------------------
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -64,15 +68,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cbc_backend.wsgi.application'
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # For local dev
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
+# ---------------------------
+# DATABASE CONFIGURATION
+# ---------------------------
+# Load .env.local explicitly
+load_dotenv(dotenv_path=BASE_DIR / '.env.local')
 
-# Password validation
+USE_SUPABASE = os.getenv('USE_SUPABASE', 'False') == 'True'
+
+if USE_SUPABASE:
+    DATABASES = {
+        'default': dj_database_url.parse(os.getenv('SUPABASE_DATABASE_URL'), conn_max_age=600)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# ---------------------------
+# PASSWORD VALIDATION
+# ---------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
@@ -80,14 +98,34 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
 ]
 
-# Internationalization
+# ---------------------------
+# INTERNATIONALIZATION
+# ---------------------------
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files (CSS, JS, Images)
+# ---------------------------
+# STATIC FILES
+# ---------------------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']  # development static
+STATICFILES_DIRS = [BASE_DIR / 'static']  # dev
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# ---------------------------
+# PWA / SERVICE WORKER
+# ---------------------------
+PWA_APP_NAME = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
+PWA_APP_DESCRIPTION = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
+PWA_SERVICE_WORKER_PATH = os.getenv('PWA_SERVICE_WORKER_PATH', STATIC_ROOT + '/service-worker.js')
+
+# ---------------------------
+# DJANGO REST FRAMEWORK
+# ---------------------------
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ]
+}
