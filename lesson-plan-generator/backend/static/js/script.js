@@ -1,7 +1,8 @@
 // File: /lesson-plan-generator/backend/static/js/script.js
 
 // ========== CONFIG ==========
-const API_BASE = "http://192.168.235.108:8000/api";
+const API_BASE = window.location.origin + "/api";
+
 
 window.isPremiumUser = false;
 
