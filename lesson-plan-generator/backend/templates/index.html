@@ -7,13 +7,18 @@
     <title>🎯CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
-
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js"></script>
 
     <!-- ✅ FIX: defer added -->
     <script src="{% static 'js/script.js' %}" defer></script>
-    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <script src="{% static 'js/installPrompt.js' %}"></script>
+    
 <meta name="theme-color" content="#4CAF50">
 
 </head>
@@ -148,34 +153,33 @@
         <button class="generate-btn" onclick="subscribe()">Subscribe Now</button>
     </div>
 </div>
+<button id="installBtn" style="display:none; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
+  Install App
+</button>
 
-<script>
-function checkPremium(cb) {
+ <script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => console.log('✅ SW registered:', reg.scope))
+        .catch(err => console.error('❌ SW failed:', err));
+    });
+  }
+
+  function checkPremium(cb) {
     if (window.isPremiumUser) cb();
     else document.getElementById('subscribeModal').style.display = 'block';
-}
+  }
 
-function closeModal() {
+  function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
-}
+  }
 
-function subscribe() {
+  function subscribe() {
     alert('Payment successful! You are now a premium user ✅');
     window.isPremiumUser = true;
     closeModal();
-}
-</script>
-
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('✅ SW registered:', reg.scope))
-      .catch(err => console.error('❌ SW failed:', err));
-  });
-}
-</script>
-
-
+  }
+  </script>
 </body>
 </html>

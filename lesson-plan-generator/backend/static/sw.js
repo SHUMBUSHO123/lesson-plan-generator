@@ -1,7 +1,9 @@
 const CACHE_NAME = 'cbc-lesson-cache-v1';
 const urlsToCache = [
   '/',
+  '/offline.html',
   '/static/js/script.js',
+  '/static/js/installPrompt.js',
   '/static/css/style.css',
   '/static/icons/icon-192.png',
   '/static/icons/icon-512.png'
@@ -26,15 +28,15 @@ self.addEventListener('activate', (event) => {
         cacheNames.filter(name => name !== CACHE_NAME)
                   .map(name => caches.delete(name))
       );
-    })
+    }).then(() => self.clients.claim())
   );
 });
 
 // Fetch event - serve from cache if offline
 self.addEventListener('fetch', (event) => {
   event.respondWith(
-    caches.match(event.request)
-          .then(response => response || fetch(event.request))
-          .catch(() => caches.match('/')) // fallback to home page
+    fetch(event.request)
+      .catch(() => caches.match(event.request)
+        .then(response => response || caches.match('/offline.html')))
   );
 });
