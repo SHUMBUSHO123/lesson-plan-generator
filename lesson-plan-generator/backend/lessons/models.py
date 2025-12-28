@@ -2,7 +2,7 @@
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
-
+from django.contrib.auth.models import User
 # -----------------------------
 # Core Models for Lesson Plans
 # -----------------------------
@@ -97,3 +97,19 @@ class DeviceAccess(models.Model):
 
     def __str__(self):
         return f"Device {self.device_id} | Premium: {self.premium_active} | Free plans used: {self.free_plans_used}"
+
+PLAN_CHOICES = [
+    ('weekly', 'Weekly'),
+    ('monthly', 'Monthly'),
+    ('term', 'Term'),
+]
+
+class Subscription(models.Model):
+    device_id = models.CharField(max_length=100, db_index=True)
+    plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
+    start_date = models.DateTimeField(auto_now_add=True)
+    end_date = models.DateTimeField()
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.device_id} - {self.plan}"

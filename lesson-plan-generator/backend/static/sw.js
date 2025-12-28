@@ -1,6 +1,5 @@
 const CACHE_NAME = 'cbc-lesson-cache-v1';
 const urlsToCache = [
-  '/',
   '/offline.html',
   '/static/js/script.js',
   '/static/js/installPrompt.js',
@@ -34,9 +33,12 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - serve from cache if offline
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
   event.respondWith(
-    fetch(event.request)
-      .catch(() => caches.match(event.request)
-        .then(response => response || caches.match('/offline.html')))
+    caches.match(event.request).then(cached => {
+      return cached || fetch(event.request).catch(() => caches.match('/offline.html'));
+    })
   );
 });
+

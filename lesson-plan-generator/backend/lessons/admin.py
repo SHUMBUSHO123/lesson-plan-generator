@@ -1,7 +1,7 @@
 # File: /lesson-plan-generator/backend/lessons/admin.py
 
 from django.contrib import admin
-from .models import Level, Class, Subject, Unit, Lesson, DeviceAccess
+from .models import Level, Class, Subject, Unit, Lesson, DeviceAccess, Subscription
 
 # -----------------------------
 # INLINE MODELS
@@ -86,4 +86,13 @@ class LessonAdmin(admin.ModelAdmin):
 class DeviceAccessAdmin(admin.ModelAdmin):
     list_display = ('device_id', 'free_plans_used', 'premium_active', 'premium_start', 'premium_expiry')
     list_filter = ('premium_active',)
+    search_fields = ('device_id',)
+    readonly_fields = ('free_plans_used', 'premium_start', 'premium_expiry')
+
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('device_id', 'plan', 'start_date', 'end_date', 'active')
+    list_filter = ('plan', 'active')
     search_fields = ('device_id',)

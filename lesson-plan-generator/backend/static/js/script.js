@@ -1,7 +1,6 @@
 // ========== CONFIG ==========
 const API_BASE = window.location.origin + "/api";
 
-window.isPremiumUser = false;
 
 // DOM
 const lessonForm = document.getElementById('lessonForm');
@@ -15,15 +14,6 @@ const subjectSelect = document.getElementById('subject');
 const unitSelect = document.getElementById('unitNo');
 const lessonSelect = document.getElementById('lessonTitle');
 
-// ========== CACHE ==========
-const CACHE_NAME = 'cbc-lesson-cache-v1';
-const STATIC_ASSETS = [
-    '/',
-    '/static/js/script.js',
-    '/static/css/style.css',
-    '/static/icons/icon-192.png',
-    '/static/icons/icon-512.png'
-];
 
 
 // ========== INIT ==========
@@ -53,37 +43,26 @@ unitSelect.addEventListener('change', () => {
     if (unitSelect.value) loadLessons(unitSelect.value);
 });
 
-lessonForm.addEventListener('submit', (e) => {
+if (lessonForm) {
+  lessonForm.addEventListener('submit', (e) => {
     e.preventDefault();
     generateLessonPlan();
-});
-
-// ========== FETCH WITH CACHE ==========
-async function fetchData(endpoint, params = {}) {
-    const url = new URL(`${API_BASE}/${endpoint}/`);
-    Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-
-    try {
-        const cache = await caches.open(CACHE_NAME);
-        const cachedResponse = await cache.match(url);
-        if (cachedResponse) {
-            const data = await cachedResponse.json();
-            // Update cache in background
-            fetch(url).then(r => cache.put(url, r.clone()));
-            return data;
-        } else {
-            const res = await fetch(url);
-            const data = await res.json();
-            cache.put(url, new Response(JSON.stringify(data)));
-            return data;
-        }
-    } catch (err) {
-        console.warn('Fetch failed, trying cache...', err);
-        const cache = await caches.open(CACHE_NAME);
-        const cachedResponse = await cache.match(url);
-        return cachedResponse ? await cachedResponse.json() : [];
-    }
+  });
 }
+
+// ========== FETCH  ==========
+async function fetchData(endpoint, params = {}) {
+  const url = new URL(`${API_BASE}/${endpoint}/`);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
+
+  const res = await fetch(url, {
+    headers: { 'Accept': 'application/json' }
+  });
+
+  if (!res.ok) throw new Error('API error');
+  return await res.json();
+}
+
 
 // ========== RESET HELPERS ==========
 function resetBelow(level) {
@@ -147,6 +126,75 @@ function buildSteps(d, t) { /* same as before */ }
 function step(name, time, d) { /* same as before */ }
 
 // ========== PREMIUM ==========
-function copyToWord() { if (!window.isPremiumUser) return; /* same */ }
-function downloadPDF() { if (!window.isPremiumUser) return; /* same */ }
-async function downloadDOCX() { if (!window.isPremiumUser) return; /* same */ }
+async function requirePremium(action) {
+  try {
+    const deviceId = getDeviceId();
+    const res = await fetch(`/api/check-subscription/?device_id=${deviceId}`);
+    const data = await res.json();
+
+    if (!data.active) {
+      document.getElementById('subscribeModal').style.display = 'block';
+      return;
+    }
+
+    action();
+  } catch (err) {
+    alert("Unable to verify subscription. Please check your connection.");
+    console.error(err);
+  }
+}
+
+// ------------------------
+// Subscribe function
+// ------------------------
+async function subscribe(plan) {
+  try {
+    const deviceId = getDeviceId();
+
+    // Call backend API to confirm payment/subscription
+    const res = await fetch('/api/confirm_payment/', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ device_id: deviceId, plan })
+    });
+
+    const data = await res.json();
+
+    if (data.status === 'success') {
+      alert(`✅ Subscription activated for ${plan} plan!`);
+      document.getElementById('subscribeModal').style.display = 'none';
+      window.isPremiumUser = true;
+    } else {
+      alert(`❌ Subscription failed: ${data.error || 'Unknown error'}`);
+    }
+  } catch (err) {
+    console.error(err);
+    alert("❌ Unable to subscribe. Check your network connection.");
+  }
+}
+
+
+function copyToWord() {
+  /* existing logic only */
+}
+
+function downloadPDF() {
+  /* existing logic only */
+}
+
+async function downloadDOCX() {
+  /* existing logic only */
+}
+
+
+function getDeviceId() {
+  let id = localStorage.getItem('cbc_device_id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('cbc_device_id', id);
+  }
+  return id;
+}

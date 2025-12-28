@@ -27,9 +27,10 @@ window.addEventListener('DOMContentLoaded', () => {
       deferredPrompt = null;
     } else {
       alert(
-        'To install:\n\n' +
-        '• Open browser menu (⋮)\n' +
-        '• Tap "Add to Home screen"'
+        'Install this app:\n\n' +
+        '1. Tap the browser menu (⋮)\n' +
+        '2. Select "Add to Home screen"\n' +
+        '3. Confirm installation'
       );
     }
   });

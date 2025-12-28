@@ -4,6 +4,7 @@ from rest_framework import routers
 from django.http import FileResponse
 from django.conf import settings
 import os
+
 from lessons.views import (
     index,
     LevelViewSet,
@@ -12,7 +13,9 @@ from lessons.views import (
     UnitViewSet,
     LessonViewSet,
     generate_lesson_plan,
-    confirm_payment
+    confirm_payment,
+    check_subscription
+    
 )
 
 router = routers.DefaultRouter()
@@ -34,4 +37,5 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/generate/', generate_lesson_plan, name='generate_lesson_plan'),
     path('api/confirm-payment/', confirm_payment, name='confirm_payment'),
+    path('api/check-subscription/', check_subscription, name='check_subscription'),
 ]

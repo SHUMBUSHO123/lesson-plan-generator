@@ -17,10 +17,8 @@
 
     <!-- ✅ FIX: defer added -->
     <script src="{% static 'js/script.js' %}" defer></script>
-    <script src="{% static 'js/installPrompt.js' %}"></script>
+    <script src="{% static 'js/installPrompt.js' %}" defer></script>
     
-<meta name="theme-color" content="#4CAF50">
-
 </head>
 <body>
 
@@ -132,9 +130,10 @@
 
     <div id="resultContainer" class="result-container">
         <div class="download-buttons">
-            <button class="download-btn btn-word" onclick="checkPremium(copyToWord)">📄 Copy to Word</button>
-            <button class="download-btn btn-pdf" onclick="checkPremium(downloadPDF)">📑 Download PDF</button>
-            <button class="download-btn btn-word" onclick="checkPremium(downloadDOCX)">📝 Download DOCX</button>
+            <button onclick="requirePremium(copyToWord)">📄 Copy to Word</button>
+            <button onclick="requirePremium(downloadPDF)">📑 Download PDF</button>
+            <button onclick="requirePremium(downloadDOCX)">📝 Download DOCX</button>
+
         </div>
         <div id="lessonPlanContent" class="lesson-plan"></div>
     </div>
@@ -146,7 +145,7 @@
     <span class="close" onclick="closeModal()">&times;</span>
 
     <div class="pricing-header">
-            <h1>Test with free Lessons plans (Only 3 Allowed) Then After </h1>
+            <h1>Test with free Lessons plans (Only 10 Allowed) Then After </h1>
       <h2>Choose Your Subscription</h2>
       <p>Unlock premium lesson plan features</p>
     </div>
@@ -219,20 +218,25 @@
     });
   }
 
-  function checkPremium(cb) {
-    if (window.isPremiumUser) cb();
-    else document.getElementById('subscribeModal').style.display = 'block';
-  }
+function checkPremium(cb) {
+  const deviceId = getDeviceId();
+
+  fetch(`/api/check-subscription/?device_id=${deviceId}`)
+    .then(res => res.json())
+    .then(data => {
+      if (data.active) {
+        cb();
+      } else {
+        document.getElementById('subscribeModal').style.display = 'block';
+      }
+    });
+}
+
 
   function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
   }
 
-  function subscribe() {
-    alert('Payment successful! You are now a premium user ✅');
-    window.isPremiumUser = true;
-    closeModal();
-  }
   </script>
 </body>
 </html>

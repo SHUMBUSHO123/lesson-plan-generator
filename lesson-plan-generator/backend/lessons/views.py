@@ -1,9 +1,21 @@
+# File: /lesson-plan-generator/backend/lessons/views.py
+
+from datetime import datetime, timedelta
+from django.shortcuts import render
+from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
-from .models import Level, Class as ClassModel, Subject, Unit, Lesson, DeviceAccess
-from .serializers import LevelSerializer, ClassSerializer, SubjectSerializer, UnitSerializer, LessonSerializer
-from django.shortcuts import render
+
+from .models import (
+    Level, Class as ClassModel, Subject, Unit, Lesson,
+    DeviceAccess, Subscription
+)
+from .serializers import (
+    LevelSerializer, ClassSerializer,
+    SubjectSerializer, UnitSerializer, LessonSerializer
+)
+
 
 # -----------------------------
 # Index view
@@ -13,7 +25,7 @@ def index(request):
 
 
 # -----------------------------
-# ViewSets for CRUD with filtering
+# CRUD ViewSets with filtering
 # -----------------------------
 class LevelViewSet(viewsets.ModelViewSet):
     queryset = Level.objects.all()
@@ -65,15 +77,18 @@ class LessonViewSet(viewsets.ModelViewSet):
 
 
 # -----------------------------
-# Device-based Lesson Plan APIs
+# Device-based Lesson Plan API
 # -----------------------------
 @api_view(['POST'])
 def generate_lesson_plan(request):
+    """
+    Allows generating lesson plan for free plan devices or premium users.
+    """
     device_id = request.data.get('device_id')
     if not device_id:
         return Response({"error": "device_id is required"}, status=400)
 
-    device, created = DeviceAccess.objects.get_or_create(device_id=device_id)
+    device, _ = DeviceAccess.objects.get_or_create(device_id=device_id)
 
     if device.can_generate_plan():
         device.use_plan()
@@ -84,28 +99,62 @@ def generate_lesson_plan(request):
             "lesson_plan": {
                 "title": "Sample Lesson Plan",
                 "units": "Unit 1: Fractions",
-                "lessons": ["Lesson 1: Introduction", "Lesson 2: Practice", "Lesson 3: Simplify"]
+                "lessons": [
+                    "Lesson 1: Introduction",
+                    "Lesson 2: Practice",
+                    "Lesson 3: Simplify"
+                ]
             }
         }
         return Response(lesson_plan_data)
     else:
         return Response({
-            "error": "Free lesson plan limit reached. Please pay 250 for 3 months premium access."
+            "error": "Free lesson plan limit reached. Please subscribe to access more."
         }, status=403)
 
 
+# -----------------------------
+# Payment & Subscription
+# -----------------------------
 @api_view(['POST'])
 def confirm_payment(request):
+    """
+    Confirm payment and activate subscription for device_id
+    """
     device_id = request.data.get('device_id')
-    payment_confirmed = request.data.get('payment_confirmed', False)
+    plan = request.data.get('plan')
 
-    if not device_id:
-        return Response({"error": "device_id is required"}, status=400)
+    if not device_id or not plan:
+        return JsonResponse({"status": "failed", "error": "device_id and plan are required"}, status=400)
 
-    device, created = DeviceAccess.objects.get_or_create(device_id=device_id)
+    days_map = {'weekly': 7, 'monthly': 30, 'term': 90}
+    days = days_map.get(plan)
 
-    if payment_confirmed:
-        device.activate_premium()
-        return Response({"message": "Premium access activated for 90 days"})
-    else:
-        return Response({"error": "Payment not confirmed"}, status=400)
+    if not days:
+        return JsonResponse({"status": "failed", "error": "Invalid plan"}, status=400)
+
+    # Create Subscription
+    Subscription.objects.create(
+        device_id=device_id,
+        plan=plan,
+        end_date=datetime.now() + timedelta(days=days),
+        active=True
+    )
+
+    return JsonResponse({"status": "success"})
+
+
+@api_view(['GET'])
+def check_subscription(request):
+    """
+    Check if the device has an active subscription
+    """
+    device_id = request.GET.get('device_id')
+
+    active = Subscription.objects.filter(
+        device_id=device_id,
+        active=True,
+        end_date__gte=datetime.now()
+    ).exists()
+
+    return JsonResponse({"active": active})
