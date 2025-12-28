@@ -1,36 +1,36 @@
 let deferredPrompt;
-const installBtn = document.getElementById('installBtn');
 
-// Show button after first user interaction if prompt not yet fired
-function showInstallButton() {
-  if (installBtn && installBtn.style.display === 'none') {
+window.addEventListener('DOMContentLoaded', () => {
+  const installBtn = document.getElementById('installBtn');
+
+  if (!installBtn) return;
+
+  // Fallback: show button after interaction
+  const showInstallButton = () => {
     installBtn.style.display = 'block';
-  }
-}
+  };
 
-// Listen for beforeinstallprompt (Chrome auto prompt)
-window.addEventListener('beforeinstallprompt', (e) => {
-  e.preventDefault(); // Prevent automatic prompt
-  deferredPrompt = e;
+  window.addEventListener('click', showInstallButton, { once: true });
 
-  if (installBtn) installBtn.style.display = 'block';
-});
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    installBtn.style.display = 'block';
+  });
 
-// Fallback: show install button after first click/tap anywhere
-window.addEventListener('click', showInstallButton, { once: true });
-
-// Install button click
-if (installBtn) {
   installBtn.addEventListener('click', async () => {
     installBtn.style.display = 'none';
+
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      console.log('User choice:', outcome);
+      await deferredPrompt.userChoice;
       deferredPrompt = null;
     } else {
-      // Fallback message if auto prompt never fired
-      alert('To install this app, open your browser menu and select "Add to Home screen".');
+      alert(
+        'To install:\n\n' +
+        '• Open browser menu (⋮)\n' +
+        '• Tap "Add to Home screen"'
+      );
     }
   });
-}
+});
