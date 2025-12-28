@@ -25,14 +25,6 @@ const STATIC_ASSETS = [
     '/static/icons/icon-512.png'
 ];
 
-// Register Service Worker
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/static/service-worker.js')
-            .then(reg => console.log('Service Worker registered:', reg.scope))
-            .catch(err => console.error('SW registration failed:', err));
-    });
-}
 
 // ========== INIT ==========
 document.addEventListener("DOMContentLoaded", () => {

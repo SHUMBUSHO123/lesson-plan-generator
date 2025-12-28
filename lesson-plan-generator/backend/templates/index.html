@@ -154,14 +154,18 @@ function checkPremium(cb) {
     if (window.isPremiumUser) cb();
     else document.getElementById('subscribeModal').style.display = 'block';
 }
+
 function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
 }
+
 function subscribe() {
     alert('Payment successful! You are now a premium user ✅');
     window.isPremiumUser = true;
     closeModal();
 }
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -171,6 +175,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
 
 </body>
 </html>
