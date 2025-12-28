@@ -141,18 +141,71 @@
 </div>
 
 <div id="subscribeModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <h2>💳 Subscribe for Full Access</h2>
-        <p>Subscribe for only <strong>50 RWF/month</strong> to unlock:</p>
-        <ul>
-            <li>Copy to Word</li>
-            <li>Download PDF</li>
-            <li>Download DOCX</li>
-        </ul>
-        <button class="generate-btn" onclick="subscribe()">Subscribe Now</button>
+  <div class="modal-content pricing-modal">
+
+    <span class="close" onclick="closeModal()">&times;</span>
+
+    <div class="pricing-header">
+            <h1>Test with free Lessons plans (Only 3 Allowed) Then After </h1>
+      <h2>Choose Your Subscription</h2>
+      <p>Unlock premium lesson plan features</p>
     </div>
+
+    <div class="pricing-grid">
+
+      <!-- Weekly -->
+      <div class="pricing-card">
+        <h3>Weekly</h3>
+        <p class="price"><span class="currency">RWF</span> <span class="amount">20</span></p>
+        <p class="duration">per week</p>
+        <ul>
+          <li>✔ Download PDF</li>
+          <li>✖ Copy to Word</li>
+          <li>✖ Download DOCX</li>
+        </ul>
+        <button onclick="subscribe('weekly')" class="pricing-btn">
+          Choose Weekly
+        </button>
+      </div>
+
+      <!-- Monthly -->
+      <div class="pricing-card featured">
+        <div class="badge">Most Popular</div>
+        <h3>Monthly</h3>
+        <p class="price"><span class="currency">RWF</span> <span class="amount">50</span></p>
+        <p class="duration">per month</p>
+        <ul>
+          <li>✔ Download PDF</li>
+          <li>✔ Copy to Word</li>
+          <li>✔ Download DOCX</li>
+        </ul>
+        <button onclick="subscribe('monthly')" class="pricing-btn">
+          Choose Monthly
+        </button>
+      </div>
+
+      <!-- Term -->
+      <div class="pricing-card">
+        <h3>Term</h3>
+        <p class="price"><span class="currency">RWF</span> <span class="amount">111</span></p>
+        <p class="duration">per term (3 months)</p>
+        <ul>
+          <li>✔ Download PDF</li>
+          <li>✔ Copy to Word</li>
+          <li>✔ Download DOCX</li>
+          <li>✔ 24/7 Support</li>
+        </ul>
+        <button onclick="subscribe('term')" class="pricing-btn">
+          Choose Term
+        </button>
+      </div>
+
+    </div>
+
+  </div>
 </div>
+
+
 <button id="installBtn" style="display:none; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
   Install App
 </button>

@@ -29,7 +29,7 @@ def service_worker(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-     path('sw.js', service_worker),
+    path('sw.js', service_worker),
     path('', index, name='index'),
     path('api/', include(router.urls)),
     path('api/generate/', generate_lesson_plan, name='generate_lesson_plan'),
