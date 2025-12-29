@@ -150,30 +150,47 @@ async function requirePremium(action) {
 async function subscribe(plan) {
   try {
     const deviceId = getDeviceId();
+    const phone = prompt("Enter MTN MoMo number (e.g. 25078xxxxxxx)");
 
-    // Call backend API to confirm payment/subscription
-    const res = await fetch('/api/confirm_payment/', {
+    const res = await fetch('/api/initiate-mtn-payment/', {
       method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify({ device_id: deviceId, plan })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        device_id: deviceId,
+        plan: plan,
+        phone: phone
+      })
     });
 
     const data = await res.json();
 
-    if (data.status === 'success') {
-      alert(`✅ Subscription activated for ${plan} plan!`);
-      document.getElementById('subscribeModal').style.display = 'none';
-      window.isPremiumUser = true;
+    if (data.reference_id) {
+      alert("✅ Payment request sent. Approve on your phone.");
+      console.log("Reference ID:", data.reference_id);
+
+      // Optionally: start polling to check if subscription activated
+      pollSubscription(deviceId, plan);
     } else {
-      alert(`❌ Subscription failed: ${data.error || 'Unknown error'}`);
+      alert("❌ Payment initiation failed.");
     }
   } catch (err) {
     console.error(err);
-    alert("❌ Unable to subscribe. Check your network connection.");
+    alert("❌ Unable to initiate payment. Check your connection.");
   }
+}
+
+async function pollSubscription(deviceId, plan) {
+  const interval = setInterval(async () => {
+    const res = await fetch(`/api/check-subscription/?device_id=${deviceId}`);
+    const data = await res.json();
+
+    if (data.active) {
+      clearInterval(interval);
+      alert(`✅ Subscription for ${plan} activated!`);
+      window.isPremiumUser = true;
+      document.getElementById('subscribeModal').style.display = 'none';
+    }
+  }, 5000); // check every 5 seconds
 }
 
 
@@ -199,21 +216,4 @@ function getDeviceId() {
   return id;
 }
 
-async function subscribe(plan) {
-  const deviceId = getDeviceId();
-  const phone = prompt("Enter MTN MoMo number (e.g. 25078xxxxxxx)");
 
-  const res = await fetch('/api/initiate-payment/', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      device_id: deviceId,
-      plan: plan,
-      phone: phone
-    })
-  });
-
-  const data = await res.json();
-
-  alert("Payment request sent. Approve on your phone.");
-}
