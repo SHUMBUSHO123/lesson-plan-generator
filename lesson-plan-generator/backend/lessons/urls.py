@@ -1,7 +1,6 @@
-from django.urls import path, include
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 from .views import (
-    index,
     LevelViewSet,
     ClassViewSet,
     SubjectViewSet,
@@ -9,11 +8,12 @@ from .views import (
     LessonViewSet,
     generate_lesson_plan,
     confirm_payment,
+    check_subscription,
     initiate_mtn_payment
 )
 
 # -----------------------------
-# Router for CRUD endpoints
+# CRUD Router for models
 # -----------------------------
 router = DefaultRouter()
 router.register(r'levels', LevelViewSet, basename='level')
@@ -23,11 +23,14 @@ router.register(r'units', UnitViewSet, basename='unit')
 router.register(r'lessons', LessonViewSet, basename='lesson')
 
 # -----------------------------
-# URL Patterns
+# API Paths
 # -----------------------------
 urlpatterns = [
-    path('', index, name='index'),  # Homepage
-    path('api/generate/', generate_lesson_plan, name='generate_lesson_plan'),
-    path('api/confirm-payment/', confirm_payment, name='confirm_payment'),
-    path('api/', include(router.urls)),  # Include all CRUD API routes
+    path('generate/', generate_lesson_plan, name='generate_lesson_plan'),
+    path('confirm-payment/', confirm_payment, name='confirm_payment'),
+    path('check-subscription/', check_subscription, name='check_subscription'),
+    path('initiate-mtn-payment/', initiate_mtn_payment, name='initiate_mtn_payment'),
 ]
+
+# Include router URLs at the end
+urlpatterns += router.urls
