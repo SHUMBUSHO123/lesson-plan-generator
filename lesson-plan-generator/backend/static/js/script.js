@@ -198,3 +198,22 @@ function getDeviceId() {
   }
   return id;
 }
+
+async function subscribe(plan) {
+  const deviceId = getDeviceId();
+  const phone = prompt("Enter MTN MoMo number (e.g. 25078xxxxxxx)");
+
+  const res = await fetch('/api/initiate-payment/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      device_id: deviceId,
+      plan: plan,
+      phone: phone
+    })
+  });
+
+  const data = await res.json();
+
+  alert("Payment request sent. Approve on your phone.");
+}

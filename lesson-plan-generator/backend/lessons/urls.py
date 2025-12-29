@@ -8,7 +8,8 @@ from .views import (
     UnitViewSet,
     LessonViewSet,
     generate_lesson_plan,
-    confirm_payment
+    confirm_payment,
+    initiate_mtn_payment
 )
 
 # -----------------------------

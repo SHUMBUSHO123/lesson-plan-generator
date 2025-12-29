@@ -6,6 +6,8 @@ from django.http import JsonResponse
 from rest_framework import viewsets
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from .mtn_service import request_payment
+
 
 from .models import (
     Level, Class as ClassModel, Subject, Unit, Lesson,
@@ -158,3 +160,34 @@ def check_subscription(request):
     ).exists()
 
     return JsonResponse({"active": active})
+
+@api_view(['POST'])
+def initiate_mtn_payment(request):
+    device_id = request.data.get('device_id')
+    plan = request.data.get('plan')
+    phone = request.data.get('phone')
+
+    plan_prices = {
+        'weekly': 20,
+        'monthly': 50,
+        'term': 111
+    }
+
+    if plan not in plan_prices:
+        return Response({"error": "Invalid plan"}, status=400)
+
+    amount = plan_prices[plan]
+
+    try:
+        ref_id = request_payment(
+            amount=amount,
+            phone=phone,
+            external_id=device_id
+        )
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)
+
+    return Response({
+        "status": "PENDING",
+        "reference_id": ref_id
+    })

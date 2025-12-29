@@ -1,12 +1,18 @@
 # Python
 *.pyc
 __pycache__/
+**/migrations/__pycache__/
 
 # Django
 db.sqlite3
 /staticfiles/
+
+# Environment
 .env.local
 .env.render
+
+# Logs
+*.log
 
 # IDEs
 .vscode/
