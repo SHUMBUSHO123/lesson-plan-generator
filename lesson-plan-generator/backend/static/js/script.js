@@ -18,9 +18,11 @@ const lessonSelect = document.getElementById('lessonTitle');
 
 // ========== INIT ==========
 document.addEventListener("DOMContentLoaded", () => {
-    if (levelSelect) loadLevels();
-    else loadClasses();
+  if (levelSelect) {
+    loadLevels();
+  }
 });
+
 
 // ========== EVENT LISTENERS ==========
 if (levelSelect) levelSelect.addEventListener('change', () => {
@@ -55,13 +57,24 @@ async function fetchData(endpoint, params = {}) {
   const url = new URL(`${API_BASE}/${endpoint}/`);
   Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
 
-  const res = await fetch(url, {
-    headers: { 'Accept': 'application/json' }
-  });
+  try {
+    const res = await fetch(url, {
+      headers: { 'Accept': 'application/json' }
+    });
 
-  if (!res.ok) throw new Error('API error');
-  return await res.json();
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(`API error ${res.status} on ${endpoint}:`, text);
+      throw new Error(`API error ${res.status}`);
+    }
+
+    return await res.json();
+  } catch (err) {
+    console.error("Fetch failed:", url.toString(), err);
+    throw err;
+  }
 }
+
 
 
 // ========== RESET HELPERS ==========
