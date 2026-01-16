@@ -218,21 +218,6 @@
     });
   }
 
-function checkPremium(cb) {
-  const deviceId = getDeviceId();
-
-  fetch(`/api/check-subscription/?device_id=${deviceId}`)
-    .then(res => res.json())
-    .then(data => {
-      if (data.active) {
-        cb();
-      } else {
-        document.getElementById('subscribeModal').style.display = 'block';
-      }
-    });
-}
-
-
   function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
   }
