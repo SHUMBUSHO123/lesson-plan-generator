@@ -9,7 +9,7 @@
 
 body {
     font-family: 'Roboto', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3c862d 0%, #764ba2 100%);
     padding: 20px;
     min-height: 100vh;
     color: #333;
@@ -100,15 +100,26 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
 }
 
-/* DOUBLE INPUT (Lesson No / Total) */
+/* DOUBLE INPUT (Lesson No / Total Lessons) */
 .double-input {
     display: flex;
     gap: 12px;
+    flex-wrap: nowrap;        /* keep side by side */
+    width: 100%;              /* full width of parent */
+}
+
+.double-input .input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;              /* grow equally */
+    min-width: 0;             /* prevents overflowing the container */
 }
 
 .double-input input {
-    flex: 1;
+    width: 100%;              /* fill the input-group */
+    box-sizing: border-box;   /* respect padding and border */
 }
+
 
 /* GENERATE BUTTON */
 .generate-btn, .premium-btn {
@@ -452,4 +463,127 @@ input, select, textarea, button {
   position: absolute;
   top: 15px;
   right: 15px;
+}
+/* ================================ */
+/* PROFESSIONAL UI ENHANCEMENTS */
+/* ================================ */
+
+/* Soft neutral body background with subtle gradient header accent */
+body {
+    background-color: #FAFAFA; /* soft neutral */
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Header: softened gradient and accent underline */
+.header {
+    background: #2D9CDB; /* professional blue */
+    color: white;
+    text-align: center;
+    border-radius: 15px;
+    padding: 35px 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    position: relative;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    text-shadow: none;
+}
+
+.header p {
+    font-size: 1em;
+    color: #f0f0f0;
+}
+
+/* Form container: softer shadow, consistent radius */
+.form-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 25px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+/* Inputs: lighter borders, consistent radius, subtle focus */
+input, select, textarea {
+    border: 1.5px solid #ccc;
+    border-radius: 10px;
+    font-size: 0.95em;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #2D9CDB;
+    box-shadow: 0 0 6px rgba(45,156,219,0.3);
+}
+
+/* Buttons: unified professional color scheme */
+.generate-btn, .pricing-btn, .premium-btn {
+    background: #2D9CDB;
+    color: #fff;
+    border-radius: 10px;
+    transition: 0.2s ease-in-out;
+}
+
+.generate-btn:hover, .pricing-btn:hover, .premium-btn:hover {
+    background: #1B7BB8;
+    transform: scale(1.03);
+}
+
+/* Download buttons */
+.download-btn {
+    border-radius: 10px;
+}
+
+.download-btn.btn-word {
+    background: #2D9CDB;
+}
+
+.download-btn.btn-pdf {
+    background: #10b981;
+}
+
+/* Modal & Pricing cards: softened shadows, spacing improvements */
+.pricing-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pricing-card.featured {
+    border: 2px solid #2D9CDB;
+}
+
+.pricing-card .badge {
+    background: #2D9CDB;
+}
+
+/* Double-input adjustments */
+.double-input {
+    gap: 10px;
+}
+
+@media (max-width: 600px) {
+    .double-input {
+        flex-direction: column;
+    }
+
+    .download-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Lesson plan content spacing */
+.lesson-plan {
+    font-size: 10pt;
+    line-height: 1.6;
+}
+
+.lesson-plan td {
+    padding: 8px;
 }

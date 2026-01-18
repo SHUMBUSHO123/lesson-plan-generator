@@ -3,10 +3,15 @@ import os
 from dotenv import load_dotenv
 import dj_database_url
 
-# Load environment variables from .env
-load_dotenv()
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+if os.path.exists(BASE_DIR / '.env.local'):
+    load_dotenv(BASE_DIR / '.env.local')
+else:
+    load_dotenv()
+
 
 # ---------------------------
 # SECURITY
@@ -77,14 +82,17 @@ WSGI_APPLICATION = 'cbc_backend.wsgi.application'
 # ---------------------------
 # DATABASE CONFIGURATION
 # ---------------------------
-# Load .env.local explicitly
-load_dotenv(dotenv_path=BASE_DIR / '.env.local')
 
 USE_SUPABASE = os.getenv('USE_SUPABASE', 'False') == 'True'
+SUPABASE_DATABASE_URL = os.getenv('SUPABASE_DATABASE_URL')
 
-if USE_SUPABASE:
+if USE_SUPABASE and SUPABASE_DATABASE_URL:
     DATABASES = {
-        'default': dj_database_url.parse(os.getenv('SUPABASE_DATABASE_URL'), conn_max_age=600)
+        'default': dj_database_url.parse(
+            SUPABASE_DATABASE_URL,
+            conn_max_age=600,
+            ssl_require=not DEBUG
+        )
     }
 else:
     DATABASES = {
@@ -93,6 +101,7 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
 
 # ---------------------------
 # PASSWORD VALIDATION
@@ -125,7 +134,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # ---------------------------
 PWA_APP_NAME = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
 PWA_APP_DESCRIPTION = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
-PWA_SERVICE_WORKER_PATH = os.getenv('PWA_SERVICE_WORKER_PATH', STATIC_ROOT + '/service-worker.js')
+PWA_SERVICE_WORKER_PATH = '/sw.js'
 
 # ---------------------------
 # DJANGO REST FRAMEWORK
