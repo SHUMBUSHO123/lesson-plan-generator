@@ -3,8 +3,7 @@ from django.urls import path, include
 from django.http import FileResponse
 from django.conf import settings
 import os
-
-from lessons.views import index
+from lessons import views
 
 # Service worker route
 def service_worker(request):
@@ -15,7 +14,8 @@ def service_worker(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', views.landing, name='landing'),      # Landing page at /
+    path('index/', views.index, name='index'),    # Index page at /index/
     path('sw.js', service_worker),
-    path('', index, name='index'),          # Homepage
-    path('api/', include('lessons.urls')),  # Include all lessons app API routes
+    path('api/', include('lessons.urls')),        # API routes
 ]

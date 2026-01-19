@@ -9,7 +9,7 @@
 
 body {
     font-family: 'Roboto', Arial, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3c862d 0%, #764ba2 100%);
     padding: 20px;
     min-height: 100vh;
     color: #333;
@@ -100,15 +100,26 @@ input:focus, select:focus, textarea:focus {
     box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
 }
 
-/* DOUBLE INPUT (Lesson No / Total) */
+/* DOUBLE INPUT (Lesson No / Total Lessons) */
 .double-input {
     display: flex;
     gap: 12px;
+    flex-wrap: nowrap;        /* keep side by side */
+    width: 100%;              /* full width of parent */
+}
+
+.double-input .input-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;              /* grow equally */
+    min-width: 0;             /* prevents overflowing the container */
 }
 
 .double-input input {
-    flex: 1;
+    width: 100%;              /* fill the input-group */
+    box-sizing: border-box;   /* respect padding and border */
 }
+
 
 /* GENERATE BUTTON */
 .generate-btn, .premium-btn {
@@ -343,4 +354,266 @@ input, select, textarea, button {
     .header h1 {
         font-size: 2em;
     }
+}
+
+
+/* ----------------- Pricing Modal ----------------- */
+.pricing-modal {
+  max-width: 950px;
+  margin: 0 auto;
+  padding: 25px 20px;
+}
+
+.pricing-header h2 {
+  font-size: 28px;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.pricing-header p {
+  text-align: center;
+  font-size: 16px;
+  color: #555;
+  margin-bottom: 25px;
+}
+
+.pricing-grid {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.pricing-card {
+  flex: 1 1 280px;
+  background: #f9f9f9;
+  border-radius: 15px;
+  padding: 25px 20px;
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.pricing-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+}
+
+.pricing-card h3 {
+  font-size: 22px;
+  margin-bottom: 15px;
+}
+
+.pricing-card .price {
+  font-size: 36px;
+  font-weight: bold;
+  color: #4CAF50;
+  margin: 0;
+}
+
+.pricing-card .price .currency {
+  font-size: 18px;
+  vertical-align: super;
+}
+
+.pricing-card .duration {
+  font-size: 16px;
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.pricing-card ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+.pricing-card ul li {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.pricing-btn {
+  background: #4CAF50;
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.pricing-btn:hover {
+  background: #43a047;
+}
+
+.pricing-card.featured {
+  border: 2px solid #4CAF50;
+}
+
+.pricing-card .badge {
+  background: #4CAF50;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px 10px;
+  border-radius: 20px;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+}
+/* ================================ */
+/* PROFESSIONAL UI ENHANCEMENTS */
+/* ================================ */
+
+/* Soft neutral body background with subtle gradient header accent */
+body {
+    background-color: #FAFAFA; /* soft neutral */
+    font-family: 'Inter', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* Header: softened gradient and accent underline */
+.header {
+    background: #2D9CDB; /* professional blue */
+    color: white;
+    text-align: center;
+    border-radius: 15px;
+    padding: 35px 20px;
+    margin-bottom: 25px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    position: relative;
+}
+
+.header h1 {
+    font-size: 2em;
+    margin-bottom: 10px;
+    text-shadow: none;
+}
+
+.header p {
+    font-size: 1em;
+    color: #f0f0f0;
+}
+
+/* Form container: softer shadow, consistent radius */
+.form-container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 25px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+}
+
+/* Inputs: lighter borders, consistent radius, subtle focus */
+input, select, textarea {
+    border: 1.5px solid #ccc;
+    border-radius: 10px;
+    font-size: 0.95em;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #2D9CDB;
+    box-shadow: 0 0 6px rgba(45,156,219,0.3);
+}
+
+/* Buttons: unified professional color scheme */
+.generate-btn, .pricing-btn, .premium-btn {
+    background: #2D9CDB;
+    color: #fff;
+    border-radius: 10px;
+    transition: 0.2s ease-in-out;
+}
+
+.generate-btn:hover, .pricing-btn:hover, .premium-btn:hover {
+    background: #1B7BB8;
+    transform: scale(1.03);
+}
+
+/* Download buttons */
+.download-btn {
+    border-radius: 10px;
+}
+
+.download-btn.btn-word {
+    background: #2D9CDB;
+}
+
+.download-btn.btn-pdf {
+    background: #10b981;
+}
+
+/* Modal & Pricing cards: softened shadows, spacing improvements */
+.pricing-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 25px 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pricing-card.featured {
+    border: 2px solid #2D9CDB;
+}
+
+.pricing-card .badge {
+    background: #2D9CDB;
+}
+
+/* Double-input adjustments */
+.double-input {
+    gap: 10px;
+}
+
+@media (max-width: 600px) {
+    .double-input {
+        flex-direction: column;
+    }
+
+    .download-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Lesson plan content spacing */
+.lesson-plan {
+    font-size: 10pt;
+    line-height: 1.6;
+}
+
+.lesson-plan td {
+    padding: 8px;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    background: #1f2937;
+    color: #fff;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 16px;
+}
+
+.brand {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+}
+
+.btn-primary {
+    background: #2563eb;
+    padding: 6px 12px;
+    border-radius: 6px;
 }

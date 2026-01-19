@@ -1,0 +1,182 @@
+<!-- File: /lesson-plan-generator/backend/templates/pricing.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pricing - CBC Lesson Plan Generator</title>
+  {% load static %}
+  <link rel="stylesheet" href="{% static 'css/style.css' %}">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f7fa;
+      margin: 0;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      color: #2D9CDB;
+      margin-bottom: 10px;
+    }
+
+    p.subtitle {
+      font-size: 1.2rem;
+      margin-bottom: 50px;
+      color: #555;
+    }
+
+    .pricing-cards {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 25px;
+      margin-bottom: 50px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 15px;
+      padding: 30px 25px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      flex: 1 1 280px;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+
+    .card h3 {
+      color: #2D9CDB;
+      font-size: 1.4rem;
+      margin-bottom: 15px;
+    }
+
+    .card p.price {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 15px;
+      color: #27AE60;
+    }
+
+    .card ul {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+      color: #555;
+    }
+
+    .card ul li {
+      margin-bottom: 10px;
+    }
+
+    .btn-subscribe {
+      background: #2D9CDB;
+      color: #fff;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: 0.3s;
+    }
+
+    .btn-subscribe:hover {
+      background: #1b7bb8;
+      transform: scale(1.05);
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px 20px;
+      background: #f1f3f6;
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 768px) {
+      .pricing-cards {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Pricing Plans</h1>
+    <p class="subtitle">Choose the plan that fits your teaching needs. Free plan available for 3 lessons.</p>
+
+    <div class="pricing-cards">
+      <!-- Free Plan -->
+      <div class="card">
+        <h3>Free</h3>
+        <p class="price">0 RWF</p>
+        <ul>
+          <li>Up to 3 lesson plans</li>
+          <li>Basic features</li>
+          <li>No subscription required</li>
+        </ul>
+        <a href="{% url 'register' %}" class="btn-subscribe">Get Started</a>
+      </div>
+
+      <!-- Weekly Plan -->
+      <div class="card">
+        <h3>Weekly</h3>
+        <p class="price">200 RWF</p>
+        <ul>
+          <li>Unlimited lesson plans for 7 days</li>
+          <li>Download PDF/Word</li>
+          <li>Priority support</li>
+        </ul>
+        <a href="{% url 'register' %}" class="btn-subscribe">Subscribe</a>
+      </div>
+
+      <!-- Monthly Plan -->
+      <div class="card">
+        <h3>Monthly</h3>
+        <p class="price">500 RWF</p>
+        <ul>
+          <li>Unlimited lesson plans for 30 days</li>
+          <li>Download PDF/Word</li>
+          <li>Premium features unlocked</li>
+        </ul>
+        <a href="{% url 'register' %}" class="btn-subscribe">Subscribe</a>
+      </div>
+
+      <!-- Term Plan -->
+      <div class="card">
+        <h3>Term</h3>
+        <p class="price">1000 RWF</p>
+        <ul>
+          <li>Unlimited lesson plans for 90 days</li>
+          <li>Full access to all features</li>
+          <li>Premium support</li>
+        </ul>
+        <a href="{% url 'register' %}" class="btn-subscribe">Subscribe</a>
+      </div>
+    </div>
+
+    <a href="{% url 'landing' %}" class="btn-subscribe" style="background: #27AE60; margin-top: 20px;">Back to Home</a>
+
+  </div>
+
+  <footer>
+    &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
+  </footer>
+  
+</body>
+</html>

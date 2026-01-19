@@ -1,3 +1,4 @@
+<!-- File: /lesson-plan-generator/backend/templates/offline.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,11 +6,53 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Offline - CBC Lesson Plan Generator</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      color: #2D9CDB;
+      margin-bottom: 20px;
+    }
+
+    p {
+      font-size: 1.2rem;
+      margin-bottom: 30px;
+      color: #555;
+    }
+
+    .btn-back {
+      background: #27AE60;
+      color: white;
+      padding: 12px 30px;
+      border: none;
+      border-radius: 30px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.3s;
+      text-decoration: none;
+    }
+
+    .btn-back:hover {
+      background: #219150;
+      transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
-  <h1>You are offline</h1>
+  <h1>⚠ You are offline</h1>
   <p>Please check your internet connection and try again.</p>
+  <a href="{% url 'landing' %}" class="btn-back">Go Back Home</a>
 </body>
 </html>

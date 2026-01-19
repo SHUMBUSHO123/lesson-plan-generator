@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Subscribe - CBC Lesson Plan Generator</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        .payment-container {
+            max-width: 500px;
+            margin: 60px auto;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            background-color: #fff;
+        }
+        .status-message {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+        .payment-container h2 {
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="payment-container">
+    <h2 class="text-center mb-4">Subscribe to Premium</h2>
+
+    <div class="mb-3">
+        <label for="planSelect" class="form-label">Select Plan</label>
+        <select id="planSelect" class="form-select">
+            <option value="weekly">Weekly - 20 RWF</option>
+            <option value="monthly">Monthly - 50 RWF</option>
+            <option value="term">Term - 111 RWF</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="phoneInput" class="form-label">MTN MoMo Number</label>
+        <input id="phoneInput" type="text" class="form-control" placeholder="e.g. 25078xxxxxxx">
+    </div>
+
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="termsCheck">
+        <label class="form-check-label" for="termsCheck">
+            I accept the <a href="#">Terms & Conditions</a>
+        </label>
+    </div>
+
+    <button id="payButton" class="btn btn-primary w-100">💳 Pay & Subscribe</button>
+
+    <div id="paymentStatus" class="status-message text-center"></div>
+</div>
+
+<script src="{% static 'js/script.js' %}"></script>
+</body>
+</html>

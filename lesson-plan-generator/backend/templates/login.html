@@ -1,0 +1,50 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | CBC Lesson Planner</title>
+    <link rel="stylesheet" href="{% static 'css/forms.css' %}">
+    <style>
+        .back-btn {
+            display: inline-block;
+            margin-bottom: 1rem;
+            background: #ccc;
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: 0.3s;
+        }
+        .back-btn:hover {
+            background: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Back Button -->
+        <a href="{% url 'landing' %}" class="back-btn">← Back</a>
+
+        <h1>Login</h1>
+        <form method="POST">
+            {% csrf_token %}
+            
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" placeholder="Enter your email" required>
+            
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" placeholder="Enter your password" required>
+            
+            <button type="submit">Login</button>
+        </form>
+
+        <div class="link">
+            <p>Don't have an account? <a href="{% url 'register' %}">Register here</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,7 +1,13 @@
-# File: /lesson-plan-generator/backend/lessons/admin.py
-
 from django.contrib import admin
-from .models import Level, Class, Subject, Unit, Lesson, DeviceAccess, Subscription
+from .models import (
+    Level,
+    Class,
+    Subject,
+    Unit,
+    Lesson,
+    UserProfile,
+    Subscription
+)
 
 # -----------------------------
 # INLINE MODELS
@@ -10,8 +16,8 @@ class LessonInline(admin.TabularInline):
     model = Lesson
     extra = 0
     fields = ('number', 'title', 'references', 'is_premium')
-    readonly_fields = ()
     show_change_link = True
+
 
 class UnitInline(admin.TabularInline):
     model = Unit
@@ -19,11 +25,13 @@ class UnitInline(admin.TabularInline):
     fields = ('number', 'title', 'key_unit_competence', 'total_lessons')
     show_change_link = True
 
+
 class SubjectInline(admin.TabularInline):
     model = Subject
     extra = 0
     fields = ('name',)
     show_change_link = True
+
 
 class ClassInline(admin.TabularInline):
     model = Class
@@ -31,14 +39,16 @@ class ClassInline(admin.TabularInline):
     fields = ('name',)
     show_change_link = True
 
+
 # -----------------------------
 # MODEL ADMINS
 # -----------------------------
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
     list_display = ('name', 'id')
-    inlines = [ClassInline]
     search_fields = ('name',)
+    inlines = [ClassInline]
+
 
 @admin.register(Class)
 class ClassAdmin(admin.ModelAdmin):
@@ -47,6 +57,7 @@ class ClassAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     inlines = [SubjectInline]
 
+
 @admin.register(Subject)
 class SubjectAdmin(admin.ModelAdmin):
     list_display = ('name', 'class_field')
@@ -54,17 +65,35 @@ class SubjectAdmin(admin.ModelAdmin):
     search_fields = ('name',)
     inlines = [UnitInline]
 
+
 @admin.register(Unit)
 class UnitAdmin(admin.ModelAdmin):
     list_display = ('title', 'number', 'subject', 'total_lessons')
-    list_filter = ('subject__class_field__level', 'subject__class_field', 'subject')
+    list_filter = (
+        'subject__class_field__level',
+        'subject__class_field',
+        'subject'
+    )
     search_fields = ('title',)
     inlines = [LessonInline]
 
+
 @admin.register(Lesson)
 class LessonAdmin(admin.ModelAdmin):
-    list_display = ('title', 'number', 'unit', 'subject_name', 'class_name', 'level_name', 'is_premium')
-    list_filter = ('unit__subject__class_field__level', 'unit__subject__class_field', 'unit__subject')
+    list_display = (
+        'title',
+        'number',
+        'unit',
+        'subject_name',
+        'class_name',
+        'level_name',
+        'is_premium'
+    )
+    list_filter = (
+        'unit__subject__class_field__level',
+        'unit__subject__class_field',
+        'unit__subject'
+    )
     search_fields = ('title',)
 
     def subject_name(self, obj):
@@ -79,20 +108,32 @@ class LessonAdmin(admin.ModelAdmin):
         return obj.unit.subject.class_field.level.name
     level_name.short_description = 'Level'
 
-# -----------------------------
-# DEVICE ACCESS
-# -----------------------------
-@admin.register(DeviceAccess)
-class DeviceAccessAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'free_plans_used', 'premium_active', 'premium_start', 'premium_expiry')
-    list_filter = ('premium_active',)
-    search_fields = ('device_id',)
-    readonly_fields = ('free_plans_used', 'premium_start', 'premium_expiry')
 
+# -----------------------------
+# USER PROFILE / SUBSCRIPTION
+# -----------------------------
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        'user',
+        'device_id',
+        'free_plans_used',
+        'premium_active',
+        'premium_start',
+        'premium_expiry'
+    )
+    search_fields = ('user__email', 'device_id')
+    list_filter = ('premium_active',)
 
 
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
-    list_display = ('device_id', 'plan', 'start_date', 'end_date', 'active')
+    list_display = (
+        'user_profile',
+        'plan',
+        'start_date',
+        'end_date',
+        'active'
+    )
     list_filter = ('plan', 'active')
-    search_fields = ('device_id',)
+    search_fields = ('user_profile__user__email',)

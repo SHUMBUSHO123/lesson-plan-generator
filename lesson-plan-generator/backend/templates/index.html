@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎯CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
+    <title>🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="manifest" href="{% static 'manifest.json' %}">
@@ -12,15 +12,29 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js"></script>
-
-    <!-- ✅ FIX: defer added -->
     <script src="{% static 'js/script.js' %}" defer></script>
     <script src="{% static 'js/installPrompt.js' %}" defer></script>
-    
 </head>
-<body>
+
+<body data-device-id="{{ request.user.userprofile.device_id|default:'' }}">
+
+<nav class="navbar">
+    <div class="nav-left">
+        <a href="{% url 'landing' %}" class="brand">CBC Lesson Plan Generator</a>
+    </div>
+    <div class="nav-right">
+        {% if user.is_authenticated %}
+            <span class="nav-user">Hello, {{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="nav-link">Login</a>
+            <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
+        {% endif %}
+    </div>
+</nav>
 
 <div class="container">
     <div class="header">
@@ -32,16 +46,17 @@
         <form id="lessonForm">
             <div class="form-grid">
 
+                <!-- School & Teacher -->
                 <div class="form-group">
                     <label class="required">School Name</label>
                     <input type="text" id="schoolName" required>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Teacher's Name</label>
                     <input type="text" id="teacherName" required>
                 </div>
 
+                <!-- Term & Date -->
                 <div class="form-group">
                     <label class="required">Term</label>
                     <select id="term" required>
@@ -51,34 +66,30 @@
                         <option value="III">Term III</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Date</label>
                     <input type="date" id="date" required>
                 </div>
 
+                <!-- Level, Class, Subject, Unit -->
                 <div class="form-group">
                     <label class="required">Level</label>
-                    <select id="level" required>
-                        <option value="">Select Level</option>
-                    </select>
+                    <select id="level" required></select>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Class</label>
                     <select id="className" required></select>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Subject</label>
                     <select id="subject" required></select>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Unit No</label>
                     <select id="unitNo" required></select>
                 </div>
 
+                <!-- Lesson Number & Total -->
                 <div class="form-group double-labels">
                     <div class="double-input">
                         <div class="input-group">
@@ -92,31 +103,31 @@
                     </div>
                 </div>
 
+                <!-- Duration & Class Size -->
                 <div class="form-group">
                     <label class="required">Duration (minutes)</label>
                     <input type="number" id="duration" required>
                 </div>
-
                 <div class="form-group">
                     <label class="required">Class Size</label>
                     <input type="number" id="classSize" required>
                 </div>
 
+                <!-- Unit & Lesson Title -->
                 <div class="form-group full-width">
                     <label class="required">Unit Title</label>
                     <input type="text" id="unitTitle" required>
                 </div>
-
                 <div class="form-group full-width">
                     <label class="required">Lesson Title</label>
                     <select id="lessonTitle" required></select>
                 </div>
 
+                <!-- Optional Fields -->
                 <div class="form-group full-width">
                     <label class="optional">Special Educational Needs</label>
                     <input type="text" id="specialNeeds">
                 </div>
-
                 <div class="form-group full-width">
                     <label class="optional">References</label>
                     <input type="text" id="references">
@@ -124,7 +135,9 @@
 
             </div>
 
-            <button type="submit" class="generate-btn">✨ Generate Lesson Plan</button>
+            <button type="button" id="generateButton" class="generate-btn">
+                ✨ Generate Lesson Plan
+            </button>
         </form>
     </div>
 
@@ -133,95 +146,94 @@
             <button onclick="requirePremium(copyToWord)">📄 Copy to Word</button>
             <button onclick="requirePremium(downloadPDF)">📑 Download PDF</button>
             <button onclick="requirePremium(downloadDOCX)">📝 Download DOCX</button>
-
         </div>
         <div id="lessonPlanContent" class="lesson-plan"></div>
     </div>
 </div>
 
+<!-- Subscription Modal -->
 <div id="subscribeModal" class="modal">
-  <div class="modal-content pricing-modal">
+    <div class="modal-content pricing-modal">
+        <span class="close" onclick="closeModal()">&times;</span>
 
-    <span class="close" onclick="closeModal()">&times;</span>
+        <div class="pricing-header">
+            <h1>Free Lessons Limit Reached (Only 3 Allowed)</h1>
+            <h2>Choose Your Subscription</h2>
+            <p>Unlock premium lesson plan features</p>
+        </div>
 
-    <div class="pricing-header">
-            <h1>Test with free Lessons plans (Only 10 Allowed) Then After </h1>
-      <h2>Choose Your Subscription</h2>
-      <p>Unlock premium lesson plan features</p>
+        <div class="pricing-grid">
+
+            <div class="pricing-card">
+                <h3>Weekly</h3>
+                <p class="price">RWF 200</p>
+                <p class="duration">per week</p>
+                <ul>
+                    <li>✔ Download PDF</li>
+                    <li>✖ Copy to Word</li>
+                    <li>✖ Download DOCX</li>
+                </ul>
+                <button class="choose-btn" onclick="subscribe('weekly')">Choose Weekly</button>
+            </div>
+
+            <div class="pricing-card featured">
+                <h3>Monthly</h3>
+                <p class="price">RWF 500</p>
+                <p class="duration">per month</p>
+                <ul>
+                    <li>✔ Download PDF</li>
+                    <li>✔ Copy to Word</li>
+                    <li>✔ Download DOCX</li>
+                </ul>
+                <button class="choose-btn primary" onclick="subscribe('monthly')">Choose Monthly</button>
+            </div>
+
+            <div class="pricing-card">
+                <h3>Term</h3>
+                <p class="price">RWF 1000</p>
+                <p class="duration">per term</p>
+                <ul>
+                    <li>✔ Download PDF</li>
+                    <li>✔ Copy to Word</li>
+                    <li>✔ Download DOCX</li>
+                    <li>✔ 24/7 Support</li>
+                </ul>
+                <button class="choose-btn" onclick="subscribe('term')">Choose Term</button>
+            </div>
+
+        </div>
     </div>
-
-    <div class="pricing-grid">
-
-      <!-- Weekly -->
-      <div class="pricing-card">
-        <h3>Weekly</h3>
-        <p class="price"><span class="currency">RWF</span> <span class="amount">20</span></p>
-        <p class="duration">per week</p>
-        <ul>
-          <li>✔ Download PDF</li>
-          <li>✖ Copy to Word</li>
-          <li>✖ Download DOCX</li>
-        </ul>
-        <button onclick="subscribe('weekly')" class="pricing-btn">
-          Choose Weekly
-        </button>
-      </div>
-
-      <!-- Monthly -->
-      <div class="pricing-card featured">
-        <div class="badge">Most Popular</div>
-        <h3>Monthly</h3>
-        <p class="price"><span class="currency">RWF</span> <span class="amount">50</span></p>
-        <p class="duration">per month</p>
-        <ul>
-          <li>✔ Download PDF</li>
-          <li>✔ Copy to Word</li>
-          <li>✔ Download DOCX</li>
-        </ul>
-        <button onclick="subscribe('monthly')" class="pricing-btn">
-          Choose Monthly
-        </button>
-      </div>
-
-      <!-- Term -->
-      <div class="pricing-card">
-        <h3>Term</h3>
-        <p class="price"><span class="currency">RWF</span> <span class="amount">111</span></p>
-        <p class="duration">per term (3 months)</p>
-        <ul>
-          <li>✔ Download PDF</li>
-          <li>✔ Copy to Word</li>
-          <li>✔ Download DOCX</li>
-          <li>✔ 24/7 Support</li>
-        </ul>
-        <button onclick="subscribe('term')" class="pricing-btn">
-          Choose Term
-        </button>
-      </div>
-
-    </div>
-
-  </div>
 </div>
-
 
 <button id="installBtn" style="display:none; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
   Install App
 </button>
 
- <script>
-  if ('serviceWorker' in navigator) {
+<script>
+if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js')
-        .then(reg => console.log('✅ SW registered:', reg.scope))
-        .catch(err => console.error('❌ SW failed:', err));
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('✅ SW registered:', reg.scope))
+            .catch(err => console.error('❌ SW failed:', err));
     });
-  }
+}
 
-  function closeModal() {
+function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
-  }
+}
 
-  </script>
+window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('generateButton');
+    if (btn) {
+        btn.addEventListener('click', () => {
+            requirePremium(() => generateLessonPlanFromForm());
+        });
+    }
+});
+</script>
+
+<footer>
+    &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
+</footer>
 </body>
 </html>
