@@ -46,8 +46,9 @@
         }
 
         header.hero p {
-            font-size: 1.3rem;
+            font-size: 1.25rem;
             margin-bottom: 30px;
+            opacity: 0.95;
         }
 
         .btn-hero {
@@ -57,7 +58,7 @@
             padding: 15px 40px;
             border-radius: 30px;
             border: none;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             box-shadow: 0 6px 15px rgba(0,0,0,0.1);
         }
 
@@ -90,14 +91,16 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.12);
         }
 
-        .feature-card h3 {
+        .feature-card h5 {
             margin-bottom: 15px;
-            font-size: 1.3rem;
+            font-size: 1.1rem;
             color: #2D9CDB;
+            font-weight: 600;
+            letter-spacing: 0.2px;
         }
 
         .feature-card p {
-            font-size: 1rem;
+            font-size: 0.98rem;
             line-height: 1.6;
             color: #555;
         }
@@ -136,16 +139,18 @@
             box-shadow: 0 8px 25px rgba(0,0,0,0.1);
         }
 
-        .step-card h4 {
+        .step-card h5 {
             margin-bottom: 10px;
             color: #27AE60;
-            font-size: 1.2rem;
+            font-size: 1rem;
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
         }
 
         .step-card p {
-            font-size: 1rem;
-            line-height: 1.5;
+            font-size: 0.97rem;
+            line-height: 1.55;
             color: #555;
         }
 
@@ -160,14 +165,15 @@
         }
 
         section.subscribe h2 {
-            font-size: 2.2rem;
+            font-size: 2.1rem;
             margin-bottom: 15px;
             font-weight: 700;
         }
 
         section.subscribe p {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             margin-bottom: 25px;
+            opacity: 0.95;
         }
 
         .btn-subscribe {
@@ -176,7 +182,7 @@
             padding: 15px 40px;
             border-radius: 30px;
             font-weight: 600;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             border: none;
             box-shadow: 0 6px 15px rgba(0,0,0,0.08);
         }
@@ -223,7 +229,7 @@
     <header class="hero">
         <div class="container">
             <h1>CBC Lesson Plan Generator</h1>
-            <p>Generate up to 3 free lesson plans. Subscribe for unlimited access.</p>
+            <p>Design professional CBC-aligned lesson plans effortlessly. Start with up to three free plans.</p>
             <a href="{% url 'index' %}" class="btn-hero" aria-label="Get Started">Get Started</a>
         </div>
     </header>
@@ -233,20 +239,20 @@
         <!-- Features -->
         <section class="features" aria-label="Features Section">
             <div class="feature-card">
-                <h3>Easy Generation</h3>
-                <p>Create lesson plans in seconds using our intuitive interface.</p>
+                <h5>Effortless Creation</h5>
+                <p>Generate structured, curriculum-aligned lesson plans within seconds using a streamlined workflow.</p>
             </div>
             <div class="feature-card">
-                <h3>Free Access</h3>
-                <p>Enjoy up to 3 free lesson plans without any subscription.</p>
+                <h5>Free Starter Access</h5>
+                <p>Begin with up to three complimentary lesson plans—no payment or commitment required.</p>
             </div>
             <div class="feature-card">
-                <h3>Download Options</h3>
-                <p>Export your plans as PDF or Word documents for professional use.</p>
+                <h5>Professional Exports</h5>
+                <p>Download polished lesson plans in PDF or Word format, ready for classroom or administrative use.</p>
             </div>
             <div class="feature-card">
-                <h3>Premium Subscription</h3>
-                <p>Unlock unlimited lesson plan generation with our premium plan.</p>
+                <h5>Unlimited Premium</h5>
+                <p>Upgrade to premium to unlock unlimited lesson plan generation and advanced features.</p>
             </div>
         </section>
 
@@ -255,24 +261,32 @@
             <h2>How It Works</h2>
             <div class="step-cards">
                 <div class="step-card">
-                    <h4>Step 1</h4>
-                    <p>Select level, class, and subject for your lesson plan.</p>
+                    <h5>Step 1</h5>
+                    <p>Select the education level, class, and subject relevant to your lesson.</p>
                 </div>
                 <div class="step-card">
-                    <h4>Step 2</h4>
-                    <p>Enter lesson details and number of lessons to generate.</p>
+                    <h5>Step 2</h5>
+                    <p>Provide key lesson details and specify the number of lessons to generate.</p>
                 </div>
                 <div class="step-card">
-                    <h4>Step 3</h4>
-                    <p>Click generate to view and download your lesson plan.</p>
+                    <h5>Step 3</h5>
+                    <p>Generate, review, and download your professionally formatted lesson plan.</p>
                 </div>
+<div class="step-card">
+    <h5>Step 4</h5>
+    <p>Create your first professional CBC lesson plan in seconds—free, seamless, and reliable.</p>
+
+    <!-- optional CTA -->
+    <a href="{% url 'index' %}" class="btn-hero" style="margin-top:12px; display:inline-block;">
+        Create Your Free Lesson
+    </a>>
             </div>
         </section>
 
         <!-- Subscription CTA -->
         <section class="subscribe" aria-label="Subscription Call To Action">
             <h2>Upgrade to Premium</h2>
-            <p>Get unlimited lesson plan generation and unlock all features.</p>
+            <p>Enjoy unlimited lesson plan generation and full access to all platform capabilities.</p>
             <a href="/api/pricing/" class="btn-subscribe" aria-label="Subscribe Now">Subscribe Now</a>
         </section>
 

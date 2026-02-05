@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (levelSelect) loadLevels();
     attachGenerateButton();
     attachPayButton();
+    prefillUserData(); // <-- this triggers the auto-fill
 });
 
 // ========== ATTACH BUTTONS ==========
@@ -125,14 +126,27 @@ async function loadLessons(unitId) {
 // ========== FORM DATA ==========
 function getFormData() {
     return {
+        // Existing dropdown selections
         level: levelSelect.options[levelSelect.selectedIndex].text,
         className: classSelect.options[classSelect.selectedIndex].text,
         subject: subjectSelect.options[subjectSelect.selectedIndex].text,
         unitTitle: document.getElementById('unitTitle').value,
         totalLessons: parseInt(document.getElementById('totalLessons').value || '0'),
-        lessonTitle: lessonSelect.options[lessonSelect.selectedIndex].text
+        lessonTitle: lessonSelect.options[lessonSelect.selectedIndex].text,
+        lessonNumber: parseInt(document.getElementById('lessonNo')?.value || '1'),
+        durationMinutes: parseInt(document.getElementById('duration')?.value || '40'),
+
+        // Prefill fields
+        schoolName: document.getElementById('schoolName')?.value || '',
+        teacherName: document.getElementById('teacherName')?.value || '',
+        term: document.getElementById('term')?.value || '',
+        classSize: document.getElementById('classSize')?.value || '',
+        references: document.getElementById('references')?.value || '',
+        specialNeeds: document.getElementById('specialNeeds')?.value || ''
     };
 }
+
+
 
 function calculateTiming(total) {
     const timePerLesson = 40;
@@ -144,85 +158,33 @@ function calculateTiming(total) {
     });
 }
 
-// ========== LESSON PLAN GENERATION ==========
-async function generateLessonPlanFromForm() {
-    const data = getFormData();
-    if (!data.level || !data.className || !data.subject || !data.unitTitle || !data.totalLessons) {
-        alert("Please fill all required fields!");
-        return;
-    }
-
+// ===============================
+// Prefill User Data
+// ===============================
+async function prefillUserData() {
     try {
-        const deviceId = getDeviceId();
-        const res = await fetch('/api/generate_lesson_plan/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ device_id: deviceId })
-        });
-        const apiData = await res.json();
+        const deviceId = getDeviceId(); // uses existing function
+        const url = `/api/get_user_prefill/?device_id=${deviceId}`;
+        const res = await fetch(url, { headers: { 'Accept': 'application/json' }});
+        if (!res.ok) throw new Error(`Failed to fetch prefill data: ${res.status}`);
+        const data = await res.json();
 
-        if (!res.ok) {
-            alert(apiData.error || "Unable to generate lesson plan. Please try again.");
-            return;
-        }
+        // Fill form inputs
+        const schoolInput = document.getElementById('schoolName');
+        const teacherInput = document.getElementById('teacherName');
+        const termInput = document.getElementById('term');
+        const classSizeInput = document.getElementById('classSize');
+        const referencesInput = document.getElementById('references');
 
-        // Build UI
-        lessonPlanContent.innerHTML = '';
-        lessonPlanContent.appendChild(buildHeader(data));
-        lessonPlanContent.appendChild(buildLessonInfoTable(data));
-        lessonPlanContent.appendChild(buildUnitTable(data));
-        lessonPlanContent.appendChild(buildSteps(data, calculateTiming(data.totalLessons)));
-        resultContainer.classList.add('show');
+        if (schoolInput) schoolInput.value = data.schoolName || '';
+        if (teacherInput) teacherInput.value = data.teacherName || '';
+        if (termInput) termInput.value = data.term || '';
+        if (classSizeInput) classSizeInput.value = data.classSize || '';
+        if (referencesInput) referencesInput.value = data.references || '';
 
     } catch (err) {
-        console.error(err);
-        alert("Unable to generate lesson plan. Check your connection.");
+        console.error("Prefill failed:", err);
     }
-}
-
-// ========== UI BUILDERS ==========
-function buildHeader(d) {
-    const div = document.createElement('div');
-    div.className = 'lesson-plan-header text-center';
-    div.innerHTML = `<h2>${d.subject} - ${d.unitTitle}</h2><p>${d.level} | ${d.className}</p>`;
-    return div;
-}
-
-function buildLessonInfoTable(d) {
-    const table = document.createElement('table');
-    table.className = 'lesson-plan';
-    table.innerHTML = `
-        <tr><td class="bold">Lesson Title</td><td>${d.lessonTitle}</td></tr>
-        <tr><td class="bold">Unit</td><td>${d.unitTitle}</td></tr>
-        <tr><td class="bold">Class / Level</td><td>${d.className} / ${d.level}</td></tr>
-        <tr><td class="bold">Total Lessons</td><td>${d.totalLessons}</td></tr>
-    `;
-    return table;
-}
-
-function buildUnitTable(d) {
-    const table = document.createElement('table');
-    table.className = 'lesson-plan';
-    table.innerHTML = `
-        <tr><td class="bold">Unit Title</td><td>${d.unitTitle}</td></tr>
-        <tr><td class="bold">Number of Lessons</td><td>${d.totalLessons}</td></tr>
-    `;
-    return table;
-}
-
-function buildSteps(d, timings) {
-    const container = document.createElement('div');
-    container.className = 'lesson-steps';
-    const ul = document.createElement('ul');
-    for (let i=1;i<=d.totalLessons;i++) ul.appendChild(step(`Lesson ${i}`, timings[i-1]));
-    container.appendChild(ul);
-    return container;
-}
-
-function step(name,time) {
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${name}</strong> — <em>${time}</em>`;
-    return li;
 }
 
 // ========== DEVICE / USER TRACKING ==========
@@ -239,36 +201,45 @@ function getDeviceId() {
 async function requirePremium(action) {
     try {
         const deviceId = getDeviceId();
+        if (!deviceId) {
+            alert("Device ID missing. Cannot verify subscription.");
+            return;
+        }
+
         const maxFreePlans = 3;
 
+        // 1️⃣ Check subscription status
         const subRes = await fetch(`/api/check-subscription/?device_id=${deviceId}`);
         const subData = await subRes.json();
 
         if (subData.active) {
-            action();
+            action(); // premium active → proceed
             return;
         }
 
-        // Increment free plan usage
+        // 2️⃣ Increment free plan usage
         const planRes = await fetch("/api/increment_free_plan/", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ device_id: deviceId })
         });
+
         const planData = await planRes.json();
 
+        // 3️⃣ Decide if user can generate lesson plan
         if (planData.free_plans_used < maxFreePlans) {
-            action();
+            action(); // still under free plan limit → proceed
         } else {
             alert("Free lesson plan limit reached. Please subscribe.");
             window.location.href = "/payment/";
         }
 
     } catch (err) {
-        console.error(err);
+        console.error("requirePremium error:", err);
         alert("Unable to verify subscription. Check your connection.");
     }
 }
+
 
 // ========== MTN PAYMENT ==========
 async function subscribeFromPage() {
@@ -329,4 +300,61 @@ async function pollSubscriptionFromPage(deviceId, plan) {
             statusEl.className='status-message text-warning';
         }
     },5000);
+}
+
+async function generateLessonPlanFromForm() {
+    const formData = getFormData();
+    if (!formData.level || !formData.className || !formData.subject || !formData.unitTitle || !formData.totalLessons || !lessonSelect.value) {
+        alert("Please fill all required fields!");
+        return;
+    }
+
+    try {
+        const deviceId = getDeviceId();
+
+        // Build payload for backend
+const payload = {
+    device_id: deviceId,
+    level: formData.level,
+    class: formData.className,
+    subject: formData.subject,
+    unit_id: unitSelect.value,
+    lesson_id: lessonSelect.value,
+    school_name: formData.schoolName,
+    teacher_name: formData.teacherName,
+    term: formData.term,
+    class_size: formData.classSize,
+    lesson_no: document.getElementById('lessonNo').value || 1,          // <-- matches view
+    total_lessons: document.getElementById('totalLessons').value || 1,   // <-- same
+    duration: document.getElementById('duration').value || 40,           // <-- matches view
+    specialNeeds: document.getElementById('specialNeeds').value || '',   // <-- matches view
+    references: document.getElementById('references').value || ''
+};
+
+
+        const res = await fetch('/api/generate_lesson_plan/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const apiData = await res.json();
+
+        if (!res.ok) {
+            alert(apiData.error || "Unable to generate lesson plan. Please try again.");
+            return;
+        }
+        console.log("HTML from backend:", apiData.html.substring(0, 200));
+
+        // Use API response to render
+        lessonPlanContent.textContent = '';
+        lessonPlanContent.innerHTML = apiData.html;
+        console.log(apiData.html);
+
+        resultContainer.classList.add('show');
+
+    } catch (err) {
+        console.error(err);
+        alert("Unable to generate lesson plan. Check your connection.");
+    }
 }

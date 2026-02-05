@@ -13,6 +13,7 @@ from django.contrib.auth.models import User
 import uuid
 from django.views.decorators.csrf import csrf_exempt
 import json
+from rest_framework.decorators import api_view
 
 from .mtn_service import request_payment
 from .models import Level, Class, Subject, Unit, Lesson, UserProfile, Subscription
@@ -115,23 +116,29 @@ def payment_page(request):
 # -----------------------------
 # Increment Free Plan Usage (Hybrid)
 # -----------------------------
+# -----------------------------
+# Increment Free Plan Usage (Hybrid)
+# -----------------------------
 @csrf_exempt
 def increment_free_plan(request):
     try:
         data = json.loads(request.body)
         device_id = data.get('device_id')
-        profile = UserProfile.objects.filter(device_id=device_id).first()
-        if not profile:
-            return JsonResponse({"error": "Profile not found"}, status=404)
+        if not device_id:
+            return JsonResponse({"error": "Missing device_id"}, status=400)
+
+        # Get or create UserProfile for this device
+        profile, created = UserProfile.objects.get_or_create(device_id=device_id)
 
         # Only increment if not premium
-        if not profile.premium_active:
+        profile.check_subscription_status()  # auto-updates premium status if expired
+        if not profile.is_premium:
             profile.free_plans_used += 1
             profile.save()
 
         return JsonResponse({
             "free_plans_used": profile.free_plans_used,
-            "premium_active": profile.premium_active
+            "premium_active": profile.is_premium
         })
 
     except Exception as e:
@@ -190,43 +197,112 @@ class LessonViewSet(viewsets.ModelViewSet):
         return qs
 
 
-# -----------------------------
-# Generate Lesson Plan (Hybrid & Free/Premium)
-# -----------------------------
 @api_view(['POST'])
 def generate_lesson_plan(request):
+    from django.template.loader import render_to_string
+    from django.utils.html import escape
+
+    # -----------------------------
+    # Validate device_id
+    # -----------------------------
     device_id = request.data.get('device_id')
     if not device_id:
         return Response({"error": "device_id is required"}, status=400)
 
+    # -----------------------------
+    # Get or create UserProfile
+    # -----------------------------
     profile, _ = UserProfile.objects.get_or_create(device_id=device_id)
 
-    # Lock date if subscription expired / not allowed
-    allow_date = profile.allow_future_dates or profile.premium_active
-    if not allow_date:
-        return Response({"error": "Your subscription does not allow future dates."}, status=403)
+    # -----------------------------
+    # Check subscription / future date permission
+    # -----------------------------
+    allow_date = True
+    # if not allow_date:
+    #    return Response({"error": "Your subscription does not allow future dates."}, status=403)
 
-    if profile.can_generate_plan():
-        profile.use_plan()
-        lesson_plan_data = {
-            "message": "Lesson plan generated successfully",
-            "free_plans_used": profile.free_plans_used,
-            "premium_active": profile.premium_active,
-            "lesson_plan": {
-                "title": "Sample Lesson Plan",
-                "units": "Unit 1: Fractions",
-                "lessons": [
-                    "Lesson 1: Introduction",
-                    "Lesson 2: Practice",
-                    "Lesson 3: Simplify"
-                ]
-            }
-        }
-        return Response(lesson_plan_data)
+    # -----------------------------
+    # Check plan availability
+    # -----------------------------
+    if not profile.can_generate_plan():
+        return Response({"error": "Free lesson plan limit reached. Please subscribe to access more."}, status=403)
+
+    # -----------------------------
+    # Track plan usage
+    # -----------------------------
+    profile.use_lesson()
+
+    # -----------------------------
+    # Fetch Unit and Lesson
+    # -----------------------------
+    unit_id = request.data.get("unit_id")
+    lesson_id = request.data.get("lesson_id")
+
+    unit = Unit.objects.filter(id=unit_id).first()
+    lesson = Lesson.objects.filter(id=lesson_id).first()
+
+    # -----------------------------
+    # Build lesson_info and unit_info
+    # -----------------------------
+    lesson_info = {
+        "school_name": request.data.get("school_name") or profile.school_name or "",
+        "teacher_name": request.data.get("teacher_name") or profile.teacher_name or "",
+        "term": request.data.get("term") or profile.default_term or "",
+        "class_size": request.data.get("class_size") or profile.class_size or 0,
+        "references": lesson.references if lesson else profile.references or "",
+        "lesson_title": lesson.title if lesson else "",
+        "class_name": request.data.get("class") or "",
+        "level": request.data.get("level") or "",
+        "subject": request.data.get("subject") or (unit.subject.title if unit and unit.subject else ""),
+        "date": request.data.get('date','')
+    }
+
+    unit_info = {
+        "unit_number": getattr(unit, "number", 1) if unit else 1,
+        "unit_title": unit.title if unit else "",
+        "key_unit_competence": unit.key_unit_competence if unit else f"Be able to understand and apply {lesson_info['lesson_title']} concepts",
+        "total_lessons": unit.lessons.count() if unit and hasattr(unit, "lessons") else 1
+    }
+
+    # -----------------------------
+    # Lesson steps
+    # -----------------------------
+    steps = []
+    if lesson and hasattr(lesson, "lesson_steps"):
+        for idx, step in enumerate(lesson.lesson_steps.all(), start=1):
+            steps.append({
+                "order": idx,
+                "title": step.title or f"Step {idx}",
+                "duration_minutes": step.duration_minutes or 5,
+                "teacher_activity": step.teacher_activity or "",
+                "learner_activity": step.learner_activity or ""
+            })
     else:
-        return Response({
-            "error": "Free lesson plan limit reached. Please subscribe to access more."
-        }, status=403)
+        steps = [
+            {"order": 1, "title": "Introduction", "duration_minutes": 10, "teacher_activity": "Introduce topic", "learner_activity": "Listen and respond"},
+            {"order": 2, "title": "Development", "duration_minutes": 25, "teacher_activity": "Explain concept", "learner_activity": "Practice exercises"},
+            {"order": 3, "title": "Conclusion", "duration_minutes": 5, "teacher_activity": "Summarize", "learner_activity": "Ask questions"}
+        ]
+
+    # -----------------------------
+    # Prepare context for template
+    # -----------------------------
+    context = {
+        'lesson_info': lesson_info,
+        'unit_info': unit_info,
+        'steps': steps,
+        'lesson_number': request.data.get('lesson_no', 1),
+        'lesson_duration': request.data.get('duration', 40),
+        'special_needs': request.data.get('specialNeeds', 'No specific special educational needs identified in this class')
+    }
+
+    # -----------------------------
+    # Render HTML from template
+    # -----------------------------
+    html_content = render_to_string('partials/lesson_plan_table.html', context)
+
+    return Response({"html": html_content})
+
 
 
 # -----------------------------
@@ -273,16 +349,48 @@ def check_subscription(request):
     if not profile:
         return JsonResponse({"active": False, "free_plans_used": 0})
 
-    active = Subscription.objects.filter(
-        user_profile=profile,
-        active=True,
-        end_date__gte=timezone.now()
-    ).exists()
+    profile.check_subscription_status()
 
     return JsonResponse({
-        "active": active,
+        "active": profile.premium_active,
         "free_plans_used": profile.free_plans_used
     })
+
+
+# -----------------------------
+# Prefill User Data API
+# -----------------------------
+@api_view(['GET'])
+def get_user_prefill(request):
+    """
+    Returns prefill data for logged-in user or by device_id
+    """
+    if request.user.is_authenticated:
+        profile = UserProfile.objects.filter(user=request.user).first()
+    else:
+        device_id = request.GET.get('device_id')
+        profile = UserProfile.objects.filter(device_id=device_id).first()
+
+    if not profile:
+        return Response({"error": "UserProfile not found"}, status=404)
+
+    # Example: default or saved values
+    prefill_data = {
+        "schoolName": profile.school_name or "",
+        "teacherName": (
+            request.user.get_full_name()
+            if request.user.is_authenticated and request.user.get_full_name()
+            else profile.teacher_name or ""
+    ),
+        "term": profile.default_term or "I",
+        "classSize": profile.class_size or "",
+        "references": profile.references or "",
+        "unitTitle": "",  # will be filled once teacher selects a unit
+        "lessonTitle": "" # same
+    }
+
+    return Response(prefill_data)
+
 
 
 @api_view(['POST'])

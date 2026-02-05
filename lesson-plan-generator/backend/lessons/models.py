@@ -100,6 +100,12 @@ class UserProfile(models.Model):
 
     # ===== GUEST TRACKING =====
     free_plans_used = models.PositiveIntegerField(default=0)
+    # ===== PREFILL FIELDS FOR LESSON PLAN =====
+    school_name = models.CharField(max_length=255, blank=True, null=True)
+    teacher_name = models.CharField(max_length=255, blank=True, null=True)
+    default_term = models.CharField(max_length=5, blank=True, null=True)  # e.g., I, II, III
+    class_size = models.PositiveIntegerField(blank=True, null=True)
+    references = models.TextField(blank=True, null=True)
 
     # ===== TIMESTAMPS =====
     created_at = models.DateTimeField(auto_now_add=True)
