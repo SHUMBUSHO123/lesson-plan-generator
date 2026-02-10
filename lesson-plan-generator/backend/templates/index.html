@@ -234,14 +234,6 @@ function closeModal() {
     document.getElementById('subscribeModal').style.display = 'none';
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('generateButton');
-    if (btn) {
-        btn.addEventListener('click', () => {
-            requirePremium(() => generateLessonPlanFromForm());
-        });
-    }
-});
 function subscribe(plan) {
     // Close the modal cleanly
     closeModal();
@@ -249,6 +241,33 @@ function subscribe(plan) {
     // Redirect to canonical pricing page
     window.location.href = `/pricing/?plan=${plan}`;
 }
+</script>
+
+<!-- ================= FIX SUBSCRIBE BUTTONS ================= -->
+<script>
+    // Preserve all content; just fix modal buttons to redirect correctly
+    window.isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
+
+    function handleSubscribeClick(e) {
+        const plan = e.currentTarget.dataset.plan;
+        if (window.isAuthenticated) {
+            window.location.href = "{% url 'payment' %}?plan=" + plan;
+        } else {
+            window.location.href = "{% url 'register' %}";
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const buttons = document.querySelectorAll('.choose-btn');
+        buttons.forEach(btn => {
+            const planMatch = btn.getAttribute('onclick').match(/'(\w+)'/);
+            if(planMatch) {
+                btn.dataset.plan = planMatch[1];
+                btn.removeAttribute('onclick');
+                btn.addEventListener('click', handleSubscribeClick);
+            }
+        });
+    });
 </script>
 
 <footer>

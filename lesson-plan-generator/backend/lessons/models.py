@@ -82,6 +82,9 @@ FREE_LESSON_LIMIT = 3  # Default for guests / non-premium
 # -----------------------------
 # UserProfile Model
 # -----------------------------
+# -----------------------------
+# UserProfile Model (Secure Default Lesson Limit)
+# -----------------------------
 class UserProfile(models.Model):
     """
     Hybrid UserProfile (AUTHORITATIVE)
@@ -90,7 +93,9 @@ class UserProfile(models.Model):
     """
 
     # Identity
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True
+    )
     device_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     # Status & Access
@@ -108,7 +113,12 @@ class UserProfile(models.Model):
     subscription_expiry = models.DateTimeField(null=True, blank=True)
 
     # Usage Limits
-    lesson_limit = models.PositiveIntegerField(null=True, blank=True, help_text="NULL = unlimited / hybrid logic")
+    # 🔹 CHANGED: enforce default 3 lessons for guests and new non-premium users
+    lesson_limit = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="NULL = unlimited / hybrid logic"
+    )
     lessons_used = models.PositiveIntegerField(default=0)
 
     # Prefill Data
@@ -134,11 +144,12 @@ class UserProfile(models.Model):
     # Hybrid Access Methods
     # ----------------------
     def get_current_lesson_limit(self):
+        # 🔹 CHANGED: guest and new non-premium user fallback to 3
         if self.is_premium and self.subscription_plan:
             return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
         if self.lesson_limit is not None:
             return self.lesson_limit
-        return FREE_LESSON_LIMIT
+        return FREE_LESSON_LIMIT  # ensures default of 3
 
     def can_generate_plan(self):
         if not self.is_active or not self.can_generate:
@@ -186,6 +197,7 @@ class UserProfile(models.Model):
         self.subscription_plan = None
         self.subscription_start = None
         self.subscription_expiry = None
+        # 🔹 CHANGED: ensure lesson_limit reset to 3 for non-premium users
         self.lesson_limit = FREE_LESSON_LIMIT
         self.lessons_used = 0
         self.save()
@@ -202,10 +214,16 @@ class UserProfile(models.Model):
     # Safety Net
     # ----------------------
     def save(self, *args, **kwargs):
+        # 🔹 CHANGED: enforce default 3 lessons if new guest or non-premium user
+        if not self.pk:  # new object
+            if not self.is_premium and self.lesson_limit is None:
+                self.lesson_limit = FREE_LESSON_LIMIT
+
         if self.pk:
             old = UserProfile.objects.get(pk=self.pk)
             if old.device_id and self.device_id != old.device_id:
                 self.device_id = old.device_id
+
         super().save(*args, **kwargs)
 
     def __str__(self):

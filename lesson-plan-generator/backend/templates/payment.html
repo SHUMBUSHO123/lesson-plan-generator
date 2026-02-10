@@ -39,6 +39,27 @@
         .btn-mtn:hover { background-color: #219150; }
         .btn-manual { background-color: #f39c12; color: #fff; }
         .btn-manual:hover { background-color: #d48806; }
+
+        /* New professional manual payment steps */
+        .manual-steps {
+            background-color: #fef9f2;
+            border: 1px solid #f5c27b;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .manual-steps h6 {
+            font-weight: 600;
+            color: #d35400;
+            margin-bottom: 10px;
+        }
+        .manual-steps ol {
+            padding-left: 20px;
+        }
+        .manual-steps ol li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 <body>
@@ -74,11 +95,29 @@
     <!-- Manual Payment Section -->
     <div class="manual-section">
         <h5 class="mb-3">Manual Payment / Code Submission</h5>
-        <p>Contact admin via 
+
+        <div class="manual-steps">
+            <h6>How to pay manually via MTN:</h6>
+            <ol>
+                <li>Dial <strong>*182*8*1*1944115*AMOUNT*PIN#</strong> from your MTN number registered under <strong>ISOMOPLUS</strong>.</li>
+                <li>Enter the amount corresponding to your selected plan:</li>
+                <ul>
+                    <li>Weekly → 200 RWF</li>
+                    <li>Monthly → 500 RWF</li>
+                    <li>Term → 1000 RWF</li>
+                </ul>
+                <li>Confirm the transaction and note the payment code you receive.</li>
+                <li>Return to this page and enter the code below to submit for admin approval.</li>
+            </ol>
+        </div>
+
+        <p>Alternatively, contact admin via 
             <a href="https://wa.me/YOUR_NUMBER" target="_blank">WhatsApp</a> or call <strong>YOUR_NUMBER</strong> to get your payment code.</p>
+
         <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="navigator.clipboard.writeText('YOUR_NUMBER').then(()=>alert('Admin number copied!'))">
             Copy Admin Number
         </button>
+
         <input id="manualCodeInput" type="text" class="form-control mb-3" placeholder="Enter payment code or proof">
         <button id="manualSubmitButton" class="btn btn-manual btn-pay">Submit Code for Approval</button>
     </div>

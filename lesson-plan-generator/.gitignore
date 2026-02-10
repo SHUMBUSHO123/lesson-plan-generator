@@ -17,3 +17,7 @@ db.sqlite3
 # IDEs
 .vscode/
 .idea/
+
+# Django collected static files
+staticfiles/
+backend/staticfiles/
