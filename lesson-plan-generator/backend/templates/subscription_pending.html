@@ -1,0 +1,77 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment Pending - CBC Lesson Plan Generator</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+
+    <style>
+        body { 
+            background-color: #f5f7fa; 
+            font-family: 'Inter', sans-serif; 
+        }
+        .pending-container {
+            max-width: 600px;
+            margin: 80px auto;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            background-color: #fff;
+            text-align: center;
+        }
+        .pending-container h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2D9CDB;
+            margin-bottom: 15px;
+        }
+        .pending-container p {
+            font-size: 1rem;
+            color: #555;
+            margin-bottom: 25px;
+        }
+        .btn-action {
+            margin: 10px 5px;
+            padding: 12px 25px;
+            border-radius: 30px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+        .btn-whatsapp { background-color: #25D366; color: #fff; }
+        .btn-call { background-color: #2D9CDB; color: #fff; }
+        .btn-home { background-color: #27AE60; color: #fff; }
+        .btn-action:hover { opacity: 0.9; transform: scale(1.03); transition: 0.2s; }
+    </style>
+</head>
+<body>
+
+<div class="pending-container">
+    <h2>Payment Pending Approval</h2>
+    <p>Thank you! Your manual payment has been submitted and is currently <strong>pending admin approval</strong>.</p>
+
+    {% if plan %}
+    <p><strong>Selected Plan:</strong> {{ plan|title }}</p>
+    {% endif %}
+
+    <p>If you have not submitted the payment yet or need assistance, please contact our admin directly:</p>
+
+    <div>
+        <a href="https://wa.me/YOUR_NUMBER" target="_blank" class="btn-action btn-whatsapp">💬 WhatsApp Admin</a>
+        <a href="tel:YOUR_NUMBER" class="btn-action btn-call">📞 Call Admin</a>
+    </div>
+
+    <p class="mt-4">You will be notified via your account once the payment is approved.</p>
+
+    <div>
+        <a href="{% url 'landing' %}" class="btn-action btn-home">🏠 Back to Home</a>
+        <a href="{% url 'pricing' %}" class="btn-action btn-home">💳 Upgrade Another Plan</a>
+    </div>
+</div>
+
+</body>
+</html>

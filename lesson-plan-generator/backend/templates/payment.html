@@ -11,39 +11,52 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <style>
+        body { background-color: #f5f7fa; font-family: 'Inter', sans-serif; }
         .payment-container {
             max-width: 500px;
             margin: 60px auto;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
             background-color: #fff;
         }
+        .payment-container h2 { font-size: 1.9rem; font-weight: 600; }
         .status-message {
             margin-top: 15px;
-            font-weight: bold;
+            font-weight: 500;
             min-height: 24px;
+            text-align: center;
+            color: #333;
         }
-        .payment-container h2 {
-            font-size: 1.8rem;
-            font-weight: 600;
+        .manual-section {
+            border-top: 1px solid #ddd;
+            margin-top: 30px;
+            padding-top: 20px;
         }
+        .btn-pay { width: 100%; font-weight: 600; transition: 0.3s; }
+        .btn-pay:hover { transform: scale(1.03); }
+        .btn-mtn { background-color: #27ae60; color: #fff; }
+        .btn-mtn:hover { background-color: #219150; }
+        .btn-manual { background-color: #f39c12; color: #fff; }
+        .btn-manual:hover { background-color: #d48806; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
 <div class="payment-container">
     <h2 class="text-center mb-4">Subscribe to Premium</h2>
 
+    <!-- Plan Selection -->
     <div class="mb-3">
         <label for="planSelect" class="form-label">Select Plan</label>
         <select id="planSelect" class="form-select">
-            <option value="weekly">Weekly - 20 RWF</option>
-            <option value="monthly">Monthly - 50 RWF</option>
-            <option value="term">Term - 111 RWF</option>
+            <option value="weekly">Weekly - 200 RWF</option>
+            <option value="monthly">Monthly - 500 RWF</option>
+            <option value="term">Term - 1000 RWF</option>
         </select>
     </div>
 
+    <!-- MTN Mobile Money Section -->
     <div class="mb-3">
         <label for="phoneInput" class="form-label">MTN MoMo Number</label>
         <input id="phoneInput" type="text" class="form-control" placeholder="e.g. 25078xxxxxxx">
@@ -56,11 +69,103 @@
         </label>
     </div>
 
-    <button id="payButton" class="btn btn-primary w-100">💳 Pay & Subscribe</button>
+    <button id="payButton" class="btn btn-mtn btn-pay mb-3">💳 Pay with MTN MoMo</button>
 
-    <div id="paymentStatus" class="status-message text-center"></div>
+    <!-- Manual Payment Section -->
+    <div class="manual-section">
+        <h5 class="mb-3">Manual Payment / Code Submission</h5>
+        <p>Contact admin via 
+            <a href="https://wa.me/YOUR_NUMBER" target="_blank">WhatsApp</a> or call <strong>YOUR_NUMBER</strong> to get your payment code.</p>
+        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="navigator.clipboard.writeText('YOUR_NUMBER').then(()=>alert('Admin number copied!'))">
+            Copy Admin Number
+        </button>
+        <input id="manualCodeInput" type="text" class="form-control mb-3" placeholder="Enter payment code or proof">
+        <button id="manualSubmitButton" class="btn btn-manual btn-pay">Submit Code for Approval</button>
+    </div>
+
+    <div id="paymentStatus" class="status-message"></div>
 </div>
 
-<script src="{% static 'js/script.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const plan = urlParams.get('plan');
+    if(plan){
+        const planSelect = document.getElementById('planSelect');
+        if(planSelect) planSelect.value = plan;
+    }
+
+    const payButton = document.getElementById('payButton');
+    const manualButton = document.getElementById('manualSubmitButton');
+    const termsCheck = document.getElementById('termsCheck');
+    const paymentStatus = document.getElementById('paymentStatus');
+
+    // Clear status on input change
+    document.getElementById('phoneInput').addEventListener('input', () => paymentStatus.textContent = '');
+    document.getElementById('manualCodeInput').addEventListener('input', () => paymentStatus.textContent = '');
+
+    // Automated MTN Payment
+    payButton.addEventListener('click', async () => {
+        const phone = document.getElementById('phoneInput').value.trim();
+        const plan = document.getElementById('planSelect').value;
+
+        if(!phone){ paymentStatus.textContent = 'Enter your MTN number'; return; }
+        if(!termsCheck.checked){ paymentStatus.textContent = 'Accept Terms & Conditions'; return; }
+
+        payButton.disabled = true;
+        paymentStatus.textContent = 'Processing MTN payment...';
+
+        try {
+            const res = await fetch("{% url 'process_mtn_payment' %}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json","X-CSRFToken": "{{ csrf_token }}"},
+                body: JSON.stringify({ phone, plan })
+            });
+            const data = await res.json();
+            if(data.success){
+                window.location.href = "{% url 'subscription_success' %}";
+            } else {
+                paymentStatus.textContent = data.error || 'Payment failed. Try again or use Manual Payment.';
+            }
+        } catch(err){
+            console.error(err);
+            paymentStatus.textContent = 'Network error. Try again.';
+        } finally {
+            payButton.disabled = false;
+        }
+    });
+
+    // Manual Payment / Code Submission
+    manualButton.addEventListener('click', async () => {
+        const code = document.getElementById('manualCodeInput').value.trim();
+        const plan = document.getElementById('planSelect').value;
+
+        if(!code){ paymentStatus.textContent = 'Enter your payment code or proof'; return; }
+
+        manualButton.disabled = true;
+        paymentStatus.textContent = 'Submitting code...';
+
+        try {
+            const res = await fetch("{% url 'submit_manual_payment' %}", {
+                method: "POST",
+                headers: {"Content-Type": "application/json","X-CSRFToken": "{{ csrf_token }}"},
+                body: JSON.stringify({ code, plan })
+            });
+            const data = await res.json();
+            if(data.success){
+                window.location.href = "{% url 'subscription_pending' %}";
+            } else {
+                paymentStatus.textContent = data.error || 'Submission failed. Contact admin.';
+            }
+        } catch(err){
+            console.error(err);
+            paymentStatus.textContent = 'Network error. Try again.';
+        } finally {
+            manualButton.disabled = false;
+        }
+    });
+});
+</script>
+
 </body>
 </html>

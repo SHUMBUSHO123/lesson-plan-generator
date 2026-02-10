@@ -21,6 +21,11 @@
 
 <body data-device-id="{{ request.user.userprofile.device_id|default:'' }}">
 
+<script>
+    // Ensure logged-in users use the correct device_id
+    window.userDeviceId = document.body.dataset.deviceId || null;
+</script>
+
 <nav class="navbar">
     <div class="nav-left">
         <a href="{% url 'landing' %}" class="brand">CBC Lesson Plan Generator</a>
@@ -44,6 +49,7 @@
 
     <div class="form-container">
         <form id="lessonForm">
+            {% csrf_token %}
             <div class="form-grid">
 
                 <!-- School & Teacher -->
@@ -209,6 +215,12 @@
   Install App
 </button>
 
+<!-- ====== CSRF token available for JS POSTs ====== -->
+<script>
+    const csrfInput = document.querySelector('#lessonForm input[name=csrfmiddlewaretoken]');
+    window.CSRF_TOKEN = csrfInput ? csrfInput.value : '';
+</script>
+
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -230,6 +242,13 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+function subscribe(plan) {
+    // Close the modal cleanly
+    closeModal();
+
+    // Redirect to canonical pricing page
+    window.location.href = `/pricing/?plan=${plan}`;
+}
 </script>
 
 <footer>

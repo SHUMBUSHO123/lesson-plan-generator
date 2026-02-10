@@ -1,4 +1,9 @@
+# File: /lesson-plan-generator/backend/lessons/admin.py
+
+from datetime import timedelta
+from django.utils import timezone
 from django.contrib import admin
+from django import forms
 from .models import (
     Level,
     Class,
@@ -9,9 +14,9 @@ from .models import (
     Subscription
 )
 
-# -----------------------------
+# ===============================
 # INLINE MODELS
-# -----------------------------
+# ===============================
 class LessonInline(admin.TabularInline):
     model = Lesson
     extra = 0
@@ -40,9 +45,9 @@ class ClassInline(admin.TabularInline):
     show_change_link = True
 
 
-# -----------------------------
+# ===============================
 # MODEL ADMINS
-# -----------------------------
+# ===============================
 @admin.register(Level)
 class LevelAdmin(admin.ModelAdmin):
     list_display = ('name', 'id')
@@ -109,23 +114,87 @@ class LessonAdmin(admin.ModelAdmin):
     level_name.short_description = 'Level'
 
 
-# -----------------------------
-# USER PROFILE / SUBSCRIPTION
-# -----------------------------
+# ===============================
+# ADMIN ACTIONS
+# ===============================
+@admin.action(description="Activate selected users for premium (default weekly)")
+def activate_selected_premium(modeladmin, request, queryset):
+    """
+    Bulk admin action: Activate premium for selected users.
+    Uses default weekly plan (7 days) unless subscription_plan set on profile.
+    Resets lessons_used.
+    """
+    plan_durations = {'weekly': 7, 'monthly': 30, 'term': 90}
+    activated_count = 0
+
+    for profile in queryset:
+        # Determine duration: use plan on profile if available
+        days = plan_durations.get(profile.subscription_plan, 7)
+        profile.activate_premium(days=days, plan=profile.subscription_plan or "weekly")
+        profile.lessons_used = 0
+        profile.save()
+        activated_count += 1
+        print(f"[Admin Bulk] Premium activated for {profile}, expires {profile.subscription_expiry}")
+
+    modeladmin.message_user(request, f"✅ Activated premium for {activated_count} users.")
+
+
+# ===============================
+# USER PROFILE FORM (Admin)
+# ===============================
+class UserProfileAdminForm(forms.ModelForm):
+    custom_premium_days = forms.IntegerField(
+        required=False,
+        min_value=1,
+        label="Custom Premium Duration (days)",
+        help_text="Optional: Override plan duration for premium access."
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = '__all__'
+
+
+# ===============================
+# USER PROFILE ADMIN
+# ===============================
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
+    form = UserProfileAdminForm
     list_display = (
         'user',
         'device_id',
-        'free_plans_used',
-        'premium_active',
-        'premium_start',
-        'premium_expiry'
+        'is_premium',
+        'subscription_plan',
+        'subscription_start',
+        'subscription_expiry',
+        'subscription_status',
+        'lessons_used',
+        'lesson_limit',
+        'can_generate'
     )
     search_fields = ('user__email', 'device_id')
-    list_filter = ('premium_active',)
+    list_filter = ('is_premium', 'subscription_plan', 'is_active')
+    actions = [activate_selected_premium]
+    readonly_fields = ('subscription_status',)
+
+    def subscription_status(self, obj):
+        if obj.is_premium and obj.subscription_expiry:
+            return "Active" if obj.subscription_expiry >= timezone.now() else "Expired"
+        return "Inactive"
+    subscription_status.short_description = "Status"
+    
+    def save_model(self, request, obj, form, change):
+       """
+       Admin is authoritative.
+       Do NOT auto-activate premium unless admin explicitly does it.
+       """
+       super().save_model(request, obj, form, change)
 
 
+# ===============================
+# SUBSCRIPTION ADMIN
+# ===============================
 @admin.register(Subscription)
 class SubscriptionAdmin(admin.ModelAdmin):
     list_display = (

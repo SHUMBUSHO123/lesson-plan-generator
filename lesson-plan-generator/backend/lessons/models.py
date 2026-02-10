@@ -1,9 +1,9 @@
-# File: /lesson-plan-generator/backend/lessons/models.py
-
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib.auth.models import User
+from django.conf import settings
+from django.db.models import F
+
 
 # -----------------------------
 # Core Models for Lesson Plans
@@ -55,137 +55,173 @@ class Lesson(models.Model):
 
 
 # -----------------------------
-# Device-based Premium Access
+# Plan Constants (5-day week)
 # -----------------------------
-
 PLAN_CHOICES = [
     ('weekly', 'Weekly'),
     ('monthly', 'Monthly'),
     ('term', 'Term'),
 ]
 
+PLAN_DURATIONS = {
+    'weekly': 5,      # 5 teaching days per week
+    'monthly': 20,    # 4 weeks × 5 days
+    'term': 60,       # 12 weeks × 5 days
+}
+
+# Max lessons per plan assuming 10 lessons/day
+SUBSCRIPTION_LIMITS = {
+    'weekly': 50,     # 10 lessons/day × 5 days
+    'monthly': 200,   # 10 lessons/day × 20 days
+    'term': 600,      # 10 lessons/day × 60 days
+}
+
+FREE_LESSON_LIMIT = 3  # Default for guests / non-premium
+
+
+# -----------------------------
+# UserProfile Model
+# -----------------------------
 class UserProfile(models.Model):
     """
-    Hybrid UserProfile: supports registered users (email/login) and device-only guests.
-    Fully admin-controllable with premium status, dynamic limits, feature flags, and date restrictions.
+    Hybrid UserProfile (AUTHORITATIVE)
+    Supports logged-in users and device-only guests.
+    All access decisions flow through this model.
     """
-    # ===== HYBRID IDENTIFICATION =====
-    user = models.OneToOneField(User, on_delete=models.CASCADE, null=True, blank=True)
-    device_id = models.CharField(max_length=255, unique=True)
 
-    # ===== STATUS & SUBSCRIPTION =====
-    is_active = models.BooleanField(default=True)   # block user completely
+    # Identity
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    device_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
+
+    # Status & Access
+    is_active = models.BooleanField(default=True)
     is_premium = models.BooleanField(default=False)
-    subscription_plan = models.CharField(max_length=20, choices=PLAN_CHOICES, null=True, blank=True)
-    subscription_start = models.DateTimeField(null=True, blank=True)
-    subscription_expiry = models.DateTimeField(null=True, blank=True)
-    premium_active = models.BooleanField(default=False)
-    premium_start = models.DateTimeField(null=True, blank=True)
-    premium_expiry = models.DateTimeField(null=True, blank=True)
-    
 
-    # ===== DYNAMIC LIMITS =====
-    lesson_limit = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="NULL = unlimited lessons"
-    )
-    lessons_used = models.PositiveIntegerField(default=0)
-
-    # ===== FEATURE FLAGS =====
     can_generate = models.BooleanField(default=True)
     can_download_pdf = models.BooleanField(default=False)
     can_download_docx = models.BooleanField(default=False)
     can_copy_word = models.BooleanField(default=False)
-    allow_future_dates = models.BooleanField(default=False)
 
-    # ===== GUEST TRACKING =====
-    free_plans_used = models.PositiveIntegerField(default=0)
-    # ===== PREFILL FIELDS FOR LESSON PLAN =====
+    # Subscription
+    subscription_plan = models.CharField(max_length=20, null=True, blank=True, choices=PLAN_CHOICES)
+    subscription_start = models.DateTimeField(null=True, blank=True)
+    subscription_expiry = models.DateTimeField(null=True, blank=True)
+
+    # Usage Limits
+    lesson_limit = models.PositiveIntegerField(null=True, blank=True, help_text="NULL = unlimited / hybrid logic")
+    lessons_used = models.PositiveIntegerField(default=0)
+
+    # Prefill Data
     school_name = models.CharField(max_length=255, blank=True, null=True)
     teacher_name = models.CharField(max_length=255, blank=True, null=True)
-    default_term = models.CharField(max_length=5, blank=True, null=True)  # e.g., I, II, III
+    default_term = models.CharField(max_length=5, blank=True, null=True)
     class_size = models.PositiveIntegerField(blank=True, null=True)
     references = models.TextField(blank=True, null=True)
 
-    # ===== TIMESTAMPS =====
+    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # -------------------------
-    # HELPERS / BUSINESS LOGIC
-    # -------------------------
+    # Derived Properties
+    @property
     def is_guest(self):
         return self.user is None
 
     def has_unlimited_access(self):
         return self.lesson_limit is None
 
-    def check_subscription_status(self):
-        """Automatically deactivate premium if expired."""
+    # ----------------------
+    # Hybrid Access Methods
+    # ----------------------
+    def get_current_lesson_limit(self):
+        if self.is_premium and self.subscription_plan:
+            return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
+        if self.lesson_limit is not None:
+            return self.lesson_limit
+        return FREE_LESSON_LIMIT
+
+    def can_generate_plan(self):
+        if not self.is_active or not self.can_generate:
+            return False
+        return self.lessons_used < self.get_current_lesson_limit()
+
+    def use_lesson(self):
+        if self.is_subscription_active() or self.has_unlimited_access():
+            return
+        UserProfile.objects.filter(pk=self.pk).update(lessons_used=F('lessons_used') + 1)
+
+    # ----------------------
+    # Subscription Logic
+    # ----------------------
+    def is_subscription_active(self):
+        if not self.is_premium:
+            return False
+        if self.subscription_expiry:
+            return timezone.now() <= self.subscription_expiry
+        return True
+
+    def expire_subscription_if_needed(self):
         if self.subscription_expiry and timezone.now() > self.subscription_expiry:
             self.is_premium = False
             self.subscription_plan = None
-            self.subscription_start = None
-            self.subscription_expiry = None
-            self.free_plans_used = 0
-            self.save()
+            self.lesson_limit = FREE_LESSON_LIMIT
+            self.lessons_used = 0
+            self.save(update_fields=['is_premium','subscription_plan','lesson_limit','lessons_used'])
 
-    def can_generate_plan(self):
-        """Check if the user/guest can generate a lesson."""
-        self.check_subscription_status()
-        if not self.is_active or not self.can_generate:
-            return False
-        if self.is_premium:
-            return True
-        # For free/guest users, use lesson limit or free_plans_used
-        if self.has_unlimited_access():
-            return True
-        return self.lessons_used < self.lesson_limit
-
-    def use_lesson(self):
-        """Increment lesson usage when generating a lesson plan."""
-        self.check_subscription_status()
-        if self.is_premium:
-            return
-        if self.has_unlimited_access():
-            return
-        self.lessons_used += 1
+    # ----------------------
+    # Admin Control Methods
+    # ----------------------
+    def activate_premium(self, plan='weekly', reset_usage=True):
+        self.is_premium = True
+        self.subscription_plan = plan
+        self.subscription_start = timezone.now()
+        self.subscription_expiry = timezone.now() + timedelta(days=PLAN_DURATIONS.get(plan, 5))
+        self.lesson_limit = SUBSCRIPTION_LIMITS.get(plan)
+        if reset_usage:
+            self.lessons_used = 0
         self.save()
 
-    def activate_premium(self, days, plan=None):
-        """Activate premium access for a given number of days."""
-        self.is_premium = True
-        self.subscription_start = timezone.now()
-        self.subscription_expiry = timezone.now() + timedelta(days=days)
-        self.subscription_plan = plan
+    def deactivate_premium(self):
+        self.is_premium = False
+        self.subscription_plan = None
+        self.subscription_start = None
+        self.subscription_expiry = None
+        self.lesson_limit = FREE_LESSON_LIMIT
+        self.lessons_used = 0
         self.save()
 
     def block_user(self):
-        """Admin can block user completely."""
         self.is_active = False
-        self.save()
+        self.save(update_fields=['is_active'])
 
     def unblock_user(self):
-        """Admin can unblock user."""
         self.is_active = True
-        self.save()
+        self.save(update_fields=['is_active'])
+
+    # ----------------------
+    # Safety Net
+    # ----------------------
+    def save(self, *args, **kwargs):
+        if self.pk:
+            old = UserProfile.objects.get(pk=self.pk)
+            if old.device_id and self.device_id != old.device_id:
+                self.device_id = old.device_id
+        super().save(*args, **kwargs)
 
     def __str__(self):
-        if self.user:
-            return f"{self.user.email} | Premium: {self.is_premium}"
-        return f"Guest ({self.device_id[:8]}) | Premium: {self.is_premium}"
+        label = self.user.email if self.user else f"Guest {self.device_id[:8] if self.device_id else 'unknown'}"
+        return f"{label} | Premium: {self.is_premium}"
 
 
+# -----------------------------
+# Subscription Model
+# -----------------------------
 class Subscription(models.Model):
-    user_profile = models.ForeignKey(
-        UserProfile,
-        on_delete=models.CASCADE,
-        related_name="subscriptions"
-    )
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='subscriptions')
     plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
     start_date = models.DateTimeField(auto_now_add=True)
     end_date = models.DateTimeField()
     active = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"{self.user_profile.user.email} - {self.plan}"
+        return f"{self.user_profile} - {self.plan}"
