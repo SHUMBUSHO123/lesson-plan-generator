@@ -11,7 +11,8 @@ if (!window.CSRF_TOKEN) {
 
 const lessonForm = document.getElementById('lessonForm');
 const lessonPlanContent = document.getElementById('lessonPlanContent');
-const resultContainer = document.getElementById('resultContainer');
+document.getElementById('lessonPlanContent')
+
 
 const levelSelect = document.getElementById('level');
 const classSelect = document.getElementById('className');
@@ -154,7 +155,8 @@ function getFormData(){
         term: document.getElementById('term')?.value||'',
         classSize: document.getElementById('classSize')?.value||'',
         references: document.getElementById('references')?.value||'',
-        specialNeeds: document.getElementById('specialNeeds')?.value||''
+        specialNeeds: document.getElementById('specialNeeds')?.value||'',
+        strategy: document.getElementById('strategy')?.value || ''
     };
 }
 
@@ -260,7 +262,8 @@ async function requirePremium(action) {
 // ===============================
 async function generateLessonPlanFromForm() {
     const formData = getFormData();
-    if (!formData.level || !formData.className || !formData.subject || !formData.unitTitle || !formData.totalLessons || !lessonSelect.value) {
+    if (!unitSelect.value || !lessonSelect.value)
+ {
         alert("Please fill all required fields!");
         return;
     }
@@ -271,12 +274,28 @@ async function generateLessonPlanFromForm() {
     try {
         lessonPlanContent.textContent = 'Generating lesson plan...'; // ✅ Show loading feedback
 
-        const payload = {
-            device_id: getDeviceId(),
-            ...formData,
-            unit_id: unitSelect.value,
-            lesson_id: lessonSelect.value
-        };
+       const payload = {
+           device_id: getDeviceId(),
+
+           level: levelSelect.options[levelSelect.selectedIndex].text,
+           class: classSelect.options[classSelect.selectedIndex].text,
+           subject: subjectSelect.options[subjectSelect.selectedIndex].text,
+ 
+           unit_id: unitSelect.value,
+           lesson_id: lessonSelect.value,
+
+           lesson_no: parseInt(document.getElementById('lessonNo')?.value || '1'),
+           duration: parseInt(document.getElementById('duration')?.value || '40'),
+           class_size: document.getElementById('classSize')?.value || '',
+
+           school_name: document.getElementById('schoolName')?.value || '',
+           teacher_name: document.getElementById('teacherName')?.value || '',
+           term: document.getElementById('term')?.value || '',
+           references: document.getElementById('references')?.value || '',
+           special_needs: document.getElementById('specialNeeds')?.value || '',
+           strategy: document.getElementById('strategy')?.value || ''
+};
+
 
         const { ok, data } = await postData('generate_lesson_plan', payload);
         if (!ok) {

@@ -45,7 +45,9 @@
       {% if user.is_authenticated %}
         <a href="{% url 'landing' %}" class="btn-subscribe">Start Free</a>
       {% else %}
-        <a href="{% url 'register' %}" class="btn-subscribe">Get Started</a>
+        <a href="{% url 'register' %}?next={% url 'landing' %}" class="btn-subscribe">
+          Get Started
+        </a>
       {% endif %}
     </div>
 
@@ -59,9 +61,14 @@
         <li>Priority support</li>
       </ul>
       {% if user.is_authenticated %}
-        <a href="{% url 'payment' %}?plan=weekly" class="btn-subscribe">Subscribe</a>
+        <a href="{% url 'payment' %}?plan=weekly" class="btn-subscribe">
+          Subscribe
+        </a>
       {% else %}
-        <a href="{% url 'register' %}" class="btn-subscribe">Register to Subscribe</a>
+        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=weekly"
+           class="btn-subscribe">
+          Register to Subscribe
+        </a>
       {% endif %}
     </div>
 
@@ -75,9 +82,14 @@
         <li>Premium features unlocked</li>
       </ul>
       {% if user.is_authenticated %}
-        <a href="{% url 'payment' %}?plan=monthly" class="btn-subscribe">Subscribe</a>
+        <a href="{% url 'payment' %}?plan=monthly" class="btn-subscribe">
+          Subscribe
+        </a>
       {% else %}
-        <a href="{% url 'register' %}" class="btn-subscribe">Register to Subscribe</a>
+        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=monthly"
+           class="btn-subscribe">
+          Register to Subscribe
+        </a>
       {% endif %}
     </div>
 
@@ -91,15 +103,22 @@
         <li>Premium support</li>
       </ul>
       {% if user.is_authenticated %}
-        <a href="{% url 'payment' %}?plan=term" class="btn-subscribe">Subscribe</a>
+        <a href="{% url 'payment' %}?plan=term" class="btn-subscribe">
+          Subscribe
+        </a>
       {% else %}
-        <a href="{% url 'register' %}" class="btn-subscribe">Register to Subscribe</a>
+        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=term"
+           class="btn-subscribe">
+          Register to Subscribe
+        </a>
       {% endif %}
     </div>
 
   </div>
 
-  <a href="{% url 'landing' %}" class="btn-subscribe" style="background: #27AE60; margin-top: 20px;">Back to Home</a>
+  <a href="{% url 'landing' %}" class="btn-subscribe" style="background: #27AE60; margin-top: 20px;">
+    Back to Home
+  </a>
 
 </div>
 

@@ -243,3 +243,45 @@ class Subscription(models.Model):
 
     def __str__(self):
         return f"{self.user_profile} - {self.plan}"
+
+# -----------------------------
+# Teaching Strategy Model
+# -----------------------------
+class TeachingStrategy(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    is_premium_only = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+# -----------------------------
+# Strategy-Based Lesson Steps
+# -----------------------------
+class LessonStrategyStep(models.Model):
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name="strategy_steps"
+    )
+
+    strategy = models.ForeignKey(
+        TeachingStrategy,
+        on_delete=models.CASCADE,
+        related_name="lesson_steps"
+    )
+
+    step_order = models.PositiveIntegerField()
+    step_title = models.CharField(max_length=100)
+    duration_minutes = models.PositiveIntegerField(default=10)
+
+    teacher_activity = models.TextField()
+    learner_activity = models.TextField()
+    generic_competence = models.TextField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["step_order"]
+
+    def __str__(self):
+        return f"{self.lesson.title} - {self.strategy.name} - Step {self.step_order}"

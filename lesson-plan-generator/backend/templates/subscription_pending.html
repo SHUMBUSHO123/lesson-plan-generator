@@ -33,7 +33,7 @@
         .pending-container p {
             font-size: 1rem;
             color: #555;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
         .btn-action {
             margin: 10px 5px;
@@ -46,31 +46,76 @@
         .btn-call { background-color: #2D9CDB; color: #fff; }
         .btn-home { background-color: #27AE60; color: #fff; }
         .btn-action:hover { opacity: 0.9; transform: scale(1.03); transition: 0.2s; }
+        .info-box {
+            background-color: #eef7ff;
+            border: 1px solid #cfe9ff;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+        }
+        .warning-text {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
 
 <div class="pending-container">
-    <h2>Payment Pending Approval</h2>
-    <p>Thank you! Your manual payment has been submitted and is currently <strong>pending admin approval</strong>.</p>
+
+    <h2>⏳ Payment Verification in Progress</h2>
+
+    <p>
+        ✅ Your payment request has been received successfully.  
+        Our admin team is currently verifying your transaction.
+    </p>
 
     {% if plan %}
     <p><strong>Selected Plan:</strong> {{ plan|title }}</p>
     {% endif %}
 
-    <p>If you have not submitted the payment yet or need assistance, please contact our admin directly:</p>
-
-    <div>
-        <a href="https://wa.me/YOUR_NUMBER" target="_blank" class="btn-action btn-whatsapp">💬 WhatsApp Admin</a>
-        <a href="tel:YOUR_NUMBER" class="btn-action btn-call">📞 Call Admin</a>
+    <div class="info-box">
+        ⏱ <strong>Approval Time:</strong> Usually within <strong>5–30 minutes</strong> during working hours.
     </div>
 
-    <p class="mt-4">You will be notified via your account once the payment is approved.</p>
+    <p>
+        Once approved, your <strong>Premium access will activate automatically</strong>,  
+        and you will immediately be able to generate and download lesson plans without limits.
+    </p>
+
+    <p class="warning-text">
+        ⚠️ Please do not make another payment while this one is under review.
+        Keep your transaction confirmation message until approval.
+    </p>
+
+    <hr>
+
+    <p>If you need assistance or urgent confirmation, please contact our admin directly:</p>
 
     <div>
-        <a href="{% url 'landing' %}" class="btn-action btn-home">🏠 Back to Home</a>
-        <a href="{% url 'pricing' %}" class="btn-action btn-home">💳 Upgrade Another Plan</a>
+        <a href="https://wa.me/YOUR_NUMBER" target="_blank" class="btn-action btn-whatsapp">
+            💬 WhatsApp Admin
+        </a>
+        <a href="tel:YOUR_NUMBER" class="btn-action btn-call">
+            📞 Call Admin
+        </a>
     </div>
+
+    <p class="mt-4">
+        You will be notified inside your account once the payment is approved.
+    </p>
+
+    <div>
+        <a href="{% url 'landing' %}" class="btn-action btn-home">
+            🏠 Back to Home
+        </a>
+        <a href="{% url 'pricing' %}" class="btn-action btn-home">
+            💳 Upgrade Another Plan
+        </a>
+    </div>
+
 </div>
 
 </body>

@@ -14,6 +14,10 @@ from .models import (
     Subscription
 )
 
+from django.contrib import admin
+from .models import TeachingStrategy, LessonStrategyStep
+
+
 # ===============================
 # INLINE MODELS
 # ===============================
@@ -206,3 +210,16 @@ class SubscriptionAdmin(admin.ModelAdmin):
     )
     list_filter = ('plan', 'active')
     search_fields = ('user_profile__user__email',)
+
+@admin.register(TeachingStrategy)
+class TeachingStrategyAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "is_premium_only")
+    list_filter = ("is_active", "is_premium_only")
+    search_fields = ("name",)
+
+
+@admin.register(LessonStrategyStep)
+class LessonStrategyStepAdmin(admin.ModelAdmin):
+    list_display = ("lesson", "strategy", "step_order", "duration_minutes")
+    list_filter = ("strategy", "lesson")
+    ordering = ("lesson", "strategy", "step_order")
