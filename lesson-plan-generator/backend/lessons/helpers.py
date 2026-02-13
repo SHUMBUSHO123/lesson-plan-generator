@@ -2,64 +2,106 @@ from django.shortcuts import get_object_or_404
 from .models import Lesson, Unit, UserProfile, TeachingStrategy, LessonStrategyStep
 from datetime import date
 
+
 def prepare_lesson_plan_context(lesson_id, form_data, user=None, device_id=None):
     """
     Prepare all context needed for rendering a lesson plan table.
-    - lesson_id: primary key of Lesson to fetch
-    - form_data: dict/QueryDict from request.POST with additional inputs
-    - user: Django user object (optional)
-    - device_id: for guest users (optional)
-    Returns: dict ready to pass to lesson_plan_table.html
+    Handles default location/materials and multi-select materials.
     """
+
+    # -----------------------------
     # Get user profile (hybrid: guest or logged-in)
+    # -----------------------------
     if user:
         profile = get_object_or_404(UserProfile, user=user)
     else:
         profile, _ = UserProfile.objects.get_or_create(device_id=device_id)
 
+    # -----------------------------
     # Enforce free lesson limit
+    # -----------------------------
     if not profile.can_generate_plan():
-        raise PermissionError(f"Free Lessons Limit Reached (Only {profile.get_current_lesson_limit()} Allowed)")
+        raise PermissionError(
+            f"Free Lessons Limit Reached (Only {profile.get_current_lesson_limit()} Allowed)"
+        )
 
+    # -----------------------------
     # Fetch lesson object
+    # -----------------------------
     lesson = get_object_or_404(Lesson, pk=lesson_id)
+    unit = lesson.unit
+    subject_name = unit.subject.name if unit.subject else "N/A"
 
-    # Increment usage
-    profile.use_lesson()
+    # -----------------------------
+    # Smart Location & Materials Defaults
+    # -----------------------------
+    if subject_name == "Computer Science":
+        default_materials = ["Computer", "Projector", "IDE software"]
+        default_location = "Computer laboratory"
+    elif subject_name == "Biology":
+        default_materials = ["Charts", "Microscope", "Specimens"]
+        default_location = "Laboratory"
+    elif subject_name == "Chemistry":
+        default_materials = ["Laboratory apparatus", "Chemicals", "Safety equipment"]
+        default_location = "Laboratory"
+    elif subject_name == "Physics":
+        default_materials = ["Laboratory equipment", "Measuring instruments"]
+        default_location = "Laboratory"
+    else:
+        default_materials = ["Textbook", "Chalkboard"]
+        default_location = "Inside classroom"
 
-    # Prepare context for lesson plan table
+    # -----------------------------
+    # Retrieve form values with safe defaults
+    # -----------------------------
+    location_plan = form_data.get("location_plan") or default_location
+
+    # Handle multi-select materials
+    if hasattr(form_data, "getlist"):
+        materials_list = form_data.getlist("materials")
+    else:
+        # fallback if form_data is a dict
+        materials_list = form_data.get("materials")
+        if isinstance(materials_list, str):
+            materials_list = [m.strip() for m in materials_list.split(",") if m.strip()]
+        elif not isinstance(materials_list, list):
+            materials_list = []
+
+    materials = ", ".join(materials_list) if materials_list else ", ".join(default_materials)
+
+    # -----------------------------
+    # Prepare context
+    # -----------------------------
     context = {
         'lesson_info': {
             'term': form_data.get('term', ''),
             'date': form_data.get('date', ''),
-            'subject': lesson.unit.subject.name,
-            'class_name': lesson.unit.subject.class_field.name,
-            'lesson_title': lesson.title,
-            'location_plan': form_data.get('location_plan', ''),
-            'materials': form_data.get('materials', ''),
+            'subject': subject_name,
+            'class_name': unit.subject.class_field.name if unit.subject and hasattr(unit.subject, "class_field") else "",
+            'location_plan': location_plan,
+            'materials': materials,
             'references': form_data.get('references', ''),
             'self_evaluation': form_data.get('self_evaluation', ''),
             'class_size': form_data.get('class_size', ''),
         },
         'unit_info': {
-            'unit_number': lesson.unit.number,
-            'unit_title': lesson.unit.title,
-            'total_lessons': lesson.unit.total_lessons,
-            'key_unit_competence': lesson.unit.key_unit_competence,
+            'unit_number': unit.number,
+            'unit_title': unit.title,
+            'total_lessons': getattr(unit, "total_lessons", 1),
+            'key_unit_competence': getattr(unit, "key_unit_competence", f"Understand {lesson.title}"),
         },
         'lesson_number': lesson.number,
-        'lesson_duration': form_data.get('duration', lesson.unit.total_lessons),
+        'lesson_duration': form_data.get('duration', 40),
         'special_needs': form_data.get('special_needs', 'None'),
         'steps': lesson.strategy_steps.all().order_by('step_order'),
     }
 
     return context
 
+
+
 # -----------------------------
 # Helper: Build Lesson Plan Context
-# -----------------------------
-# File: /lesson-plan-generator/backend/lessons/helpers.py
-
 
 
 def build_lesson_plan_context(request_data, profile):

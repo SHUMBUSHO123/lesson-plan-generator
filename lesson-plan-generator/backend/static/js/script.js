@@ -232,24 +232,9 @@ async function requirePremium(action) {
             // ✅ User has access — run the provided function
             action();
         } else {
-            // ❌ No access — free limit reached
-            const modal = document.getElementById('subscribeModal');
-
-            // Optional backend reason handling (future-proof)
-            if (data.reason === 'expired') {
-                // Subscription expired → go directly to pricing page
-                window.location.href = "/pricing/";
-                return;
-            }
-
-            // Show modal if available, else redirect to pricing
-            if (modal) {
-                modal.style.display = 'block';
-            } else {
-                // Modal not found — fallback
-                console.warn("Subscribe modal not found, redirecting to pricing page");
-                window.location.href = "/pricing/";
-            }
+            // ❌ No access — free limit reached or subscription inactive
+            console.warn("Free lesson limit reached or subscription inactive. Redirecting to pricing page.");
+            window.location.href = "/pricing/";
         }
     } catch (err) {
         console.error("Access check failed:", err);
@@ -262,8 +247,7 @@ async function requirePremium(action) {
 // ===============================
 async function generateLessonPlanFromForm() {
     const formData = getFormData();
-    if (!unitSelect.value || !lessonSelect.value)
- {
+    if (!unitSelect.value || !lessonSelect.value) {
         alert("Please fill all required fields!");
         return;
     }
@@ -271,49 +255,63 @@ async function generateLessonPlanFromForm() {
     const btn = document.getElementById('generateButton');
     if (btn) btn.disabled = true; // Disable button during fetch
 
-    try {
-        lessonPlanContent.textContent = 'Generating lesson plan...'; // ✅ Show loading feedback
+    // ✅ Wrap the main action in requirePremium for professional freemium enforcement
+    await requirePremium(async () => {
+        try {
+            lessonPlanContent.textContent = 'Generating lesson plan...'; // Loading feedback
 
-       const payload = {
-           device_id: getDeviceId(),
+            const payload = {
+                device_id: getDeviceId(),
 
-           level: levelSelect.options[levelSelect.selectedIndex].text,
-           class: classSelect.options[classSelect.selectedIndex].text,
-           subject: subjectSelect.options[subjectSelect.selectedIndex].text,
- 
-           unit_id: unitSelect.value,
-           lesson_id: lessonSelect.value,
+                level: levelSelect.options[levelSelect.selectedIndex].text,
+                class: classSelect.options[classSelect.selectedIndex].text,
+                subject: subjectSelect.options[subjectSelect.selectedIndex].text,
 
-           lesson_no: parseInt(document.getElementById('lessonNo')?.value || '1'),
-           duration: parseInt(document.getElementById('duration')?.value || '40'),
-           class_size: document.getElementById('classSize')?.value || '',
+                unit_id: unitSelect.value,
+                lesson_id: lessonSelect.value,
 
-           school_name: document.getElementById('schoolName')?.value || '',
-           teacher_name: document.getElementById('teacherName')?.value || '',
-           term: document.getElementById('term')?.value || '',
-           references: document.getElementById('references')?.value || '',
-           special_needs: document.getElementById('specialNeeds')?.value || '',
-           strategy: document.getElementById('strategy')?.value || ''
-};
+                lesson_no: parseInt(document.getElementById('lessonNo')?.value || '1'),
+                duration: parseInt(document.getElementById('duration')?.value || '40'),
+                class_size: document.getElementById('classSize')?.value || '',
 
+                school_name: document.getElementById('schoolName')?.value || '',
+                teacher_name: document.getElementById('teacherName')?.value || '',
+                term: document.getElementById('term')?.value || '',
+                references: document.getElementById('references')?.value || '',
+                special_needs: document.getElementById('specialNeeds')?.value || '',
+                strategy: document.getElementById('strategy')?.value || '',
+                // ✅ NEW PROFESSIONAL FIELDS
+                location_plan: document.getElementById('locationPlan')?.value || '',
+                materials: Array.from(
+                    document.getElementById('materials')?.selectedOptions || []
+                ).map(option => option.value).join(', ')
+            };
 
-        const { ok, data } = await postData('generate_lesson_plan', payload);
-        if (!ok) {
-            alert(data.error || "Unable to generate lesson plan.");
+            const { ok, data } = await postData('generate_lesson_plan', payload);
+
+            if (!ok) {
+                // ✅ Backend redirect handled by requirePremium already
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                alert(data.error || "Unable to generate lesson plan.");
+                lessonPlanContent.textContent = '';
+                return;
+            }
+
+            // ✅ Success — render lesson plan
+            lessonPlanContent.innerHTML = data.html;
+            resultContainer.classList.add('show');
+
+        } catch (err) {
+            console.error(err);
+            alert("Unable to generate lesson plan. Check connection.");
             lessonPlanContent.textContent = '';
-            return;
+        } finally {
+            if (btn) btn.disabled = false;
         }
-
-        lessonPlanContent.innerHTML = data.html;
-        resultContainer.classList.add('show');
-    } catch (err) {
-        console.error(err);
-        alert("Unable to generate lesson plan. Check connection.");
-        lessonPlanContent.textContent = '';
-    } finally {
-        // ✅ Re-enable button after fetch
-        if (btn) btn.disabled = false;
-    }
+    });
 }
 
 // ===============================

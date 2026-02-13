@@ -1,7 +1,21 @@
 <div class='text-center bold' style='font-size:12pt;margin-bottom:10px;'>LESSON PLAN</div>
+<!-- ================= SCHOOL & TEACHER INFO ================= -->
+ 
 <div style="background:red;color:white;padding:5px;margin-bottom:8px;">
   TEMPLATE VERSION ACTIVE
 </div>
+
+<table width="100%" style="margin-bottom:10px;">
+  <tr>
+    <td width="50%">
+      <strong>School Name:</strong> {{ lesson_info.school_name|default_if_none:''|escape }}
+    </td>
+    <td width="50%">
+      <strong>Teacher’s Name:</strong> {{ lesson_info.teacher_name|default_if_none:''|escape }}
+    </td>
+  </tr>
+</table>
+
 
 <!-- ================= BASIC LESSON INFO ================= -->
 
@@ -27,7 +41,7 @@
     <td>{{ lesson_info.class_size }}</td>
   </tr>
   <tr>
-    <td colspan="5" class="bold">Type of Special Educational Needs</td>
+    <td colspan="5" class="bold">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category	</td>
     <td colspan="4">{{ special_needs|default:"No specific special educational needs identified in this class"|escape }}</td>
   </tr>
   <tr>

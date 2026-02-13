@@ -17,6 +17,17 @@ from lessons.utils.resolve_profile import resolve_profile
 from lessons.models import TeachingStrategy
 from lessons.services.lesson_engine import build_strategy_steps  # ✅ NEW
 import random
+from django.db.models import F
+
+def use_lesson_atomic(profile):
+    """
+    Increment lessons used safely using F() to avoid race conditions.
+    """
+    profile.lessons_used = F('lessons_used') + 1
+    profile.save(update_fields=['lessons_used'])
+    # Refresh from DB to get the actual integer
+    profile.refresh_from_db()
+
 
 
 # -----------------------------
@@ -37,19 +48,8 @@ def get_or_create_guest_profile(request):
 
 
 # -----------------------------
-# Lesson Generation (Refactored)
-# -----------------------------
-# -----------------------------
 # Lesson Generation
 # -----------------------------
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
-from django.template.loader import render_to_string
-
- 
- # your existing guest handling
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -57,11 +57,12 @@ def generate_lesson_plan(request):
     """
     Generate a lesson plan HTML using build_lesson_plan_context helper.
     Handles free lesson limits, premium access, and dynamic steps.
+    Redirects free users to pricing page if limit reached.
     """
     # -----------------------------
     # Get user/guest profile
     # -----------------------------
-    profile = get_or_create_guest_profile(request)
+    profile = resolve_profile(request)
     profile.expire_subscription_if_needed()
 
     # Check premium account status
@@ -70,28 +71,38 @@ def generate_lesson_plan(request):
 
     # Check free lesson limits
     if not profile.can_generate_plan():
-        return Response({"redirect": "/payment/"}, status=403)
+        return Response({"redirect": "/pricing/"}, status=403)
+
     print("REQUEST.DATA:", request.data)
 
     # -----------------------------
-    # Build context using helper
+    # Build lesson plan context
     # -----------------------------
     try:
         context = build_lesson_plan_context(request.data, profile)
     except PermissionError as e:
-        return Response({"error": str(e), "redirect": "/payment/"}, status=403)
+        return Response({"error": str(e), "redirect": "/pricing/"}, status=403)
     except Exception as e:
         return Response({"error": f"Failed to build lesson plan context: {str(e)}"}, status=500)
-
+    
     # -----------------------------
-    # Record usage (already inside helper)
+    # Increment lessons used safely BEFORE rendering
     # -----------------------------
-    # Optional: profile.use_lesson() already handled if using prepare_lesson_plan_context
+    try:
+        use_lesson_atomic(profile)
+        # Optional: refresh context if you show lessons_used in table
+        context['lesson_info']['lessons_used'] = profile.lessons_used
+    except Exception as e:
+        return Response({"error": f"Failed to record lesson usage: {str(e)}"}, status=500)
 
     # -----------------------------
     # Render HTML
     # -----------------------------
-    html_content = render_to_string("partials/lesson_plan_table.html", context)
+    try:
+        html_content = render_to_string("partials/lesson_plan_table.html", context)
+    except Exception as e:
+        return Response({"error": f"Failed to render lesson plan: {str(e)}"}, status=500)
+
     return Response({"html": html_content})
 
 
