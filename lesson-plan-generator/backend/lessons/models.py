@@ -46,7 +46,7 @@ class Unit(models.Model):
 class Lesson(models.Model):
     unit = models.ForeignKey(Unit, related_name='lessons', on_delete=models.CASCADE)
     number = models.PositiveIntegerField()
-    title = models.CharField(max_length=100)
+    title = models.TextField()
     references = models.TextField(blank=True, null=True)
     is_premium = models.BooleanField(default=True)
 

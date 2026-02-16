@@ -111,7 +111,7 @@ async function loadUnits(subjectId) {
     unitSelect.innerHTML = `<option value="">Loading...</option>`;
     const units = await fetchData('units',{subject_id: subjectId}) || [];
     unitSelect.innerHTML = `<option value="">Select Unit</option>`;
-    units.forEach(u => unitSelect.innerHTML += `<option value="${u.id}" data-title="${u.title}" data-total="${u.total_lessons}">Unit ${u.number}</option>`);
+    units.forEach(u => unitSelect.innerHTML += `<option value="${u.id}" data-title="${u.title}" data-total="${u.total_lessons}">Unit ${u.number} - ${u.title}</option>`);
 }
 
 async function loadLessons(unitId) {
@@ -224,23 +224,46 @@ async function updateGenerateButtonStatus() {
 // ===============================
 // REQUIRE PREMIUM / ACCESS CHECK
 // ===============================
-async function requirePremium(action) {
+// ===============================
+// REQUIRE PREMIUM / ACCESS CHECK
+// ===============================
+async function requirePremium(action, allowFree = false) {
     try {
         const data = await checkAccess();
 
-        if (data.is_premium || data.can_generate) {
-            // ✅ User has access — run the provided function
+        if (data.is_premium) {
+            // ✅ Premium → allow all actions
             action();
+        } else if (allowFree && data.can_generate) {
+            // ✅ Free user → allow generate action, increment free plan
+            action();
+            await fetch("/increment_free_plan/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": window.CSRF_TOKEN
+                },
+                body: JSON.stringify({ device_id: getDeviceId() })
+            });
         } else {
-            // ❌ No access — free limit reached or subscription inactive
-            console.warn("Free lesson limit reached or subscription inactive. Redirecting to pricing page.");
-            window.location.href = "/pricing/";
+            // ❌ Exceeded free limit → show paywall modal instead of redirect
+            const modal = document.getElementById("subscribeModal");
+            if (modal) modal.style.display = "flex";
         }
+
     } catch (err) {
         console.error("Access check failed:", err);
         alert("Unable to verify subscription. Please try again.");
     }
 }
+
+
+function closeModal() {
+    const modal = document.getElementById('subscribeModal');
+    if(modal) modal.style.display = 'none';
+}
+
+
 
 // ===============================
 // GENERATE LESSON PLAN
@@ -255,7 +278,7 @@ async function generateLessonPlanFromForm() {
     const btn = document.getElementById('generateButton');
     if (btn) btn.disabled = true; // Disable button during fetch
 
-    // ✅ Wrap the main action in requirePremium for professional freemium enforcement
+    // ✅ Wrap the main action in requirePremium
     await requirePremium(async () => {
         try {
             lessonPlanContent.textContent = 'Generating lesson plan...'; // Loading feedback
@@ -280,7 +303,6 @@ async function generateLessonPlanFromForm() {
                 references: document.getElementById('references')?.value || '',
                 special_needs: document.getElementById('specialNeeds')?.value || '',
                 strategy: document.getElementById('strategy')?.value || '',
-                // ✅ NEW PROFESSIONAL FIELDS
                 location_plan: document.getElementById('locationPlan')?.value || '',
                 materials: Array.from(
                     document.getElementById('materials')?.selectedOptions || []
@@ -290,14 +312,13 @@ async function generateLessonPlanFromForm() {
             const { ok, data } = await postData('generate_lesson_plan', payload);
 
             if (!ok) {
-                // ✅ Backend redirect handled by requirePremium already
-                if (data.redirect) {
-                    window.location.href = data.redirect;
+                // ❌ Instead of redirect, show paywall modal if access denied
+                if (data.redirect || data.error) {
+                    const modal = document.getElementById("subscribeModal");
+                    if (modal) modal.style.display = "flex";
+                    lessonPlanContent.textContent = '';
                     return;
                 }
-                alert(data.error || "Unable to generate lesson plan.");
-                lessonPlanContent.textContent = '';
-                return;
             }
 
             // ✅ Success — render lesson plan
@@ -311,7 +332,7 @@ async function generateLessonPlanFromForm() {
         } finally {
             if (btn) btn.disabled = false;
         }
-    });
+    }, true); // <-- allowFree = true for generate button
 }
 
 // ===============================
@@ -328,13 +349,25 @@ function getDeviceId(){
 // ===============================
 // BUTTON ATTACHERS
 // ===============================
+// Generate button → allow free users until limit
 function attachGenerateButton(){
     const btn = document.getElementById('generateButton');
     if(btn && !generateListenerAttached){
-        btn.addEventListener('click',()=>requirePremium(generateLessonPlanFromForm));
+        btn.addEventListener('click',()=>requirePremium(generateLessonPlanFromForm, true));
         generateListenerAttached = true;
     }
 }
+
+// Download/Copy buttons → only premium users
+document.querySelectorAll('.download-buttons button').forEach(btn=>{
+    const fnMap = {
+        '📄 Copy to Word': copyToWord,
+        '📑 Download PDF': downloadPDF,
+        '📝 Download DOCX': downloadDOCX
+    };
+    const action = fnMap[btn.textContent.trim()];
+    if(action) btn.addEventListener('click', ()=>requirePremium(action, false));
+});
 
 function attachPayButton(){
     const payBtn = document.getElementById('payButton');
@@ -349,4 +382,64 @@ function subscribe(plan) {
     sessionStorage.setItem('submitting_plan', 'true');
     sessionStorage.setItem('selected_plan', plan);
     window.location.href = "/pricing/";
+}
+
+function downloadPDF() {
+    requirePremium(() => {
+        const element = document.getElementById("lessonPlanContent");
+        if (!element.innerHTML.trim()) {
+            alert("Generate a lesson plan first.");
+            return;
+        }
+
+        const opt = {
+            margin: 0.5,
+            filename: "CBC_Lesson_Plan.pdf",
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save();
+    }, false); // allowFree = false → only premium can download
+}
+
+function copyToWord() {
+    requirePremium(() => {
+        const element = document.getElementById("lessonPlanContent");
+        if (!element.innerHTML.trim()) {
+            alert("Generate a lesson plan first.");
+            return;
+        }
+
+        navigator.clipboard.writeText(element.innerText)
+            .then(() => alert("Lesson copied! Paste into Microsoft Word."))
+            .catch(() => alert("Copy failed."));
+    }, false); // allowFree = false → only premium can copy
+}
+
+async function downloadWord() {
+    await requirePremium(async () => {
+        const element = document.getElementById("lessonPlanContent");
+        if (!element.innerHTML.trim()) {
+            alert("Generate a lesson plan first.");
+            return;
+        }
+
+        const content = element.innerText;
+        const blob = new Blob(
+            ["\uFEFF" + content], 
+            { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
+        );
+
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "CBC_Lesson_Plan.docx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    }, false);
 }

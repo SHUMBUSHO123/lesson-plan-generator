@@ -152,12 +152,27 @@ def check_subscription(request):
 @api_view(['GET'])
 def get_user_prefill(request):
     profile = get_or_create_guest_profile(request)
+
+    # Try to get unit_id from query params
+    unit_id = request.GET.get("unit_id")
+    unit_display = ""
+    lesson_title = ""
+
+    if unit_id:
+        unit = Unit.objects.filter(id=unit_id).first()
+        if unit:
+            unit_display = f"Unit {unit.number} – {unit.title}"
+            # Optionally, prefill the first lesson title of the unit
+            first_lesson = unit.lessons.order_by("number").first()
+            if first_lesson:
+                lesson_title = first_lesson.title
+
     return Response({
         "schoolName": profile.school_name or "",
         "teacherName": request.user.get_full_name() if request.user.is_authenticated else profile.teacher_name or "",
         "term": profile.default_term or "I",
         "classSize": profile.class_size or "",
         "references": profile.references or "",
-        "unitTitle": "",
-        "lessonTitle": ""
+        "unitTitle": unit_display,
+        "lessonTitle": lesson_title
     })
