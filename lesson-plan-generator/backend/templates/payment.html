@@ -3,73 +3,104 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Subscribe - CBC Lesson Plan Generator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
 
     <style>
-        body { background-color: #f5f7fa; font-family: 'Inter', sans-serif; }
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Inter', sans-serif;
+        }
+
         .payment-container {
-            max-width: 500px;
+            max-width: 520px;
             margin: 60px auto;
             padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            background-color: #fff;
+            border-radius: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            background: #ffffff;
         }
-        .payment-container h2 { font-size: 1.9rem; font-weight: 600; }
+
+        .payment-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .payment-header h2 {
+            font-weight: 600;
+        }
+
+        .secure-badge {
+            font-size: 0.9rem;
+            color: #27ae60;
+            font-weight: 500;
+        }
+
+        .btn-pay {
+            width: 100%;
+            font-weight: 600;
+            transition: 0.3s;
+        }
+
+        .btn-pay:hover {
+            transform: scale(1.02);
+        }
+
+        .btn-mtn {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        .btn-mtn:hover {
+            background-color: #219150;
+        }
+
+        .btn-manual {
+            background-color: #f39c12;
+            color: white;
+        }
+
+        .btn-manual:hover {
+            background-color: #d48806;
+        }
+
+        .manual-section {
+            border-top: 1px solid #e2e2e2;
+            margin-top: 30px;
+            padding-top: 25px;
+        }
+
+        .manual-steps {
+            background-color: #fff8ec;
+            border: 1px solid #ffd8a8;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
         .status-message {
             margin-top: 15px;
             font-weight: 500;
             min-height: 24px;
             text-align: center;
-            color: #333;
-        }
-        .manual-section {
-            border-top: 1px solid #ddd;
-            margin-top: 30px;
-            padding-top: 20px;
-        }
-        .btn-pay { width: 100%; font-weight: 600; transition: 0.3s; }
-        .btn-pay:hover { transform: scale(1.03); }
-        .btn-mtn { background-color: #27ae60; color: #fff; }
-        .btn-mtn:hover { background-color: #219150; }
-        .btn-manual { background-color: #f39c12; color: #fff; }
-        .btn-manual:hover { background-color: #d48806; }
-
-        /* New professional manual payment steps */
-        .manual-steps {
-            background-color: #fef9f2;
-            border: 1px solid #f5c27b;
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .manual-steps h6 {
-            font-weight: 600;
-            color: #d35400;
-            margin-bottom: 10px;
-        }
-        .manual-steps ol {
-            padding-left: 20px;
-        }
-        .manual-steps ol li {
-            margin-bottom: 8px;
-            line-height: 1.4;
         }
     </style>
 </head>
 <body>
 
 <div class="payment-container">
-    <h2 class="text-center mb-4">Subscribe to Premium</h2>
+
+    <div class="payment-header">
+        <h2>Subscribe to Premium</h2>
+        <div class="secure-badge">🔒 Secure Subscription Activation</div>
+    </div>
 
     <!-- Plan Selection -->
     <div class="mb-3">
-        <label for="planSelect" class="form-label">Select Plan</label>
+        <label class="form-label">Select Plan</label>
         <select id="planSelect" class="form-select">
             <option value="weekly">Weekly - 200 RWF</option>
             <option value="monthly">Monthly - 500 RWF</option>
@@ -77,49 +108,77 @@
         </select>
     </div>
 
-    <!-- MTN Mobile Money Section -->
+    <!-- Automated MTN Payment -->
     <div class="mb-3">
-        <label for="phoneInput" class="form-label">MTN MoMo Number</label>
+        <label class="form-label">MTN MoMo Number</label>
         <input id="phoneInput" type="text" class="form-control" placeholder="e.g. 25078xxxxxxx">
     </div>
 
     <div class="mb-3 form-check">
         <input type="checkbox" class="form-check-input" id="termsCheck">
-        <label class="form-check-label" for="termsCheck">
+        <label class="form-check-label">
             I accept the <a href="#">Terms & Conditions</a>
         </label>
     </div>
 
-    <button id="payButton" class="btn btn-mtn btn-pay mb-3">💳 Pay with MTN MoMo</button>
+    <button id="payButton" class="btn btn-mtn btn-pay mb-3">
+        💳 Pay with MTN MoMo
+    </button>
 
     <!-- Manual Payment Section -->
     <div class="manual-section">
-        <h5 class="mb-3">Manual Payment / Code Submission</h5>
 
-        <div class="manual-steps">
-            <h6>How to pay manually via MTN:</h6>
-            <ol>
-                <li>Dial <strong>*182*8*1*1944115*AMOUNT*PIN#</strong> from your MTN number registered under <strong>ISOMOPLUS</strong>.</li>
-                <li>Enter the amount corresponding to your selected plan:</li>
-                <ul>
-                    <li>Weekly → 200 RWF</li>
-                    <li>Monthly → 500 RWF</li>
-                    <li>Term → 1000 RWF</li>
-                </ul>
-                <li>Confirm the transaction and note the payment code you receive.</li>
-                <li>Return to this page and enter the code below to submit for admin approval.</li>
+        <h5 class="mb-3">Manual Payment Verification</h5>
+
+        <div class="manual-steps mb-3">
+            <strong>How to Pay via MTN MoMo:</strong>
+            <ol class="mt-2">
+                <li>Dial <strong>*182*8*1*1944115*AMOUNT*PIN#</strong></li>
+                <li>Replace <strong>AMOUNT</strong> with your selected plan price:</li>
+            </ol>
+            <ul>
+                <li>Weekly → 200 RWF</li>
+                <li>Monthly → 500 RWF</li>
+                <li>Term → 1000 RWF</li>
+            </ul>
+            <ol start="3">
+                <li>Confirm payment to <strong>ISOMOPLUS</strong>.</li>
+                <li>Save the transaction message or reference number.</li>
             </ol>
         </div>
 
-        <p>Alternatively, contact admin via 
-            <a href="https://wa.me/YOUR_NUMBER" target="_blank">WhatsApp</a> or call <strong>YOUR_NUMBER</strong> to get your payment code.</p>
+        <div class="alert alert-warning">
+            <strong>Important:</strong><br>
+            • Take a clear screenshot of the confirmation message.<br>
+            • If unable to screenshot, send the exact name used for payment and transaction reference.<br>
+            • Verification takes 5–30 minutes during working hours.
+        </div>
 
-        <button type="button" class="btn btn-outline-primary btn-sm mb-2" onclick="navigator.clipboard.writeText('YOUR_NUMBER').then(()=>alert('Admin number copied!'))">
-            Copy Admin Number
+        <div class="alert alert-info">
+            <strong>Verification Hours:</strong> 8:00 AM – 8:00 PM<br>
+            Payments outside working hours are verified the next day.
+        </div>
+
+        <!-- WhatsApp Button -->
+        <button id="whatsappButton" class="btn btn-success btn-pay mb-3">
+            💬 Verify Payment via WhatsApp
         </button>
 
-        <input id="manualCodeInput" type="text" class="form-control mb-3" placeholder="Enter payment code or proof">
-        <button id="manualSubmitButton" class="btn btn-manual btn-pay">Submit Code for Approval</button>
+        <p class="text-center text-muted">
+            WhatsApp: <strong>0793599834</strong>
+        </p>
+
+        <!-- Manual Code Submission -->
+        <input id="manualCodeInput" type="text" class="form-control mb-3"
+               placeholder="Enter transaction reference (optional)">
+
+        <button id="manualSubmitButton" class="btn btn-manual btn-pay">
+            Submit for Admin Approval
+        </button>
+
+        <p class="text-muted small mt-3 text-center">
+            Your payment information is used strictly for verification purposes only.
+        </p>
     </div>
 
     <div id="paymentStatus" class="status-message"></div>
@@ -127,29 +186,39 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const plan = urlParams.get('plan');
-    if(plan){
-        const planSelect = document.getElementById('planSelect');
-        if(planSelect) planSelect.value = plan;
-    }
 
+    const planSelect = document.getElementById('planSelect');
+    const whatsappButton = document.getElementById('whatsappButton');
     const payButton = document.getElementById('payButton');
     const manualButton = document.getElementById('manualSubmitButton');
     const termsCheck = document.getElementById('termsCheck');
     const paymentStatus = document.getElementById('paymentStatus');
 
-    // Clear status on input change
+    // Dynamic WhatsApp Message
+    whatsappButton.addEventListener('click', () => {
+        const selectedPlanText = planSelect.options[planSelect.selectedIndex].text;
+
+        const message =
+            `Hello Admin,%0A%0AI have completed my payment for CBC Lesson Plan Generator.%0A%0A` +
+            `Selected Plan: ${selectedPlanText}%0A` +
+            `Name used for payment:%0A` +
+            `Transaction reference:%0A%0A` +
+            `Please verify my subscription. Thank you.`;
+
+        window.open(`https://wa.me/250793599834?text=${message}`, '_blank');
+    });
+
+    // Clear status
     document.getElementById('phoneInput').addEventListener('input', () => paymentStatus.textContent = '');
     document.getElementById('manualCodeInput').addEventListener('input', () => paymentStatus.textContent = '');
 
-    // Automated MTN Payment
+    // Automated Payment
     payButton.addEventListener('click', async () => {
         const phone = document.getElementById('phoneInput').value.trim();
-        const plan = document.getElementById('planSelect').value;
+        const plan = planSelect.value;
 
-        if(!phone){ paymentStatus.textContent = 'Enter your MTN number'; return; }
-        if(!termsCheck.checked){ paymentStatus.textContent = 'Accept Terms & Conditions'; return; }
+        if (!phone) { paymentStatus.textContent = 'Enter your MTN number'; return; }
+        if (!termsCheck.checked) { paymentStatus.textContent = 'Accept Terms & Conditions'; return; }
 
         payButton.disabled = true;
         paymentStatus.textContent = 'Processing MTN payment...';
@@ -157,52 +226,64 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const res = await fetch("{% url 'process_mtn_payment' %}", {
                 method: "POST",
-                headers: {"Content-Type": "application/json","X-CSRFToken": "{{ csrf_token }}"},
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
                 body: JSON.stringify({ phone, plan })
             });
+
             const data = await res.json();
-            if(data.success){
+
+            if (data.success) {
                 window.location.href = "{% url 'subscription_success' %}";
             } else {
-                paymentStatus.textContent = data.error || 'Payment failed. Try again or use Manual Payment.';
+                paymentStatus.textContent = data.error || 'Payment failed. Try manual method.';
             }
-        } catch(err){
-            console.error(err);
+        } catch (err) {
             paymentStatus.textContent = 'Network error. Try again.';
-        } finally {
-            payButton.disabled = false;
         }
+
+        payButton.disabled = false;
     });
 
-    // Manual Payment / Code Submission
+    // Manual Submission
     manualButton.addEventListener('click', async () => {
         const code = document.getElementById('manualCodeInput').value.trim();
-        const plan = document.getElementById('planSelect').value;
+        const plan = planSelect.value;
 
-        if(!code){ paymentStatus.textContent = 'Enter your payment code or proof'; return; }
+        if (!code) {
+            paymentStatus.textContent = 'Enter transaction reference or contact admin via WhatsApp.';
+            return;
+        }
 
         manualButton.disabled = true;
-        paymentStatus.textContent = 'Submitting code...';
+        paymentStatus.textContent = 'Submitting for approval...';
 
         try {
             const res = await fetch("{% url 'submit_manual_payment' %}", {
                 method: "POST",
-                headers: {"Content-Type": "application/json","X-CSRFToken": "{{ csrf_token }}"},
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}"
+                },
                 body: JSON.stringify({ code, plan })
             });
+
             const data = await res.json();
-            if(data.success){
+
+            if (data.success) {
                 window.location.href = "{% url 'subscription_pending' %}";
             } else {
                 paymentStatus.textContent = data.error || 'Submission failed. Contact admin.';
             }
-        } catch(err){
-            console.error(err);
+        } catch (err) {
             paymentStatus.textContent = 'Network error. Try again.';
-        } finally {
-            manualButton.disabled = false;
         }
+
+        manualButton.disabled = false;
     });
+
 });
 </script>
 
