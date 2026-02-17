@@ -4,7 +4,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+    <!-- Open Graph / WhatsApp Preview -->
+<!-- Open Graph / WhatsApp Preview -->
+    <meta property="og:title" content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
+    <meta property="og:description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download." />
+    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
+    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="CBC Lesson Generator" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
+    <meta name="twitter:description" content="Generate structured CBC lesson plans instantly." />
+    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
+
     <title>🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
