@@ -7,12 +7,19 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+}
+
 body {
     font-family: 'Roboto', Arial, sans-serif;
     background: linear-gradient(135deg, #3c862d 0%, #764ba2 100%);
+    background-attachment: fixed;
     padding: 20px;
     min-height: 100vh;
     color: #333;
+    line-height: 1.6;
 }
 
 .container {
@@ -21,26 +28,61 @@ body {
 }
 
 /* ================================
+   NAVBAR
+================================= */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 24px;
+    background: #1f2937;
+    color: #fff;
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.navbar a {
+    color: #fff;
+    text-decoration: none;
+    margin-left: 16px;
+}
+
+.brand {
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.nav-link:hover {
+    text-decoration: underline;
+}
+
+.btn-primary {
+    background: #2563eb;
+    padding: 6px 12px;
+    border-radius: 6px;
+}
+
+/* ================================
    HEADER STYLING
 ================================= */
 .header {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: #2D9CDB;
     color: white;
     text-align: center;
     border-radius: 15px;
-    padding: 40px 20px;
+    padding: 35px 20px;
     margin-bottom: 25px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+    position: relative;
 }
 
 .header h1 {
-    font-size: 2.2em;
+    font-size: 2em;
     margin-bottom: 10px;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
 
 .header p {
-    font-size: 1.1em;
+    font-size: 1em;
     color: #f0f0f0;
 }
 
@@ -48,10 +90,10 @@ body {
    FORM STYLING
 ================================= */
 .form-container {
-    background: white;
-    border-radius: 15px;
-    padding: 35px 30px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    background: #fff;
+    border-radius: 12px;
+    padding: 30px 25px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
     margin-bottom: 30px;
 }
 
@@ -86,42 +128,50 @@ label.optional {
     font-weight: 400;
 }
 
+/* Prevent ugly zoom on mobile */
+input, select, textarea, button {
+    font-size: 16px;
+}
+
 input, select, textarea {
     padding: 12px 15px;
-    border: 2px solid #ddd;
+    border: 1.5px solid #ccc;
     border-radius: 10px;
     font-size: 0.95em;
     transition: all 0.3s;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 input:focus, select:focus, textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 8px rgba(102, 126, 234, 0.4);
+    border-color: #2D9CDB;
+    box-shadow: 0 0 6px rgba(45,156,219,0.3);
 }
 
 /* DOUBLE INPUT (Lesson No / Total Lessons) */
 .double-input {
     display: flex;
     gap: 12px;
-    flex-wrap: nowrap;        /* keep side by side */
-    width: 100%;              /* full width of parent */
+    flex-wrap: nowrap;
+    width: 100%;
 }
 
 .double-input .input-group {
     display: flex;
     flex-direction: column;
-    flex: 1 1 0;              /* grow equally */
-    min-width: 0;             /* prevents overflowing the container */
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .double-input input {
-    width: 100%;              /* fill the input-group */
-    box-sizing: border-box;   /* respect padding and border */
+    width: 100%;
+    box-sizing: border-box;
 }
 
-
-/* GENERATE BUTTON */
+/* ================================
+   BUTTONS
+================================= */
 .generate-btn, .premium-btn {
     padding: 15px 40px;
     border: none;
@@ -135,21 +185,22 @@ input:focus, select:focus, textarea:focus {
 }
 
 .generate-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: #2D9CDB;
+    color: #fff;
 }
 
 .generate-btn:hover {
-    transform: scale(1.05);
+    background: #1B7BB8;
+    transform: scale(1.03);
     box-shadow: 0 6px 20px rgba(0,0,0,0.2);
 }
 
 .generate-btn:disabled {
     background: #ccc;
     cursor: not-allowed;
+    transform: none;
 }
 
-/* PREMIUM BUTTON (For Paid Users) */
 .premium-btn {
     background: linear-gradient(135deg, #f59e0b, #d97706);
     color: white;
@@ -158,6 +209,18 @@ input:focus, select:focus, textarea:focus {
 .premium-btn:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.btn-pay {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+.btn-pay:hover {
+    transform: scale(1.05);
 }
 
 /* ERROR MESSAGES */
@@ -188,36 +251,35 @@ input:focus, select:focus, textarea:focus {
     gap: 15px;
     justify-content: center;
     margin-bottom: 25px;
+    flex-wrap: wrap;
 }
 
 .download-btn {
-    padding: 12px 30px;
+    padding: 12px 28px;
     border: none;
     border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s;
+    color: #fff;
+    background: #2D9CDB;
+    font-size: 0.95rem;
 }
 
 .download-btn:hover {
     transform: scale(1.05);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
 }
 
-/* Word & PDF Buttons */
-.btn-word {
-    background: #10b981;
-    color: white;
-}
+.btn-word  { background: #2D9CDB; }
+.btn-pdf   { background: #10b981; }
 
-.btn-pdf {
-    background: #8b5cf6;
-    color: white;
-}
-
-/* LESSON PLAN CONTENT */
+/* ================================
+   LESSON PLAN CONTENT
+================================= */
 .lesson-plan {
     font-size: 10pt;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
 .lesson-plan table {
@@ -228,451 +290,358 @@ input:focus, select:focus, textarea:focus {
 
 .lesson-plan td {
     border: 1px solid black;
-    padding: 6px;
+    padding: 8px;
     vertical-align: top;
 }
 
-.lesson-plan .bold {
-    font-weight: bold;
-}
+.lesson-plan .bold { font-weight: bold; }
 
 .lesson-plan ul {
     margin: 5px 0;
     padding-left: 20px;
 }
 
-.lesson-plan li {
-    margin: 2px 0;
+.lesson-plan li { margin: 2px 0; }
+
+.text-center { text-align: center; }
+
+/* ================================
+   FOOTER
+================================= */
+footer {
+    text-align: center;
+    padding: 30px 20px;
+    background: #f1f3f6;
+    color: #555;
+    font-size: 0.95rem;
+    margin-top: 20px;
+    border-radius: 10px;
 }
 
-.text-center {
+/* ================================
+   MODAL — BASE OVERLAY
+================================= */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    inset: 0;                            /* top/right/bottom/left: 0 */
+    background-color: rgba(0,0,0,0.65);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px;
+    box-sizing: border-box;
+}
+
+/* JS sets display:flex → center the box */
+.modal[style*="display: flex"],
+.modal[style*="display:flex"] {
+    display: flex !important;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+/* ================================
+   MODAL CONTENT BOX
+================================= */
+.modal-content {
+    background: #fff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 980px;
+    margin: auto;
+    padding: 0;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+    animation: modalSlideIn 0.3s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+@keyframes modalSlideIn {
+    from { transform: translateY(-40px); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* ================================
+   CLOSE BUTTON
+================================= */
+.close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 30px;
+    font-weight: bold;
+    color: #888;
+    cursor: pointer;
+    z-index: 10;
+    line-height: 1;
+    background: none;
+    border: none;
+    transition: color 0.2s;
+}
+
+.close:hover { color: #222; }
+
+/* ================================
+   PRICING MODAL WRAPPER
+================================= */
+.pricing-modal {
+    padding: 38px 32px 32px;
+}
+
+/* ================================
+   PRICING HEADER
+================================= */
+.pricing-header {
     text-align: center;
+    margin-bottom: 28px;
+}
+
+.pricing-header h1 {
+    color: #e53935;
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.pricing-header h2 {
+    color: #1a1a2e;
+    font-size: 1.85rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.pricing-header p {
+    color: #666;
+    font-size: 1rem;
+    margin: 0;
+}
+
+/* ================================
+   PRICING GRID  — 3 columns desktop
+================================= */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+}
+
+/* ================================
+   PRICING CARD
+================================= */
+.pricing-card {
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 28px 20px 24px;
+    text-align: center;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+}
+
+.pricing-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+}
+
+/* Featured card */
+.pricing-card.featured {
+    border-color: #f57c00;
+    background: #fff8f0;
+    transform: scale(1.03);
+}
+
+.pricing-card.featured::before {
+    content: "⭐ BEST VALUE";
+    position: absolute;
+    top: -13px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: 0.5px;
+}
+
+.pricing-card h3 {
+    font-size: 1.25rem;
+    color: #1a1a2e;
+    margin-bottom: 12px;
+    font-weight: 700;
+}
+
+.pricing-card .price {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #2D9CDB;
+    margin: 8px 0 2px;
+    line-height: 1.1;
+}
+
+.pricing-card .duration {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 18px;
+}
+
+.pricing-card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 22px;
+    text-align: left;
+}
+
+.pricing-card ul li {
+    padding: 8px 0;
+    border-bottom: 1px solid #f0f0f0;
+    color: #444;
+    font-size: 0.9rem;
+}
+
+.pricing-card ul li:last-child { border-bottom: none; }
+
+/* Badge (legacy support) */
+.pricing-card .badge {
+    background: #2D9CDB;
+    color: #fff;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 4px 10px;
+    border-radius: 20px;
+    position: absolute;
+    top: 14px;
+    right: 14px;
+}
+
+/* ================================
+   CHOOSE / PRICING BUTTONS
+================================= */
+.choose-btn,
+.pricing-btn {
+    display: block;
+    width: 100%;
+    padding: 13px 18px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(135deg, #4CAF50, #43a047);
+    color: #fff;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 12px rgba(76,175,80,0.25);
+    margin-top: 0;
+}
+
+.choose-btn:hover,
+.pricing-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(76,175,80,0.35);
+    background: linear-gradient(135deg, #43a047, #388e3c);
+}
+
+.choose-btn:active { transform: scale(0.97); }
+
+/* Primary / featured plan button */
+.choose-btn.primary {
+    background: linear-gradient(135deg, #ff9800, #f57c00);
+    box-shadow: 0 4px 12px rgba(255,152,0,0.3);
+}
+
+.choose-btn.primary:hover {
+    background: linear-gradient(135deg, #f57c00, #ef6c00);
+    box-shadow: 0 8px 20px rgba(255,152,0,0.4);
 }
 
 /* ================================
    PRINT STYLING
 ================================= */
 @media print {
-    body {
-        background: white;
-        padding: 0;
-        color: black;
-    }
-
-    .header, .form-container, .download-buttons {
-        display: none !important;
-    }
-
-    .result-container {
-        box-shadow: none;
-        padding: 0;
-    }
-
-    .lesson-plan {
-        font-size: 9pt;
-    }
-}
-
-.btn-pay {
-    background: #f59e0b;
-    color: white;
-}
-.btn-pay:hover {
-    transform: scale(1.05);
+    body { background: white; padding: 0; color: black; }
+    .header, .form-container, .download-buttons,
+    .navbar, footer { display: none !important; }
+    .result-container { box-shadow: none; padding: 0; display: block !important; }
+    .lesson-plan { font-size: 9pt; }
 }
 
 /* ================================
-   APP UI ENHANCEMENTS (MOBILE + TABLET)
-   SAFE TO ADD – NO BREAKING CHANGES
-================================ */
+   TABLET  769px – 1024px
+================================= */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .container   { max-width: 900px; }
+    .header h1   { font-size: 2em; }
 
-/* Better touch scrolling */
-html {
-    scroll-behavior: smooth;
-    -webkit-tap-highlight-color: transparent;
+    .pricing-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+
+    .pricing-card         { padding: 22px 14px 20px; }
+    .pricing-card .price  { font-size: 1.9rem; }
+    .pricing-card.featured { transform: scale(1.0); } /* no overflow */
+    .pricing-modal        { padding: 28px 20px 24px; }
+    .pricing-header h2    { font-size: 1.5rem; }
 }
 
-/* Prevent ugly zoom on mobile */
-input, select, textarea, button {
-    font-size: 16px;
-}
-
-/* App-like container spacing */
+/* ================================
+   MOBILE  ≤ 768px
+================================= */
 @media (max-width: 768px) {
-    body {
-        padding: 10px;
-    }
+    body { padding: 10px; }
 
-    .header {
-        padding: 25px 15px;
-        border-radius: 12px;
-    }
-
-    .header h1 {
-        font-size: 1.6em;
-    }
-
-    .header p {
-        font-size: 1em;
-    }
+    .header            { padding: 25px 15px; border-radius: 12px; }
+    .header h1         { font-size: 1.6em; }
+    .header p          { font-size: 1em; }
 
     .form-container,
-    .result-container {
-        padding: 20px 15px;
-        border-radius: 12px;
-    }
+    .result-container  { padding: 20px 15px; border-radius: 12px; }
 
-    .form-grid {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
+    .form-grid         { grid-template-columns: 1fr; gap: 15px; }
 
     .generate-btn,
-    .premium-btn {
-        width: 100%;
-        padding: 16px;
-        font-size: 1.05em;
-        border-radius: 14px;
+    .premium-btn       { width: 100%; padding: 16px; font-size: 1.05em; border-radius: 14px; }
+
+    .download-buttons  { flex-direction: column; gap: 10px; }
+    .download-btn      { width: 100%; padding: 14px; }
+
+    /* Modal */
+    .modal             { padding: 10px; }
+    .modal-content     { border-radius: 14px; }
+
+    .pricing-modal     { padding: 22px 16px 20px; }
+
+    .pricing-header h1 { font-size: 0.92rem; }
+    .pricing-header h2 { font-size: 1.35rem; }
+    .pricing-header p  { font-size: 0.9rem; }
+
+    /* Stack cards vertically */
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
     }
 
-    .download-buttons {
-        flex-direction: column;
+    .pricing-card          { padding: 22px 18px 18px; }
+    .pricing-card.featured {
+        transform: none;   /* remove scale — prevents horizontal overflow */
+        order: -1;         /* show featured card first */
     }
+    .pricing-card .price   { font-size: 2rem; }
 
-    .download-btn {
-        width: 100%;
-        padding: 14px;
-    }
+    .close { top: 10px; right: 12px; font-size: 26px; }
 }
 
-/* Tablet optimization */
-@media (min-width: 769px) and (max-width: 1024px) {
-    .container {
-        max-width: 900px;
-    }
-
-    .header h1 {
-        font-size: 2em;
-    }
+/* ================================
+   SMALL PHONES  ≤ 380px
+================================= */
+@media (max-width: 380px) {
+    .double-input      { flex-direction: column; }
+    .pricing-header h2 { font-size: 1.2rem; }
+    .pricing-card .price { font-size: 1.75rem; }
+    .choose-btn        { font-size: 0.88rem; padding: 11px 14px; }
 }
-
-
-/* ----------------- Pricing Modal ----------------- */
-.pricing-modal {
-  max-width: 950px;
-  margin: 0 auto;
-  padding: 25px 20px;
-}
-
-.pricing-header h2 {
-  font-size: 28px;
-  text-align: center;
-  margin-bottom: 5px;
-}
-
-.pricing-header p {
-  text-align: center;
-  font-size: 16px;
-  color: #555;
-  margin-bottom: 25px;
-}
-
-.pricing-grid {
-  display: flex;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
-}
-
-.pricing-card {
-  flex: 1 1 280px;
-  background: #f9f9f9;
-  border-radius: 15px;
-  padding: 25px 20px;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.pricing-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-}
-
-.pricing-card h3 {
-  font-size: 22px;
-  margin-bottom: 15px;
-}
-
-.pricing-card .price {
-  font-size: 36px;
-  font-weight: bold;
-  color: #4CAF50;
-  margin: 0;
-}
-
-.pricing-card .price .currency {
-  font-size: 18px;
-  vertical-align: super;
-}
-
-.pricing-card .duration {
-  font-size: 16px;
-  color: #777;
-  margin-bottom: 15px;
-}
-
-.pricing-card ul {
-  list-style: none;
-  padding: 0;
-  margin-bottom: 20px;
-}
-
-.pricing-card ul li {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #333;
-}
-
-.pricing-btn {
-  background: #4CAF50;
-  color: #fff;
-  border: none;
-  padding: 10px 18px;
-  border-radius: 8px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-.pricing-btn:hover {
-  background: #43a047;
-}
-
-.pricing-card.featured {
-  border: 2px solid #4CAF50;
-}
-
-.pricing-card .badge {
-  background: #4CAF50;
-  color: #fff;
-  font-size: 12px;
-  font-weight: bold;
-  padding: 5px 10px;
-  border-radius: 20px;
-  position: absolute;
-  top: 15px;
-  right: 15px;
-}
-/* ================================ */
-/* PROFESSIONAL UI ENHANCEMENTS */
-/* ================================ */
-
-/* Soft neutral body background with subtle gradient header accent */
-body {
-    background-color: #FAFAFA; /* soft neutral */
-    font-family: 'Inter', sans-serif;
-    line-height: 1.6;
-    color: #333;
-}
-
-/* Header: softened gradient and accent underline */
-.header {
-    background: #2D9CDB; /* professional blue */
-    color: white;
-    text-align: center;
-    border-radius: 15px;
-    padding: 35px 20px;
-    margin-bottom: 25px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-    position: relative;
-}
-
-.header h1 {
-    font-size: 2em;
-    margin-bottom: 10px;
-    text-shadow: none;
-}
-
-.header p {
-    font-size: 1em;
-    color: #f0f0f0;
-}
-
-/* Form container: softer shadow, consistent radius */
-.form-container {
-    background: #fff;
-    border-radius: 12px;
-    padding: 30px 25px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.1);
-}
-
-/* Inputs: lighter borders, consistent radius, subtle focus */
-input, select, textarea {
-    border: 1.5px solid #ccc;
-    border-radius: 10px;
-    font-size: 0.95em;
-}
-
-input:focus, select:focus, textarea:focus {
-    border-color: #2D9CDB;
-    box-shadow: 0 0 6px rgba(45,156,219,0.3);
-}
-
-/* Buttons: unified professional color scheme */
-.generate-btn, .pricing-btn, .premium-btn {
-    background: #2D9CDB;
-    color: #fff;
-    border-radius: 10px;
-    transition: 0.2s ease-in-out;
-}
-
-.generate-btn:hover, .pricing-btn:hover, .premium-btn:hover {
-    background: #1B7BB8;
-    transform: scale(1.03);
-}
-
-/* Download buttons */
-.download-btn {
-    border-radius: 10px;
-}
-
-.download-btn.btn-word {
-    background: #2D9CDB;
-}
-
-.download-btn.btn-pdf {
-    background: #10b981;
-}
-
-/* Modal & Pricing cards: softened shadows, spacing improvements */
-.pricing-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 25px 20px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.pricing-card.featured {
-    border: 2px solid #2D9CDB;
-}
-
-.pricing-card .badge {
-    background: #2D9CDB;
-}
-
-/* Double-input adjustments */
-.double-input {
-    gap: 10px;
-}
-
-@media (max-width: 600px) {
-    .double-input {
-        flex-direction: column;
-    }
-
-    .download-buttons {
-        flex-direction: column;
-        gap: 10px;
-    }
-}
-
-/* Lesson plan content spacing */
-.lesson-plan {
-    font-size: 10pt;
-    line-height: 1.6;
-}
-
-.lesson-plan td {
-    padding: 8px;
-}
-
-.navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 14px 24px;
-    background: #1f2937;
-    color: #fff;
-}
-
-.navbar a {
-    color: #fff;
-    text-decoration: none;
-    margin-left: 16px;
-}
-
-.brand {
-    font-weight: bold;
-    font-size: 18px;
-}
-
-.nav-link:hover {
-    text-decoration: underline;
-}
-
-.btn-primary {
-    background: #2563eb;
-    padding: 6px 12px;
-    border-radius: 6px;
-}
-
-/* ===== PRICING BUTTONS ===== */
-
-.choose-btn {
-    width: 100%;
-    padding: 14px 18px;
-    margin-top: 15px;
-
-    font-size: 1rem;
-    font-weight: 600;
-    letter-spacing: 0.3px;
-
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
-
-    background: linear-gradient(135deg, #4CAF50, #43a047);
-    color: #fff;
-
-    transition: all 0.25s ease;
-    box-shadow: 0 6px 15px rgba(76, 175, 80, 0.25);
-}
-
-/* Hover effect */
-.choose-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 22px rgba(76, 175, 80, 0.35);
-    background: linear-gradient(135deg, #43a047, #388e3c);
-}
-
-/* Click effect */
-.choose-btn:active {
-    transform: scale(0.97);
-}
-
-/* PRIMARY (Recommended) plan */
-.choose-btn.primary {
-    background: linear-gradient(135deg, #ff9800, #f57c00);
-    box-shadow: 0 8px 20px rgba(255, 152, 0, 0.35);
-}
-
-.choose-btn.primary:hover {
-    background: linear-gradient(135deg, #f57c00, #ef6c00);
-    box-shadow: 0 12px 26px rgba(255, 152, 0, 0.45);
-}
-
-/* Optional badge for featured card */
-.pricing-card.featured {
-    border: 2px solid #ff9800;
-    transform: scale(1.05);
-}
-        /* ---------- Footer ---------- */
-        footer {
-            text-align: center;
-            padding: 30px 20px;
-            background: #f1f3f6;
-            color: #555;
-            font-size: 0.95rem;
-        }

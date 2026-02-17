@@ -22,7 +22,6 @@
 <body data-device-id="{{ request.user.userprofile.device_id|default:'' }}">
 
 <script>
-    // Ensure logged-in users use the correct device_id
     window.userDeviceId = document.body.dataset.deviceId || null;
 </script>
 
@@ -131,7 +130,7 @@
 
                 <!-- Optional Fields -->
                 <div class="form-group full-width">
-                    <label class="optional">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category	</label>
+                    <label class="optional">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category</label>
                     <input type="text" id="specialNeeds">
                 </div>
                 <div class="form-group full-width">
@@ -140,49 +139,47 @@
                 </div>
                 <div class="form-group full-width">
 
-              <!-- Location Plan -->
-<div class="form-group full-width">
-    <label class="optional">Plan for this Class (Location)</label>
-    <select id="locationPlan">
-        <option value="">-- Select Location --</option>
-        <option value="Inside classroom">Inside classroom</option>
-        <option value="Outside classroom">Outside classroom</option>
-        <option value="Computer laboratory">Computer laboratory</option>
-        <option value="Field work">Field work</option>
-        <option value="Library">Library</option>
-    </select>
-</div>
+                    <!-- Location Plan -->
+                    <div class="form-group full-width">
+                        <label class="optional">Plan for this Class (Location)</label>
+                        <select id="locationPlan">
+                            <option value="">-- Select Location --</option>
+                            <option value="Inside classroom">Inside classroom</option>
+                            <option value="Outside classroom">Outside classroom</option>
+                            <option value="Computer laboratory">Computer laboratory</option>
+                            <option value="Field work">Field work</option>
+                            <option value="Library">Library</option>
+                        </select>
+                    </div>
 
-<!-- Learning Materials -->
-<div class="form-group full-width">
-    <label class="optional">Learning Materials (Select all that apply)</label>
-    <select id="materials" multiple>
-        <option value="Textbook">Textbook</option>
-        <option value="Chalkboard">Chalkboard</option>
-        <option value="Projector">Projector</option>
-        <option value="Computer">Computer</option>
-        <option value="Charts">Charts</option>
-        <option value="Laboratory equipment">Laboratory equipment</option>
-    </select>
-</div>
+                    <!-- Learning Materials -->
+                    <div class="form-group full-width">
+                        <label class="optional">Learning Materials (Select all that apply)</label>
+                        <select id="materials" multiple>
+                            <option value="Textbook">Textbook</option>
+                            <option value="Chalkboard">Chalkboard</option>
+                            <option value="Projector">Projector</option>
+                            <option value="Computer">Computer</option>
+                            <option value="Charts">Charts</option>
+                            <option value="Laboratory equipment">Laboratory equipment</option>
+                        </select>
+                    </div>
 
-
-    <label class="optional">Teaching Strategy</label>
-    <select id="strategy">
-        <option value="">Select Strategy</option>
-        <option value="Discussion">Discussion</option>
-        <option value="Group Work">Group Work</option>
-        <option value="Demonstration">Demonstration</option>
-        <option value="Hands-on Activity">Hands-on Activity</option>
-        <option value="Role Play">Role Play</option>
-        <option value="Project-Based">Project-Based</option>
-        <option value="Peer Teaching">Peer Teaching</option>
-        <option value="Quiz/Test">Quiz/Test</option>
-        <option value="Lecture">Lecture</option>
-        <option value="Flipped Classroom">Flipped Classroom</option>
-    </select>
-</div>
-
+                    <label class="optional">Teaching Strategy</label>
+                    <select id="strategy">
+                        <option value="">Select Strategy</option>
+                        <option value="Discussion">Discussion</option>
+                        <option value="Group Work">Group Work</option>
+                        <option value="Demonstration">Demonstration</option>
+                        <option value="Hands-on Activity">Hands-on Activity</option>
+                        <option value="Role Play">Role Play</option>
+                        <option value="Project-Based">Project-Based</option>
+                        <option value="Peer Teaching">Peer Teaching</option>
+                        <option value="Quiz/Test">Quiz/Test</option>
+                        <option value="Lecture">Lecture</option>
+                        <option value="Flipped Classroom">Flipped Classroom</option>
+                    </select>
+                </div>
 
             </div>
 
@@ -194,9 +191,9 @@
 
     <div id="resultContainer" class="result-container">
         <div class="download-buttons">
-            <button onclick="requirePremium(copyToWord)">📄 Copy to Word</button>
-            <button onclick="requirePremium(downloadPDF)">📑 Download PDF</button>
-            <button onclick="requirePremium(downloadDOCX)">📝 Download DOCX</button>
+            <button type="button" class="download-btn" data-action="copy">📄 Copy to Word</button>
+            <button type="button" class="download-btn" data-action="pdf">📑 Download PDF</button>
+            <button type="button" class="download-btn" data-action="word">📝 Download DOCX</button>
         </div>
         <div id="lessonPlanContent" class="lesson-plan"></div>
     </div>
@@ -224,7 +221,7 @@
                     <li>✖ Copy to Word</li>
                     <li>✖ Download DOCX</li>
                 </ul>
-                <button class="choose-btn" onclick="subscribe('weekly')">Choose Weekly</button>
+                <button class="choose-btn" data-plan="weekly">Choose Weekly</button>
             </div>
 
             <div class="pricing-card featured">
@@ -236,7 +233,7 @@
                     <li>✔ Copy to Word</li>
                     <li>✔ Download DOCX</li>
                 </ul>
-                <button class="choose-btn primary" onclick="subscribe('monthly')">Choose Monthly</button>
+                <button class="choose-btn primary" data-plan="monthly">Choose Monthly</button>
             </div>
 
             <div class="pricing-card">
@@ -249,7 +246,7 @@
                     <li>✔ Download DOCX</li>
                     <li>✔ 24/7 Support</li>
                 </ul>
-                <button class="choose-btn" onclick="subscribe('term')">Choose Term</button>
+                <button class="choose-btn" data-plan="term">Choose Term</button>
             </div>
 
         </div>
@@ -257,15 +254,16 @@
 </div>
 
 <button id="installBtn" style="display:none; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
-  Install App
+    Install App
 </button>
 
-<!-- ====== CSRF token available for JS POSTs ====== -->
+<!-- ====== CSRF token ====== -->
 <script>
     const csrfInput = document.querySelector('#lessonForm input[name=csrfmiddlewaretoken]');
     window.CSRF_TOKEN = csrfInput ? csrfInput.value : '';
 </script>
 
+<!-- ====== SERVICE WORKER ====== -->
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -274,43 +272,45 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.error('❌ SW failed:', err));
     });
 }
-
-function closeModal() {
-    document.getElementById('subscribeModal').style.display = 'none';
-}
-
-function subscribe(plan) {
-    // Close the modal cleanly
-    closeModal();
-
-    // Redirect to canonical pricing page
-    window.location.href = `/pricing/?plan=${plan}`;
-}
 </script>
 
-<!-- ================= FIX SUBSCRIBE BUTTONS ================= -->
+<!-- ====== UNIFIED SUBSCRIBE LOGIC — single block, no conflicts ====== -->
 <script>
-    // Preserve all content; just fix modal buttons to redirect correctly
     window.isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
 
-    function handleSubscribeClick(e) {
-        const plan = e.currentTarget.dataset.plan;
+    // ✅ Close modal
+    function closeModal() {
+        document.getElementById('subscribeModal').style.display = 'none';
+    }
+
+    // ✅ Close modal when clicking the backdrop
+    window.addEventListener('click', function(e) {
+        const modal = document.getElementById('subscribeModal');
+        if (e.target === modal) closeModal();
+    });
+
+    // ✅ Single unified subscribe function
+    // Preserves ?plan= at every redirect step
+    function subscribe(plan) {
+        closeModal();
+
+        // Always store in sessionStorage as backup
+        sessionStorage.setItem('selected_plan', plan);
+
         if (window.isAuthenticated) {
+            // Logged-in → go directly to payment with plan in URL
             window.location.href = "{% url 'payment' %}?plan=" + plan;
         } else {
-            window.location.href = "{% url 'register' %}";
+            // Guest → go to register carrying plan so it survives signup
+            window.location.href = "{% url 'register' %}?plan=" + plan;
         }
     }
 
+    // ✅ Attach click handlers to pricing buttons using data-plan attribute
+    // Buttons now use data-plan instead of onclick to avoid conflicts
     document.addEventListener('DOMContentLoaded', () => {
-        const buttons = document.querySelectorAll('.choose-btn');
-        buttons.forEach(btn => {
-            const planMatch = btn.getAttribute('onclick').match(/'(\w+)'/);
-            if(planMatch) {
-                btn.dataset.plan = planMatch[1];
-                btn.removeAttribute('onclick');
-                btn.addEventListener('click', handleSubscribeClick);
-            }
+        document.querySelectorAll('.choose-btn[data-plan]').forEach(btn => {
+            btn.addEventListener('click', () => subscribe(btn.dataset.plan));
         });
     });
 </script>

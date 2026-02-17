@@ -10,10 +10,31 @@ from django.views.decorators.csrf import csrf_exempt
 import json
 
 
+# -----------------------------
+# Payment Page
+# -----------------------------
 def payment_page(request):
-    return render(request, "payment.html")
+    # ✅ Read plan from URL → session → default 'monthly'
+    plan = (
+        request.GET.get('plan')
+        or request.session.get('selected_plan')
+        or 'monthly'
+    )
+
+    # ✅ Validate plan value to prevent invalid data
+    valid_plans = ['weekly', 'monthly', 'term']
+    if plan not in valid_plans:
+        plan = 'monthly'
+
+    # ✅ Save to session so it survives page refresh
+    request.session['selected_plan'] = plan
+
+    return render(request, "payment.html", {'selected_plan': plan})
 
 
+# -----------------------------
+# MTN Payment
+# -----------------------------
 @api_view(['POST'])
 def initiate_mtn_payment(request):
     profile = resolve_profile(request)
@@ -34,13 +55,22 @@ def initiate_mtn_payment(request):
     except Exception as e:
         return Response({"error": f"Payment initiation failed: {str(e)}"}, status=500)
 
-    return Response({"status": "PENDING", "reference_id": ref_id, "amount": amount, "plan": plan})
+    return Response({
+        "status": "PENDING",
+        "reference_id": ref_id,
+        "amount": amount,
+        "plan": plan
+    })
 
 
+# -----------------------------
+# Confirm Payment
+# -----------------------------
 @api_view(['POST'])
 def confirm_payment(request):
     profile = resolve_profile(request)
     plan = request.data.get("plan")
+
     if not plan:
         return JsonResponse({"status": "failed", "error": "plan is required"}, status=400)
 
@@ -50,19 +80,17 @@ def confirm_payment(request):
         return JsonResponse({"status": "failed", "error": "Invalid plan"}, status=400)
 
     profile.activate_premium(plan=plan, days=days, reset_usage=True)
-    return JsonResponse({"status": "success", "message": f"Subscription '{plan}' activated for {days} days.", "subscription_expiry": profile.subscription_expiry})
 
-
-def check_subscription(request):
     return JsonResponse({
-        "has_access": False,
-        "reason": "Subscription check not implemented yet"
+        "status": "success",
+        "message": f"Subscription '{plan}' activated for {days} days.",
+        "subscription_expiry": profile.subscription_expiry
     })
 
-def subscription_success(request):
-    return render(request, "subscription_success.html")
 
-
+# -----------------------------
+# Manual Payment Submission
+# -----------------------------
 @csrf_exempt
 @api_view(['POST'])
 def submit_manual_payment(request):
@@ -76,9 +104,23 @@ def submit_manual_payment(request):
     if not code or not plan:
         return JsonResponse({"success": False, "error": "Code and plan are required"}, status=400)
 
-    # Here you can add your real manual verification logic
-    # For now, we'll just simulate acceptance
-    return JsonResponse({"success": True, "message": "Manual payment submitted. Await admin approval."})
+    return JsonResponse({
+        "success": True,
+        "message": "Manual payment submitted. Await admin approval."
+    })
+
+
+# -----------------------------
+# Subscription Status Pages
+# -----------------------------
+def check_subscription(request):
+    return JsonResponse({
+        "has_access": False,
+        "reason": "Subscription check not implemented yet"
+    })
+
+def subscription_success(request):
+    return render(request, "subscription_success.html")
 
 def subscription_pending(request):
     return render(request, "subscription_pending.html")

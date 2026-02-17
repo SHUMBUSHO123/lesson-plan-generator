@@ -165,19 +165,34 @@ class UserProfile(models.Model):
     # Subscription Logic
     # ----------------------
     def is_subscription_active(self):
+        """
+        ✅ is_premium=True set by admin = always active (no expiry required)
+           is_premium=True with future expiry = active
+           is_premium=True with past expiry = NOT active (will be caught by expire_subscription_if_needed)
+           is_premium=False = not active
+        """
         if not self.is_premium:
             return False
         if self.subscription_expiry:
             return timezone.now() <= self.subscription_expiry
-        return True
+        return True  # ✅ No expiry set = permanent admin grant
 
     def expire_subscription_if_needed(self):
+        """
+        Only expire if:
+        1. subscription_expiry is explicitly SET (not null)
+        2. AND that date is in the past
+
+        ✅ Admin-set is_premium=True with NO expiry date = permanent access
+           This is the correct behaviour for manually activated accounts.
+        """
         if self.subscription_expiry and timezone.now() > self.subscription_expiry:
             self.is_premium = False
             self.subscription_plan = None
             self.lesson_limit = FREE_LESSON_LIMIT
             self.lessons_used = 0
-            self.save(update_fields=['is_premium','subscription_plan','lesson_limit','lessons_used'])
+            self.save(update_fields=['is_premium', 'subscription_plan', 'lesson_limit', 'lessons_used'])
+
 
     # ----------------------
     # Admin Control Methods
