@@ -20,7 +20,6 @@ def landing(request):
     return render(request, 'landing.html')
 
 def pricing(request):
-    # ✅ Pass plan to pricing page if present in URL
     plan = request.GET.get('plan', '')
     return render(request, 'pricing.html', {'selected_plan': plan})
 
@@ -42,7 +41,6 @@ def get_logged_in_user_device_id(request):
 # -----------------------------
 @csrf_exempt
 def register(request):
-    # ✅ Read plan from GET (link click) or POST (form submit) — preserved throughout
     plan = request.GET.get('plan', '') or request.POST.get('plan', '')
 
     if request.method == "POST":
@@ -53,7 +51,7 @@ def register(request):
         if User.objects.filter(username=email).exists():
             return render(request, "register.html", {
                 "error": "Email already registered",
-                "plan": plan  # ✅ Keep plan in context so form re-renders with it
+                "plan": plan
             })
 
         user = User.objects.create_user(username=email, email=email, password=password)
@@ -64,6 +62,8 @@ def register(request):
                 device_id=incoming_device_id, user__isnull=True
             ).first()
             if guest_profile:
+                # ✅ Merge guest profile into the new user account
+                # This preserves their lesson_used count from guest sessions
                 guest_profile.user = user
                 guest_profile.save()
                 profile = guest_profile
@@ -77,12 +77,10 @@ def register(request):
         login(request, user)
         request.session['device_id'] = profile.device_id
 
-        # ✅ After registration redirect to payment with plan if present, else index
         if plan:
             return redirect(f"/payment/?plan={plan}")
         return redirect("index")
 
-    # GET: render form, pass plan so the template can carry it in the hidden field
     return render(request, "register.html", {"plan": plan})
 
 
@@ -91,7 +89,6 @@ def register(request):
 # -----------------------------
 @csrf_exempt
 def login_user(request):
-    # ✅ Read plan from GET or POST — preserved throughout
     plan = request.GET.get('plan', '') or request.POST.get('plan', '')
 
     if request.method == "POST":
@@ -103,7 +100,7 @@ def login_user(request):
         if not user:
             return render(request, "login.html", {
                 "error": "Invalid credentials",
-                "plan": plan  # ✅ Keep plan in context on error
+                "plan": plan
             })
 
         login(request, user)
@@ -124,7 +121,6 @@ def login_user(request):
 
         request.session['device_id'] = profile.device_id
 
-        # ✅ After login redirect to payment with plan if present, else index
         if plan:
             return redirect(f"/payment/?plan={plan}")
         return redirect("index")
@@ -136,6 +132,10 @@ def login_user(request):
 # Logout
 # -----------------------------
 def logout_user(request):
+    # ✅ FIX 1: Clear device_id from session on logout
+    # Without this, the next page load would resolve the
+    # logged-out user's premium profile for the "guest"
+    request.session.pop('device_id', None)
     logout(request)
     return redirect("landing")
 
@@ -146,14 +146,16 @@ def logout_user(request):
 @never_cache
 def index(request):
     if request.user.is_authenticated:
+        # ✅ Logged-in users: always get or create their profile
         profile, created = UserProfile.objects.get_or_create(user=request.user)
         if not profile.device_id:
             profile.device_id = str(uuid.uuid4())
             profile.save()
     else:
-        device_id = request.GET.get('device_id') or str(uuid.uuid4())
-        profile, _ = UserProfile.objects.get_or_create(
-            device_id=device_id,
-            defaults={'user': None}
-        )
+        # ✅ FIX 2: Guests — do NOT create a profile on page load
+        # Profile is only created when they actually generate a plan
+        # (handled inside generate_lesson_plan view via resolve_profile)
+        # We pass None so the template still renders without errors
+        profile = None
+
     return render(request, 'index.html', {'profile': profile})

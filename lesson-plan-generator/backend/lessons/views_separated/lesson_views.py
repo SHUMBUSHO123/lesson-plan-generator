@@ -10,12 +10,17 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import status
 from lessons.helpers import build_lesson_plan_context, prepare_lesson_plan_context
-from lessons.models import UserProfile, Lesson, Unit, FREE_LESSON_LIMIT, SUBSCRIPTION_LIMITS, TeachingStrategy, LessonStrategyStep
+from lessons.models import (
+    UserProfile, Lesson, Unit, FREE_LESSON_LIMIT, SUBSCRIPTION_LIMITS,
+    TeachingStrategy, LessonStrategyStep, GeneratedLessonPlan
+)
 from lessons.utils.resolve_profile import resolve_profile
-from lessons.models import TeachingStrategy
 from lessons.services.lesson_engine import build_strategy_steps
 import random
 from django.db.models import F
+import zipfile
+import io
+from django.http import HttpResponse
 
 
 def use_lesson_atomic(profile):
@@ -81,6 +86,22 @@ def generate_lesson_plan(request):
     except Exception as e:
         return Response({"error": f"Failed to render lesson plan: {str(e)}"}, status=500)
 
+    # ── Persist plan for logged-in users only ─────────────────────────
+    if request.user.is_authenticated:
+        try:
+            lesson_info = context.get('lesson_info', {})
+            GeneratedLessonPlan.objects.create(
+                profile       = profile,
+                subject       = lesson_info.get('subject', request.data.get('subject', '')),
+                unit_title    = lesson_info.get('unit_title', ''),
+                lesson_title  = lesson_info.get('lesson_title', '')[:300],
+                class_name    = lesson_info.get('class_name', request.data.get('class', '')),
+                term          = request.data.get('term', ''),
+                html_snapshot = html_content,
+            )
+        except Exception as save_err:
+            print(f"⚠️  Could not save GeneratedLessonPlan: {save_err}")
+
     return Response({"html": html_content})
 
 
@@ -93,15 +114,11 @@ def check_access(request):
     profile = get_or_create_guest_profile(request)
 
     # ✅ Only expire if subscription_expiry is explicitly SET and past
-    # Do NOT expire admin-set is_premium=True with no expiry date
     if profile.subscription_expiry:
         profile.expire_subscription_if_needed()
 
-    # ✅ is_premium=True set by admin ALWAYS grants premium access
-    # even if subscription_plan or subscription_expiry are not set
     is_premium = profile.is_premium
 
-    # ✅ can_generate: premium users always can, free users check limit
     can_generate = (
         profile.is_active and (
             is_premium or profile.can_generate_plan()
@@ -131,14 +148,167 @@ def check_subscription(request):
     if not profile:
         return JsonResponse({"active": False, "expires_at": None})
 
-    # ✅ Same fix: only expire if expiry date is actually set
     if profile.subscription_expiry:
         profile.expire_subscription_if_needed()
 
     return JsonResponse({
-        "active": profile.is_premium,  # ✅ Use is_premium directly
+        "active": profile.is_premium,
         "expires_at": profile.subscription_expiry
     })
+
+
+# -----------------------------
+# User Dashboard
+# -----------------------------
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_user_dashboard(request):
+    """
+    Returns usage stats + last 10 generated lesson plans for the dashboard panel.
+    Uses request.user.is_authenticated as the ONLY authority for auth state.
+    Guests receive a counter only — no plan history, no premium data leakage.
+    """
+    # ✅ FIX: use Django's auth state — never trust session device_id for identity
+    is_authenticated = request.user.is_authenticated
+
+    if is_authenticated:
+        # Logged-in: get their real profile
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        profile.expire_subscription_if_needed()
+
+        limit     = profile.get_current_lesson_limit()
+        used      = profile.lessons_used
+        # None only when lesson_limit is truly NULL (permanent admin grant)
+        # Term/Monthly/Weekly users have a real limit and show a real count
+        if profile.lesson_limit is None and profile.is_premium:
+            remaining = None
+        else:
+            remaining = max(0, limit - used)
+
+        payload = {
+            "is_authenticated":    True,
+            "is_premium":          profile.is_premium,
+            "subscription_plan":   profile.subscription_plan,
+            "subscription_expiry": (
+                profile.subscription_expiry.isoformat()
+                if profile.subscription_expiry else None
+            ),
+            "lessons_used":      used,
+            "lesson_limit":      limit,
+            "remaining":         remaining,
+            "can_download_pdf":  profile.can_download_pdf,
+            "can_download_docx": profile.can_download_docx,
+            "can_copy_word":     profile.can_copy_word,
+            "recent_plans":      [],
+        }
+
+        # Recent plans — only for logged-in users
+        plans = GeneratedLessonPlan.objects.filter(
+            profile=profile
+        ).order_by('-created_at')[:10]
+
+        payload["recent_plans"] = [
+            {
+                "id":           p.id,
+                "subject":      p.subject,
+                "unit_title":   p.unit_title,
+                "lesson_title": p.lesson_title,
+                "class_name":   p.class_name,
+                "term":         p.term,
+                "created_at":   p.created_at.strftime("%d %b %Y, %H:%M"),
+            }
+            for p in plans
+        ]
+
+    else:
+        # ✅ Guest: resolve device-based profile for usage counter only
+        # Never expose premium data or plan history for guests
+        profile = resolve_profile(request)
+
+        limit     = profile.get_current_lesson_limit()
+        used      = profile.lessons_used
+        remaining = max(0, limit - used)
+
+        payload = {
+            "is_authenticated":    False,
+            "is_premium":          False,  # always False for guests
+            "subscription_plan":   None,
+            "subscription_expiry": None,
+            "lessons_used":        used,
+            "lesson_limit":        limit,
+            "remaining":           remaining,
+            "can_download_pdf":    False,
+            "can_download_docx":   False,
+            "can_copy_word":       False,
+            "recent_plans":        [],     # always empty for guests
+        }
+
+    return Response(payload)
+
+
+# -----------------------------
+# Bulk ZIP Download
+# -----------------------------
+@api_view(['POST'])
+def bulk_zip_download(request):
+    """
+    Accepts: { "plan_ids": [1, 2, 3] }
+    Returns a ZIP of HTML snapshots.
+    Security: only the owner's plans are included.
+    """
+    # ✅ Use Django auth — not profile.user
+    if not request.user.is_authenticated:
+        return Response({"error": "Login required to download plans."}, status=401)
+
+    profile, _ = UserProfile.objects.get_or_create(user=request.user)
+
+    plan_ids = request.data.get('plan_ids', [])
+    if not plan_ids or not isinstance(plan_ids, list):
+        return Response({"error": "Provide a list of plan_ids."}, status=400)
+
+    # Security: only fetch plans belonging to this user's profile
+    plans = GeneratedLessonPlan.objects.filter(
+        id__in=plan_ids,
+        profile=profile
+    )
+
+    if not plans.exists():
+        return Response({"error": "No matching plans found."}, status=404)
+
+    # Build ZIP in memory
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for plan in plans:
+            full_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{plan.subject} – {plan.lesson_title}</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; font-size: 12pt; padding: 20px; color: #000; }}
+    table {{ border-collapse: collapse; width: 100%; margin-bottom: 16pt; }}
+    td, th {{ border: 1px solid #333; padding: 6px 8px; vertical-align: top; }}
+    th {{ background: #f0f0f0; font-weight: bold; }}
+  </style>
+</head>
+<body>
+{plan.html_snapshot}
+</body>
+</html>"""
+            safe_subject = "".join(
+                c for c in plan.subject if c.isalnum() or c in " _-"
+            )[:30].strip()
+            safe_lesson = "".join(
+                c for c in plan.lesson_title if c.isalnum() or c in " _-"
+            )[:40].strip()
+            date_str = plan.created_at.strftime("%Y%m%d")
+            filename = f"{date_str}_{safe_subject}_{safe_lesson}.html".replace(" ", "_")
+            zf.writestr(filename, full_html)
+
+    buffer.seek(0)
+    response = HttpResponse(buffer, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename="CBC_Lesson_Plans.zip"'
+    return response
 
 
 # -----------------------------
@@ -161,11 +331,11 @@ def get_user_prefill(request):
                 lesson_title = first_lesson.title
 
     return Response({
-        "schoolName": profile.school_name or "",
+        "schoolName":  profile.school_name or "",
         "teacherName": request.user.get_full_name() if request.user.is_authenticated else profile.teacher_name or "",
-        "term": profile.default_term or "I",
-        "classSize": profile.class_size or "",
-        "references": profile.references or "",
-        "unitTitle": unit_display,
+        "term":        profile.default_term or "I",
+        "classSize":   profile.class_size or "",
+        "references":  profile.references or "",
+        "unitTitle":   unit_display,
         "lessonTitle": lesson_title
     })

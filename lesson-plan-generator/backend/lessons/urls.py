@@ -3,7 +3,13 @@ from rest_framework.routers import DefaultRouter
 from .views_separated import payment_views
 from .views_separated.auth_views import register, login_user, logout_user
 from .views_separated.crud_views import LevelViewSet, ClassViewSet, SubjectViewSet, UnitViewSet, LessonViewSet
-from .views_separated.lesson_views import generate_lesson_plan, check_access, get_user_prefill
+from .views_separated.lesson_views import (
+    generate_lesson_plan,
+    check_access,
+    get_user_prefill,
+    get_user_dashboard,
+    bulk_zip_download,
+)
 from .views import landing, pricing, get_logged_in_user_device_id, index
 
 # Router
@@ -36,6 +42,8 @@ urlpatterns = [
     path("submit-manual-payment/", payment_views.submit_manual_payment, name="submit_manual_payment"),
     path("initiate-mtn-payment/", payment_views.initiate_mtn_payment, name="process_mtn_payment"),
     path("get_user_prefill/", get_user_prefill, name="get_user_prefill"),
+    path("dashboard/", get_user_dashboard, name="user_dashboard"),
+    path("plans/zip/", bulk_zip_download, name="bulk_zip_download"),
 ]
 
 urlpatterns += router.urls

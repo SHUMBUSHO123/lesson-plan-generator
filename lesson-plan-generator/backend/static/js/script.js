@@ -34,6 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     attachDownloadButtons();
     prefillUserData();
     updateGenerateButtonStatus();
+    loadDashboard(); // ← dashboard init
 });
 
 // ===============================
@@ -282,6 +283,7 @@ async function generateLessonPlanFromForm() {
 
             lessonPlanContent.innerHTML = data.html;
             if (resultContainer) resultContainer.classList.add('show');
+            loadDashboard(); // ← refresh dashboard after new plan generated
 
         } catch (err) {
             console.error(err);
@@ -329,7 +331,6 @@ function attachDownloadButtons() {
                 return;
             }
 
-            // Show loading state on button
             const originalText = btn.textContent;
             btn.disabled = true;
             btn.textContent = '⏳ Please wait...';
@@ -373,17 +374,8 @@ function subscribe(plan) {
 }
 
 // ===============================
-// DOWNLOAD FUNCTIONS — FIXED
+// DOWNLOAD FUNCTIONS
 // ===============================
-
-/**
- * FIX 1: downloadPDF
- * - Clones the lesson plan element so we can apply print-safe styles
- *   without affecting the live page display.
- * - Removes overflow/max-height constraints that clip content.
- * - Uses html2pdf's correct async API (.outputPdf('blob') → save) to
- *   avoid the silent-failure bug in the old synchronous .save() call.
- */
 async function downloadPDF() {
     console.log('📑 Starting PDF download...');
     const element = document.getElementById("lessonPlanContent");
@@ -393,7 +385,6 @@ async function downloadPDF() {
     }
 
     try {
-        // Clone element so we can inject print-safe styles safely
         const clone = element.cloneNode(true);
         clone.style.cssText = `
             font-family: Arial, sans-serif;
@@ -406,8 +397,6 @@ async function downloadPDF() {
             overflow: visible !important;
             max-height: none !important;
         `;
-
-        // Fix any tables inside the clone for PDF rendering
         clone.querySelectorAll('table').forEach(t => {
             t.style.borderCollapse = 'collapse';
             t.style.width = '100%';
@@ -419,24 +408,14 @@ async function downloadPDF() {
         });
 
         const opt = {
-            margin:      [0.5, 0.5, 0.5, 0.5],  // inches: top, right, bottom, left
+            margin:      [0.5, 0.5, 0.5, 0.5],
             filename:    'CBC_Lesson_Plan.pdf',
             image:       { type: 'jpeg', quality: 0.98 },
-            html2canvas: {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                scrollY: 0
-            },
-            jsPDF: {
-                unit: 'in',
-                format: 'a4',
-                orientation: 'portrait'
-            },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+            jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
         };
 
-        // Use the promise-based API — avoids silent failures
         await html2pdf().set(opt).from(clone).save();
         console.log('✅ PDF download complete');
     } catch (err) {
@@ -445,14 +424,6 @@ async function downloadPDF() {
     }
 }
 
-/**
- * FIX 2: copyToWord
- * - Uses the Clipboard API with HTML content type so that when the
- *   user pastes into Word they get the formatted version, not just
- *   stripped plain text.
- * - Falls back to plain text copy if the rich-HTML clipboard write
- *   is not supported (older browsers / non-HTTPS).
- */
 function copyToWord() {
     console.log('📄 Copying to clipboard...');
     const element = document.getElementById("lessonPlanContent");
@@ -462,13 +433,12 @@ function copyToWord() {
     }
 
     const htmlContent = element.innerHTML;
-    const plainText  = element.innerText;
+    const plainText   = element.innerText;
 
-    // Try rich HTML clipboard first (pastes WITH formatting into Word)
     if (window.ClipboardItem && navigator.clipboard.write) {
-        const htmlBlob  = new Blob([htmlContent], { type: 'text/html' });
-        const textBlob  = new Blob([plainText],   { type: 'text/plain' });
-        const item      = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
+        const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+        const textBlob = new Blob([plainText],   { type: 'text/plain' });
+        const item     = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
 
         navigator.clipboard.write([item])
             .then(() => {
@@ -480,7 +450,6 @@ function copyToWord() {
                 fallbackCopyPlainText(plainText);
             });
     } else {
-        // Fallback: plain text only (older browsers)
         fallbackCopyPlainText(plainText);
     }
 }
@@ -497,16 +466,6 @@ function fallbackCopyPlainText(text) {
         });
 }
 
-/**
- * FIX 3: downloadWord
- * Uses an MHT (MIME HTML) blob that Word natively opens as a full
- * formatted document — no external library needed at all.
- * This is the most reliable cross-browser approach:
- *   - Works in Word 2010+ on Windows
- *   - Works in LibreOffice
- *   - Preserves tables, bold, headings, colors from the rendered HTML
- *   - Zero dependency on CDN availability
- */
 async function downloadWord() {
     console.log('📝 Starting DOCX download...');
     const element = document.getElementById("lessonPlanContent");
@@ -516,8 +475,6 @@ async function downloadWord() {
     }
 
     try {
-        // Grab all styles currently applied in the page so Word renders
-        // the lesson plan exactly as it looks on screen
         let styleContent = '';
         try {
             Array.from(document.styleSheets).forEach(sheet => {
@@ -525,11 +482,10 @@ async function downloadWord() {
                     Array.from(sheet.cssRules || []).forEach(rule => {
                         styleContent += rule.cssText + '\n';
                     });
-                } catch (_) { /* cross-origin sheets — skip */ }
+                } catch (_) {}
             });
         } catch (_) {}
 
-        // Extra print-safe overrides so tables render with borders in Word
         const printStyles = `
             body { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
@@ -541,7 +497,6 @@ async function downloadWord() {
             p  { margin: 4pt 0; }
         `;
 
-        // Build a complete self-contained HTML document
         const fullHtml = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office"
                   xmlns:w="urn:schemas-microsoft-com:office:word"
@@ -559,32 +514,20 @@ async function downloadWord() {
                     </w:WordDocument>
                 </xml>
                 <![endif]-->
-                <style>
-                    ${styleContent}
-                    ${printStyles}
-                </style>
+                <style>${styleContent}${printStyles}</style>
             </head>
-            <body>
-                ${element.innerHTML}
-            </body>
+            <body>${element.innerHTML}</body>
             </html>
         `.trim();
 
-        // Create blob with the Word-compatible MIME type
-        const blob = new Blob(
-            ['\ufeff', fullHtml],   // BOM + HTML
-            { type: 'application/msword' }
-        );
-
-        const url = URL.createObjectURL(blob);
-        const a   = document.createElement('a');
+        const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
         a.href     = url;
-        a.download = 'CBC_Lesson_Plan.doc';   // .doc opens reliably in all Word versions
+        a.download = 'CBC_Lesson_Plan.doc';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-
-        // Small delay before revoking so the download has time to start
         setTimeout(() => URL.revokeObjectURL(url), 1000);
 
         console.log('✅ Word document download complete');
@@ -592,4 +535,324 @@ async function downloadWord() {
         console.error('Word download error:', err);
         alert('Failed to create Word document. Please try again.\n\nError: ' + err.message);
     }
+}
+
+
+// ===============================
+// DASHBOARD
+// ===============================
+
+// ── State ──────────────────────────────────────────────────────────────────
+let dashboardData     = null;
+let selectedPlanIds   = new Set();
+let dashboardExpanded = true;
+
+// ── Main Loader ────────────────────────────────────────────────────────────
+async function loadDashboard() {
+    try {
+        const res = await fetch(`${API_BASE}/dashboard/`, {
+            credentials: 'include',
+            headers: { 'Accept': 'application/json' }
+        });
+        if (!res.ok) return; // silently skip if endpoint not ready yet
+        dashboardData = await res.json();
+        renderDashboard(dashboardData);
+    } catch (err) {
+        console.warn("Dashboard load skipped:", err.message);
+    }
+}
+
+// ── Renderer ──────────────────────────────────────────────────────────────
+function renderDashboard(data) {
+    const panel = document.getElementById('dashboardPanel');
+    if (!panel) return;
+    panel.style.display = 'block';
+
+    if (!data.is_authenticated) {
+        renderGuestBanner(data);
+    } else {
+        renderFullDashboard(data);
+    }
+    attachDashboardEvents();
+}
+
+// ── Guest Banner ───────────────────────────────────────────────────────────
+function renderGuestBanner(data) {
+    const banner = document.getElementById('guestBanner');
+    if (!banner) return;
+    banner.style.display = 'flex';
+
+    const remaining = data.remaining ?? (data.lesson_limit - data.lessons_used);
+    const text      = document.getElementById('guestBannerText');
+    if (text) {
+        if (remaining <= 0) {
+            text.innerHTML = `<strong style="color:#f44336">Free limit reached.</strong> Subscribe to keep generating.`;
+        } else {
+            text.innerHTML = `You have <strong style="color:#4CAF50">${remaining}</strong> free lesson${remaining === 1 ? '' : 's'} remaining (${data.lessons_used} of ${data.lesson_limit} used).`;
+        }
+    }
+}
+
+// ── Full Dashboard ─────────────────────────────────────────────────────────
+function renderFullDashboard(data) {
+    const fd = document.getElementById('fullDashboard');
+    if (!fd) return;
+    fd.style.display = 'block';
+
+    const used      = data.lessons_used ?? 0;
+    const limit     = data.lesson_limit ?? 0;
+
+    setInner('dashUsed', used);
+    // Show 'Unlimited' only when remaining is truly null (no cap set)
+    const limitLabel = (data.remaining === null || data.remaining === undefined)
+        ? 'Unlimited plan'
+        : `of ${limit} total`;
+    setInner('dashLimit', limitLabel);
+
+    if (data.remaining === null || data.remaining === undefined) {
+        setInner('dashRemaining', '∞');
+        setInner('dashRemainingLabel', 'unlimited');
+    } else {
+        setInner('dashRemaining', data.remaining);
+        setInner('dashRemainingLabel', data.remaining === 1 ? 'lesson left' : 'lessons left');
+    }
+
+    // Progress bar
+    const fill = document.getElementById('dashProgressFill');
+    if (fill) {
+        const pct = data.is_premium
+            ? 100
+            : Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0);
+        fill.style.width      = `${pct}%`;
+        fill.style.background = pct >= 90
+            ? 'linear-gradient(90deg,#f44336,#EF9A9A)'
+            : 'linear-gradient(90deg,#4CAF50,#81C784)';
+    }
+
+    // Subscription card
+    const planEl = document.getElementById('dashPlan');
+    if (planEl) {
+        if (data.is_premium && data.subscription_plan) {
+            planEl.textContent = data.subscription_plan.charAt(0).toUpperCase() + data.subscription_plan.slice(1);
+            planEl.style.color = '#81C784';
+        } else if (data.is_premium) {
+            planEl.textContent = 'Premium';
+            planEl.style.color = '#81C784';
+        } else {
+            planEl.textContent = 'Free';
+            planEl.style.color = '#FF9800';
+        }
+    }
+
+    const expiryEl = document.getElementById('dashExpiry');
+    if (expiryEl) {
+        if (data.subscription_expiry) {
+            const d = new Date(data.subscription_expiry);
+            expiryEl.textContent = `Expires: ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+        } else if (data.is_premium) {
+            expiryEl.textContent = 'No expiry set';
+        } else {
+            expiryEl.textContent = 'Upgrade for more';
+        }
+    }
+
+    // Permission badges
+    togglePerm('permPdf',  data.can_download_pdf);
+    togglePerm('permDocx', data.can_download_docx);
+    togglePerm('permCopy', data.can_copy_word);
+
+    const hint = document.getElementById('dashUpgradeHint');
+    if (hint && !data.is_premium) {
+        hint.innerHTML = `<a href="/pricing/" style="color:#4CAF50;font-size:11px;">Upgrade to unlock all →</a>`;
+    }
+
+    renderPlansTable(data.recent_plans || []);
+}
+
+// ── Plans Table ────────────────────────────────────────────────────────────
+function renderPlansTable(plans) {
+    const loading  = document.getElementById('dashLoading');
+    const empty    = document.getElementById('dashEmpty');
+    const tableWrp = document.getElementById('dashTableWrapper');
+    const tbody    = document.getElementById('dashPlansBody');
+
+    if (loading) loading.style.display = 'none';
+
+    if (!plans || plans.length === 0) {
+        if (empty)    empty.style.display    = 'block';
+        if (tableWrp) tableWrp.style.display = 'none';
+        return;
+    }
+
+    if (empty)    empty.style.display    = 'none';
+    if (tableWrp) tableWrp.style.display = 'block';
+    if (!tbody) return;
+
+    tbody.innerHTML = plans.map(p => `
+        <tr data-plan-id="${p.id}">
+            <td>
+                <input type="checkbox" class="dash-plan-check" data-id="${p.id}"
+                       aria-label="Select ${escHtml(p.lesson_title)}">
+            </td>
+            <td><span class="dash-subject-badge">${escHtml(p.subject)}</span></td>
+            <td class="dash-lesson-title-cell" title="${escHtml(p.lesson_title)}">${escHtml(p.lesson_title)}</td>
+            <td>${escHtml(p.class_name)}</td>
+            <td>${escHtml(p.term ? 'Term ' + p.term : '–')}</td>
+            <td class="dash-date-cell">${escHtml(p.created_at)}</td>
+        </tr>
+    `).join('');
+
+    tbody.querySelectorAll('.dash-plan-check').forEach(cb => {
+        cb.addEventListener('change', handlePlanCheckChange);
+    });
+}
+
+// ── Event Handlers ─────────────────────────────────────────────────────────
+function attachDashboardEvents() {
+    // Collapse toggle
+    const collapseBtn = document.getElementById('dashCollapseBtn');
+    if (collapseBtn) {
+        // Remove old listener before adding to avoid doubling on re-render
+        collapseBtn.replaceWith(collapseBtn.cloneNode(true));
+        document.getElementById('dashCollapseBtn').addEventListener('click', () => {
+            dashboardExpanded = !dashboardExpanded;
+            const body = document.getElementById('dashBody');
+            if (body) body.classList.toggle('collapsed', !dashboardExpanded);
+            const btn  = document.getElementById('dashCollapseBtn');
+            btn.textContent = dashboardExpanded ? '▲' : '▼';
+            btn.title       = dashboardExpanded ? 'Collapse dashboard' : 'Expand dashboard';
+        });
+    }
+
+    // Header checkbox — select/deselect all rows
+    const headerCheck = document.getElementById('dashHeaderCheck');
+    if (headerCheck) {
+        headerCheck.replaceWith(headerCheck.cloneNode(true));
+        document.getElementById('dashHeaderCheck').addEventListener('change', (e) => {
+            document.querySelectorAll('.dash-plan-check').forEach(cb => {
+                cb.checked = e.target.checked;
+                const id   = parseInt(cb.dataset.id, 10);
+                if (e.target.checked) selectedPlanIds.add(id);
+                else selectedPlanIds.delete(id);
+            });
+            updateZipButton();
+        });
+    }
+
+    // Select All button
+    const selectAllBtn = document.getElementById('dashSelectAll');
+    if (selectAllBtn) {
+        selectAllBtn.replaceWith(selectAllBtn.cloneNode(true));
+        document.getElementById('dashSelectAll').addEventListener('click', () => {
+            const checks   = document.querySelectorAll('.dash-plan-check');
+            const allChecked = [...checks].every(cb => cb.checked);
+            checks.forEach(cb => {
+                cb.checked = !allChecked;
+                const id   = parseInt(cb.dataset.id, 10);
+                if (!allChecked) selectedPlanIds.add(id);
+                else selectedPlanIds.delete(id);
+            });
+            const hc = document.getElementById('dashHeaderCheck');
+            if (hc) hc.checked = !allChecked;
+            updateZipButton();
+        });
+    }
+
+    // ZIP button
+    const zipBtn = document.getElementById('dashZipBtn');
+    if (zipBtn) {
+        zipBtn.replaceWith(zipBtn.cloneNode(true));
+        document.getElementById('dashZipBtn').addEventListener('click', handleBulkZip);
+    }
+}
+
+function handlePlanCheckChange(e) {
+    const id = parseInt(e.target.dataset.id, 10);
+    if (e.target.checked) selectedPlanIds.add(id);
+    else selectedPlanIds.delete(id);
+
+    const allChecks   = document.querySelectorAll('.dash-plan-check');
+    const headerCheck = document.getElementById('dashHeaderCheck');
+    if (headerCheck) {
+        headerCheck.checked       = allChecks.length > 0 && [...allChecks].every(cb => cb.checked);
+        headerCheck.indeterminate = selectedPlanIds.size > 0 && selectedPlanIds.size < allChecks.length;
+    }
+    updateZipButton();
+}
+
+function updateZipButton() {
+    const btn = document.getElementById('dashZipBtn');
+    if (!btn) return;
+    const count     = selectedPlanIds.size;
+    btn.disabled    = count === 0;
+    btn.textContent = count > 0 ? `🗜 Download ZIP (${count})` : '🗜 Download ZIP';
+}
+
+// ── Bulk ZIP ───────────────────────────────────────────────────────────────
+async function handleBulkZip() {
+    const btn = document.getElementById('dashZipBtn');
+    if (!btn || selectedPlanIds.size === 0) return;
+
+    const originalText = btn.textContent;
+    btn.disabled       = true;
+    btn.textContent    = '⏳ Zipping…';
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
+        const res = await fetch(`${API_BASE}/plans/zip/`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            credentials: 'include',
+            body: JSON.stringify({ plan_ids: [...selectedPlanIds] }),
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Server error ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = 'CBC_Lesson_Plans.zip';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+
+        // Clear selection after download
+        selectedPlanIds.clear();
+        document.querySelectorAll('.dash-plan-check').forEach(cb => cb.checked = false);
+        const hc = document.getElementById('dashHeaderCheck');
+        if (hc) { hc.checked = false; hc.indeterminate = false; }
+        updateZipButton();
+
+    } catch (err) {
+        console.error('ZIP download failed:', err);
+        alert(`ZIP download failed: ${err.message}`);
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = originalText;
+    }
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────
+function setInner(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value ?? '–';
+}
+
+function togglePerm(id, active) {
+    const el = document.getElementById(id);
+    if (el) el.classList.toggle('active', !!active);
+}
+
+function escHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }

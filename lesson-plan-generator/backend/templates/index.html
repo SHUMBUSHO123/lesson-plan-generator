@@ -7,6 +7,7 @@
     <title>🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
 
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">  <!-- 4a: dashboard styles -->
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <meta name="theme-color" content="#4CAF50">
     <meta name="mobile-web-app-capable" content="yes">
@@ -39,6 +40,114 @@
         {% endif %}
     </div>
 </nav>
+
+<!-- 4b: Dashboard panel — between </nav> and <div class="container"> -->
+<div id="dashboardPanel" class="dashboard-panel" style="display:none;">
+
+    <!-- ── GUEST VIEW: slim usage banner ─────────────────────────────── -->
+    <div id="guestBanner" class="dash-guest-banner" style="display:none;">
+        <span class="dash-guest-icon">🎓</span>
+        <span id="guestBannerText">Checking usage…</span>
+        <a href="{% url 'pricing' %}" class="dash-upgrade-link">Upgrade for unlimited →</a>
+    </div>
+
+    <!-- ── LOGGED-IN VIEW: full dashboard ────────────────────────────── -->
+    <div id="fullDashboard" style="display:none;">
+        <div class="dash-header">
+            <h2 class="dash-title">📊 My Dashboard</h2>
+            <button class="dash-collapse-btn" id="dashCollapseBtn" title="Collapse dashboard">▲</button>
+        </div>
+
+        <div class="dash-body" id="dashBody">
+
+            <!-- Row 1: Stats Cards -->
+            <div class="dash-stats-row">
+
+                <div class="dash-card dash-card--usage">
+                    <div class="dash-card-label">Plans Generated</div>
+                    <div class="dash-card-value" id="dashUsed">–</div>
+                    <div class="dash-card-sub" id="dashLimit">of – total</div>
+                    <div class="dash-progress-bar">
+                        <div class="dash-progress-fill" id="dashProgressFill" style="width:0%"></div>
+                    </div>
+                </div>
+
+                <div class="dash-card dash-card--remaining">
+                    <div class="dash-card-label">Remaining</div>
+                    <div class="dash-card-value" id="dashRemaining">–</div>
+                    <div class="dash-card-sub" id="dashRemainingLabel">lessons left</div>
+                </div>
+
+                <div class="dash-card dash-card--plan">
+                    <div class="dash-card-label">Subscription</div>
+                    <div class="dash-card-value" id="dashPlan">–</div>
+                    <div class="dash-card-sub" id="dashExpiry">–</div>
+                </div>
+
+                <div class="dash-card dash-card--perms">
+                    <div class="dash-card-label">Download Access</div>
+                    <div class="dash-perms-list" id="dashPerms">
+                        <span class="dash-perm" id="permPdf">PDF</span>
+                        <span class="dash-perm" id="permDocx">DOCX</span>
+                        <span class="dash-perm" id="permCopy">Copy</span>
+                    </div>
+                    <div class="dash-card-sub" id="dashUpgradeHint"></div>
+                </div>
+
+            </div>
+
+            <!-- Row 2: Recent Plans Table -->
+            <div class="dash-recent-section">
+                <div class="dash-recent-header">
+                    <h3 class="dash-recent-title">📋 Recent Lesson Plans</h3>
+                    <div class="dash-recent-actions">
+                        <button class="dash-select-all-btn" id="dashSelectAll" title="Select all visible plans">
+                            ☑ Select All
+                        </button>
+                        <button class="dash-zip-btn" id="dashZipBtn" disabled title="Select plans to enable">
+                            🗜 Download ZIP
+                        </button>
+                    </div>
+                </div>
+
+                <div id="dashPlansWrapper">
+
+                    <div class="dash-empty" id="dashEmpty" style="display:none;">
+                        <span>No lesson plans generated yet.</span><br>
+                        <small>Fill in the form below and click <em>Generate Lesson Plan</em> to get started!</small>
+                    </div>
+
+                    <div class="dash-table-wrapper" id="dashTableWrapper" style="display:none;">
+                        <table class="dash-table">
+                            <thead>
+                                <tr>
+                                    <th class="dash-th-check">
+                                        <input type="checkbox" id="dashHeaderCheck" title="Select all">
+                                    </th>
+                                    <th>Subject</th>
+                                    <th>Lesson Title</th>
+                                    <th>Class</th>
+                                    <th>Term</th>
+                                    <th>Generated</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashPlansBody">
+                                <!-- Rows injected by loadDashboard() in script.js -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="dash-loading" id="dashLoading">
+                        <span class="dash-spinner"></span> Loading your plans…
+                    </div>
+
+                </div>
+            </div><!-- /.dash-recent-section -->
+
+        </div><!-- /#dashBody -->
+    </div><!-- /#fullDashboard -->
+
+</div><!-- /#dashboardPanel -->
 
 <div class="container">
     <div class="header">
