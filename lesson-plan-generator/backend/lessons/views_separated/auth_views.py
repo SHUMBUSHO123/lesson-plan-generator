@@ -11,6 +11,10 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from lessons.utils.resolve_profile import resolve_profile
 from lessons.models import UserProfile
+import json
+from django.utils import timezone
+from lessons.models import UserProfile, GeneratedLessonPlan
+
 
 
 # -----------------------------
@@ -143,19 +147,56 @@ def logout_user(request):
 # -----------------------------
 # INDEX
 # -----------------------------
+
 @never_cache
 def index(request):
+    profile = None
+    dashboard_bootstrap = None
+
     if request.user.is_authenticated:
-        # ✅ Logged-in users: always get or create their profile
-        profile, created = UserProfile.objects.get_or_create(user=request.user)
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
         if not profile.device_id:
             profile.device_id = str(uuid.uuid4())
             profile.save()
-    else:
-        # ✅ FIX 2: Guests — do NOT create a profile on page load
-        # Profile is only created when they actually generate a plan
-        # (handled inside generate_lesson_plan view via resolve_profile)
-        # We pass None so the template still renders without errors
-        profile = None
 
-    return render(request, 'index.html', {'profile': profile})
+        profile.expire_subscription_if_needed()
+
+        limit = profile.get_current_lesson_limit()
+        used  = profile.lessons_used
+        remaining = None if (profile.lesson_limit is None and profile.is_premium) else max(0, limit - used)
+
+        plans = GeneratedLessonPlan.objects.filter(
+            profile=profile
+        ).order_by('-created_at')[:10]
+
+        dashboard_bootstrap = json.dumps({
+            "is_authenticated":    True,
+            "is_premium":          profile.is_premium,
+            "subscription_plan":   profile.subscription_plan,
+            "subscription_expiry": profile.subscription_expiry.isoformat() if profile.subscription_expiry else None,
+            "lessons_used":        used,
+            "lesson_limit":        limit,
+            "remaining":           remaining,
+            "can_download_pdf":    profile.can_download_pdf,
+            "can_download_docx":   profile.can_download_docx,
+            "can_copy_word":       profile.can_copy_word,
+            "recent_plans": [
+                {
+                    "id":           p.id,
+                    "subject":      p.subject,
+                    "unit_title":   p.unit_title,
+                    "lesson_title": p.lesson_title,
+                    "class_name":   p.class_name,
+                    "term":         p.term,
+                    "created_at":   p.created_at.strftime("%d %b %Y, %H:%M"),
+                }
+                for p in plans
+            ],
+        })
+    # Guests: dashboard_bootstrap stays None — no fetch needed on load,
+    # guest banner is handled lazily only when they generate a plan
+
+    return render(request, 'index.html', {
+        'profile':              profile,
+        'dashboard_bootstrap':  dashboard_bootstrap,
+    })

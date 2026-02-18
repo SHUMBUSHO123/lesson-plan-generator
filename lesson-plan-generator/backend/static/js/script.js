@@ -32,11 +32,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     attachGenerateButton();
     attachPayButton();
     attachDownloadButtons();
-    prefillUserData();
-    updateGenerateButtonStatus();
-    loadDashboard();
+
+    // Use server-injected data instantly — no fetch needed on first load
+    if (window.__DASHBOARD__) {
+        renderDashboard(window.__DASHBOARD__);
+    }
+
+    // Fire remaining calls in parallel (not sequential)
+    await Promise.all([
+        prefillUserData(),
+        updateGenerateButtonStatus()
+    ]);
 });
 
+// loadDashboard now only called AFTER generating a new plan
+document.addEventListener("DOMContentLoaded", async () => {
+    if (levelSelect) loadLevels();
+    attachGenerateButton();
+    attachPayButton();
+    attachDownloadButtons();
+
+    // Use server-injected data instantly — no fetch needed on first load
+    if (window.__DASHBOARD__) {
+        renderDashboard(window.__DASHBOARD__);
+    }
+
+    // Fire remaining calls in parallel (not sequential)
+    await Promise.all([
+        prefillUserData(),
+        updateGenerateButtonStatus()
+    ]);
+});
 // ===============================
 // FETCH HELPERS
 // ===============================
@@ -594,6 +620,7 @@ let dashboardData     = null;
 let selectedPlanIds   = new Set();
 let dashboardExpanded = true;
 
+// loadDashboard now only called AFTER generating a new plan
 async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/`, {
@@ -607,7 +634,6 @@ async function loadDashboard() {
         console.warn("Dashboard load skipped:", err.message);
     }
 }
-
 function renderDashboard(data) {
     const panel = document.getElementById('dashboardPanel');
     if (!panel) return;

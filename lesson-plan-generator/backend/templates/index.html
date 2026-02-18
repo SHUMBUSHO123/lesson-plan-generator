@@ -427,6 +427,10 @@
     Install App
 </button>
 
+<script>
+  window.__DASHBOARD__ = {{ dashboard_bootstrap|default:"null"|safe }};
+</script>
+
 <!-- ═══════════════════════════════════════════════════════════
      CSRF TOKEN — exposed to JS for AJAX requests
 ════════════════════════════════════════════════════════════════ -->
