@@ -1,3 +1,13 @@
+"""
+lessons/helpers.py - Updated to support CBC-complete lesson generation
+========================================================================
+Now includes:
+  ✅ lesson_description
+  ✅ instructional_objective  
+  ✅ cross_cutting_issues
+  ✅ competence_integration (per step)
+"""
+
 from django.shortcuts import get_object_or_404
 from .models import Lesson, Unit, UserProfile, TeachingStrategy, LessonStrategyStep
 from datetime import date
@@ -99,21 +109,30 @@ def prepare_lesson_plan_context(lesson_id, form_data, user=None, device_id=None)
     return context
 
 
-
-# -----------------------------
-# Helper: Build Lesson Plan Context
-
+# ═════════════════════════════════════════════════════════════════════════════
+# MAIN LESSON PLAN CONTEXT BUILDER (CBC-Complete Edition)
+# ═════════════════════════════════════════════════════════════════════════════
 
 def build_lesson_plan_context(request_data, profile):
     """
     Build full lesson plan context for rendering into lesson_plan_table.html.
+    
+    NOW INCLUDES CBC-COMPLETE FIELDS:
+      ✅ lesson_description (from step 1)
+      ✅ instructional_objective (from step 1)
+      ✅ cross_cutting_issues (from step 1)
+      ✅ competence_integration (per step - explains HOW)
+    
     Handles:
     - Lesson and Unit info
     - Teaching strategy (with premium enforcement)
     - Steps (DB-driven or auto-generated fallback)
     - Defaults for lesson_number, lesson_duration, and special_needs
+    
     Returns:
-        dict: lesson_info, unit_info, steps, lesson_number, lesson_duration, special_needs
+        dict: lesson_info, unit_info, steps, lesson_number, lesson_duration, 
+              special_needs, lesson_description, instructional_objective, 
+              cross_cutting_issues
     """
     # -----------------------------
     # Fetch Unit and Lesson
@@ -181,10 +200,13 @@ def build_lesson_plan_context(request_data, profile):
         "total_lessons": unit.lessons.count() if unit and hasattr(unit, "lessons") else 1
     }
 
-    # -----------------------------
-    # Build Steps (Database Driven with Fallback)
-    # -----------------------------
+    # ═════════════════════════════════════════════════════════════════════════
+    # BUILD STEPS WITH CBC-COMPLETE FIELDS
+    # ═════════════════════════════════════════════════════════════════════════
     steps = []
+    lesson_description = None
+    instructional_objective = None
+    cross_cutting_issues = None
 
     if lesson and selected_strategy:
         strategy_steps = LessonStrategyStep.objects.filter(
@@ -194,35 +216,52 @@ def build_lesson_plan_context(request_data, profile):
 
         if strategy_steps.exists():
             for step in strategy_steps:
+                # Extract lesson-level fields from step 1
+                if step.step_order == 1:
+                    lesson_description = step.lesson_description or "This lesson explores key concepts through structured learning activities."
+                    instructional_objective = step.instructional_objective or f"By the end of this lesson, learners will be able to explain and apply {lesson_info['lesson_title']} accurately."
+                    cross_cutting_issues = step.cross_cutting_issues or "Peace and Values Education, Standardization Culture\n\nIntegration: Developed through respectful collaboration and precise use of terminology."
+
                 steps.append({
                     "title": f"{step.step_order}: {step.step_title}",
                     "duration_minutes": step.duration_minutes,
                     "teacher_activity": step.teacher_activity,
                     "learner_activity": step.learner_activity,
-                    "competence": step.generic_competence
+                    "competence": step.generic_competence,
+                    "competence_integration": step.competence_integration or f"{step.generic_competence} is developed through active participation in this step.",
                 })
         else:
+            # ─────────────────────────────────────────────────────────────────
+            # FALLBACK: Auto-generate if no DB steps exist
+            # ─────────────────────────────────────────────────────────────────
+            lesson_description = f"This lesson explores {lesson_info['lesson_title']} through guided practice and collaborative learning."
+            instructional_objective = f"By the end of this lesson, learners will be able to demonstrate understanding of {lesson_info['lesson_title']} with at least 80% accuracy."
+            cross_cutting_issues = "Peace and Values Education, Inclusive Education\n\nIntegration: Peace education fostered through respectful peer interaction. Inclusive education ensured through differentiated support for all learners."
+            
             steps = [
                 {
                     "title": "1: Introduction",
                     "duration_minutes": 10,
                     "teacher_activity": "Introduce the lesson objectives and activate prior knowledge.",
                     "learner_activity": "Listen, respond to questions, and share prior ideas.",
-                    "competence": "Communication"
+                    "competence": "Communication",
+                    "competence_integration": "Communication is developed as learners articulate their prior knowledge and ask clarifying questions.",
                 },
                 {
                     "title": "2: Development",
                     "duration_minutes": 20,
                     "teacher_activity": f"Explain and guide activities on {lesson_info['lesson_title']}.",
                     "learner_activity": "Participate in guided activities and discussions.",
-                    "competence": "Critical Thinking"
+                    "competence": "Critical Thinking",
+                    "competence_integration": "Critical thinking is enhanced through analyzing concepts and solving problems systematically.",
                 },
                 {
                     "title": "3: Conclusion",
                     "duration_minutes": 10,
                     "teacher_activity": "Summarize key points and assess understanding.",
                     "learner_activity": "Ask questions and reflect on learning.",
-                    "competence": "Collaboration"
+                    "competence": "Collaboration",
+                    "competence_integration": "Self-regulation is practiced as learners reflect on their understanding and identify areas for improvement.",
                 }
             ]
 
@@ -233,14 +272,19 @@ def build_lesson_plan_context(request_data, profile):
     lesson_duration = request_data.get("duration", 40)
     special_needs = request_data.get("special_needs") or "No specific special educational needs identified in this class"
 
-    # -----------------------------
-    # Final Context
-    # -----------------------------
+    # ═════════════════════════════════════════════════════════════════════════
+    # FINAL CONTEXT (CBC-COMPLETE)
+    # ═════════════════════════════════════════════════════════════════════════
     return {
         "lesson_info": lesson_info,
         "unit_info": unit_info,
         "steps": steps,
         "lesson_number": lesson_number,
         "lesson_duration": lesson_duration,
-        "special_needs": special_needs
+        "special_needs": special_needs,
+        
+        # ✨ NEW CBC-COMPLETE FIELDS
+        "lesson_description": lesson_description,
+        "instructional_objective": instructional_objective,
+        "cross_cutting_issues": cross_cutting_issues,
     }
