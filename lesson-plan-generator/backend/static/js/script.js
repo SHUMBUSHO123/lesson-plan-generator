@@ -34,7 +34,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     attachDownloadButtons();
     prefillUserData();
     updateGenerateButtonStatus();
-    loadDashboard(); // ← dashboard init
+    loadDashboard();
 });
 
 // ===============================
@@ -196,17 +196,62 @@ async function checkAccess(forceRefresh = false) {
 async function updateGenerateButtonStatus() {
     const btn = document.getElementById('generateButton');
     if (!btn) return;
-    btn.disabled = true;
-    btn.title = "Checking access...";
     try {
         const data = await checkAccess(true);
-        btn.disabled = !(data.is_premium || data.can_generate);
-        btn.title = btn.disabled ? "Subscribe to unlock more lesson plans" : "";
+        const canGo = data.is_premium || data.can_generate;
+
+        // Never fully disable — always clickable so modal can trigger on limit reached.
+        btn.disabled = false;
+
+        if (!canGo) {
+            btn.classList.add('btn-limit-reached');
+            btn.title       = 'Limit reached — click to subscribe';
+            btn.textContent = '🔒 Limit Reached — Subscribe to Continue';
+        } else {
+            btn.classList.remove('btn-limit-reached');
+            btn.title       = '';
+            btn.textContent = '✨ Generate Lesson Plan';
+        }
     } catch (err) {
         console.error("Failed to update button status:", err);
-        btn.disabled = true;
-        btn.title = "Error checking access";
+        btn.disabled = false;
     }
+}
+
+// ===============================
+// SHOW PAYWALL MODAL
+// Customises the modal header based on whether user is logged in or a guest
+// ===============================
+function showPaywallModal() {
+    const modal = document.getElementById('subscribeModal');
+    if (!modal) return;
+
+    // Update the header message based on auth state
+    const headerEl = modal.querySelector('.pricing-header');
+    if (headerEl) {
+        if (window.isAuthenticated) {
+            // Logged-in user who has used all their free plans
+            headerEl.innerHTML = `
+                <h1>🔒 You've Used All 3 Free Lesson Plans</h1>
+                <h2>Upgrade to Keep Generating</h2>
+                <p>Choose a plan below to unlock unlimited lesson plans and download features.</p>
+            `;
+        } else {
+            // Guest who hit the limit
+            headerEl.innerHTML = `
+                <h1>🎓 Free Limit Reached (3 of 3 Used)</h1>
+                <h2>Create a Free Account to Continue</h2>
+                <p>
+                    <a href="/register/" style="color:#4CAF50;font-weight:700;text-decoration:underline;">
+                        Register for free
+                    </a>
+                    to get more lessons, or subscribe below to unlock unlimited access.
+                </p>
+            `;
+        }
+    }
+
+    modal.style.display = 'flex';
 }
 
 // ===============================
@@ -220,8 +265,7 @@ async function requirePremium(action, allowFree = false) {
         } else if (allowFree && data.can_generate) {
             action();
         } else {
-            const modal = document.getElementById("subscribeModal");
-            if (modal) modal.style.display = "flex";
+            showPaywallModal();
         }
     } catch (err) {
         console.error("Access check failed:", err);
@@ -243,9 +287,11 @@ async function generateLessonPlanFromForm() {
         return;
     }
     const btn = document.getElementById('generateButton');
-    if (btn) btn.disabled = true;
 
     await requirePremium(async () => {
+        // Temporarily show loading state
+        if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
+
         try {
             lessonPlanContent.textContent = 'Generating lesson plan...';
             const payload = {
@@ -274,8 +320,7 @@ async function generateLessonPlanFromForm() {
 
             if (!ok) {
                 if (data.redirect || data.error) {
-                    const modal = document.getElementById("subscribeModal");
-                    if (modal) modal.style.display = "flex";
+                    showPaywallModal();
                     lessonPlanContent.textContent = '';
                     return;
                 }
@@ -283,14 +328,18 @@ async function generateLessonPlanFromForm() {
 
             lessonPlanContent.innerHTML = data.html;
             if (resultContainer) resultContainer.classList.add('show');
-            loadDashboard(); // ← refresh dashboard after new plan generated
+            loadDashboard();
 
         } catch (err) {
             console.error(err);
             alert("Unable to generate lesson plan. Check connection.");
             lessonPlanContent.textContent = '';
         } finally {
-            if (btn) btn.disabled = false;
+            // Always restore button state after generation attempt
+            if (btn) {
+                btn.disabled = false;
+                updateGenerateButtonStatus(); // re-check limit in case it was just used up
+            }
         }
     }, true);
 }
@@ -346,8 +395,7 @@ function attachDownloadButtons() {
                     else if (action === 'word') await downloadWord();
                 } else {
                     console.log('❌ Not premium, showing modal');
-                    const modal = document.getElementById("subscribeModal");
-                    if (modal) modal.style.display = "flex";
+                    showPaywallModal();
                 }
             } catch (err) {
                 console.error('Error checking access:', err);
@@ -542,19 +590,17 @@ async function downloadWord() {
 // DASHBOARD
 // ===============================
 
-// ── State ──────────────────────────────────────────────────────────────────
 let dashboardData     = null;
 let selectedPlanIds   = new Set();
 let dashboardExpanded = true;
 
-// ── Main Loader ────────────────────────────────────────────────────────────
 async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/`, {
             credentials: 'include',
             headers: { 'Accept': 'application/json' }
         });
-        if (!res.ok) return; // silently skip if endpoint not ready yet
+        if (!res.ok) return;
         dashboardData = await res.json();
         renderDashboard(dashboardData);
     } catch (err) {
@@ -562,7 +608,6 @@ async function loadDashboard() {
     }
 }
 
-// ── Renderer ──────────────────────────────────────────────────────────────
 function renderDashboard(data) {
     const panel = document.getElementById('dashboardPanel');
     if (!panel) return;
@@ -576,7 +621,6 @@ function renderDashboard(data) {
     attachDashboardEvents();
 }
 
-// ── Guest Banner ───────────────────────────────────────────────────────────
 function renderGuestBanner(data) {
     const banner = document.getElementById('guestBanner');
     if (!banner) return;
@@ -586,24 +630,34 @@ function renderGuestBanner(data) {
     const text      = document.getElementById('guestBannerText');
     if (text) {
         if (remaining <= 0) {
-            text.innerHTML = `<strong style="color:#f44336">Free limit reached.</strong> Subscribe to keep generating.`;
+            // ── Guest limit reached: clear call to action ──
+            text.innerHTML = `
+                <strong style="color:#f44336">Free limit reached (3 of 3 used).</strong>
+                <a href="/register/"
+                   style="color:#4CAF50;font-weight:700;margin-left:6px;text-decoration:underline;">
+                    Create a free account
+                </a>
+                to get more lessons, or
+                <a href="/pricing/"
+                   style="color:#2D9CDB;font-weight:700;margin-left:2px;text-decoration:underline;">
+                    subscribe for unlimited access.
+                </a>
+            `;
         } else {
             text.innerHTML = `You have <strong style="color:#4CAF50">${remaining}</strong> free lesson${remaining === 1 ? '' : 's'} remaining (${data.lessons_used} of ${data.lesson_limit} used).`;
         }
     }
 }
 
-// ── Full Dashboard ─────────────────────────────────────────────────────────
 function renderFullDashboard(data) {
     const fd = document.getElementById('fullDashboard');
     if (!fd) return;
     fd.style.display = 'block';
 
-    const used      = data.lessons_used ?? 0;
-    const limit     = data.lesson_limit ?? 0;
+    const used  = data.lessons_used ?? 0;
+    const limit = data.lesson_limit ?? 0;
 
     setInner('dashUsed', used);
-    // Show 'Unlimited' only when remaining is truly null (no cap set)
     const limitLabel = (data.remaining === null || data.remaining === undefined)
         ? 'Unlimited plan'
         : `of ${limit} total`;
@@ -617,7 +671,6 @@ function renderFullDashboard(data) {
         setInner('dashRemainingLabel', data.remaining === 1 ? 'lesson left' : 'lessons left');
     }
 
-    // Progress bar
     const fill = document.getElementById('dashProgressFill');
     if (fill) {
         const pct = data.is_premium
@@ -629,7 +682,6 @@ function renderFullDashboard(data) {
             : 'linear-gradient(90deg,#4CAF50,#81C784)';
     }
 
-    // Subscription card
     const planEl = document.getElementById('dashPlan');
     if (planEl) {
         if (data.is_premium && data.subscription_plan) {
@@ -656,7 +708,6 @@ function renderFullDashboard(data) {
         }
     }
 
-    // Permission badges
     togglePerm('permPdf',  data.can_download_pdf);
     togglePerm('permDocx', data.can_download_docx);
     togglePerm('permCopy', data.can_copy_word);
@@ -669,7 +720,6 @@ function renderFullDashboard(data) {
     renderPlansTable(data.recent_plans || []);
 }
 
-// ── Plans Table ────────────────────────────────────────────────────────────
 function renderPlansTable(plans) {
     const loading  = document.getElementById('dashLoading');
     const empty    = document.getElementById('dashEmpty');
@@ -707,12 +757,9 @@ function renderPlansTable(plans) {
     });
 }
 
-// ── Event Handlers ─────────────────────────────────────────────────────────
 function attachDashboardEvents() {
-    // Collapse toggle
     const collapseBtn = document.getElementById('dashCollapseBtn');
     if (collapseBtn) {
-        // Remove old listener before adding to avoid doubling on re-render
         collapseBtn.replaceWith(collapseBtn.cloneNode(true));
         document.getElementById('dashCollapseBtn').addEventListener('click', () => {
             dashboardExpanded = !dashboardExpanded;
@@ -724,7 +771,6 @@ function attachDashboardEvents() {
         });
     }
 
-    // Header checkbox — select/deselect all rows
     const headerCheck = document.getElementById('dashHeaderCheck');
     if (headerCheck) {
         headerCheck.replaceWith(headerCheck.cloneNode(true));
@@ -739,7 +785,6 @@ function attachDashboardEvents() {
         });
     }
 
-    // Select All button
     const selectAllBtn = document.getElementById('dashSelectAll');
     if (selectAllBtn) {
         selectAllBtn.replaceWith(selectAllBtn.cloneNode(true));
@@ -758,7 +803,6 @@ function attachDashboardEvents() {
         });
     }
 
-    // ZIP button
     const zipBtn = document.getElementById('dashZipBtn');
     if (zipBtn) {
         zipBtn.replaceWith(zipBtn.cloneNode(true));
@@ -788,7 +832,6 @@ function updateZipButton() {
     btn.textContent = count > 0 ? `🗜 Download ZIP (${count})` : '🗜 Download ZIP';
 }
 
-// ── Bulk ZIP ───────────────────────────────────────────────────────────────
 async function handleBulkZip() {
     const btn = document.getElementById('dashZipBtn');
     if (!btn || selectedPlanIds.size === 0) return;
@@ -821,7 +864,6 @@ async function handleBulkZip() {
         document.body.removeChild(a);
         setTimeout(() => URL.revokeObjectURL(url), 1500);
 
-        // Clear selection after download
         selectedPlanIds.clear();
         document.querySelectorAll('.dash-plan-check').forEach(cb => cb.checked = false);
         const hc = document.getElementById('dashHeaderCheck');

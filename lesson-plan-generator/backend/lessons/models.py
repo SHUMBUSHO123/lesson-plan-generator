@@ -1,3 +1,5 @@
+# File: /lesson-plan-generator/backend/lessons/models.py
+
 from django.db import models
 from django.utils import timezone
 from datetime import timedelta
@@ -69,7 +71,6 @@ PLAN_DURATIONS = {
     'term': 60,       # 12 weeks × 5 days
 }
 
-# Max lessons per plan assuming 10 lessons/day
 SUBSCRIPTION_LIMITS = {
     'weekly': 50,     # 10 lessons/day × 5 days
     'monthly': 200,   # 10 lessons/day × 20 days
@@ -78,8 +79,9 @@ SUBSCRIPTION_LIMITS = {
 
 FREE_LESSON_LIMIT = 3  # Default for guests / non-premium
 
+
 # -----------------------------
-# UserProfile Model (Secure Default Lesson Limit)
+# UserProfile Model
 # -----------------------------
 class UserProfile(models.Model):
     """
@@ -109,7 +111,6 @@ class UserProfile(models.Model):
     subscription_expiry = models.DateTimeField(null=True, blank=True)
 
     # Usage Limits
-    # 🔹 CHANGED: enforce default 3 lessons for guests and new non-premium users
     lesson_limit = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -128,7 +129,6 @@ class UserProfile(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Derived Properties
     @property
     def is_guest(self):
         return self.user is None
@@ -136,16 +136,12 @@ class UserProfile(models.Model):
     def has_unlimited_access(self):
         return self.lesson_limit is None
 
-    # ----------------------
-    # Hybrid Access Methods
-    # ----------------------
     def get_current_lesson_limit(self):
-        # 🔹 CHANGED: guest and new non-premium user fallback to 3
         if self.is_premium and self.subscription_plan:
             return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
         if self.lesson_limit is not None:
             return self.lesson_limit
-        return FREE_LESSON_LIMIT  # ensures default of 3
+        return FREE_LESSON_LIMIT
 
     def can_generate_plan(self):
         if not self.is_active or not self.can_generate:
@@ -157,31 +153,14 @@ class UserProfile(models.Model):
             return
         UserProfile.objects.filter(pk=self.pk).update(lessons_used=F('lessons_used') + 1)
 
-    # ----------------------
-    # Subscription Logic
-    # ----------------------
     def is_subscription_active(self):
-        """
-        ✅ is_premium=True set by admin = always active (no expiry required)
-           is_premium=True with future expiry = active
-           is_premium=True with past expiry = NOT active (will be caught by expire_subscription_if_needed)
-           is_premium=False = not active
-        """
         if not self.is_premium:
             return False
         if self.subscription_expiry:
             return timezone.now() <= self.subscription_expiry
-        return True  # ✅ No expiry set = permanent admin grant
+        return True  # No expiry = permanent admin grant
 
     def expire_subscription_if_needed(self):
-        """
-        Only expire if:
-        1. subscription_expiry is explicitly SET (not null)
-        2. AND that date is in the past
-
-        ✅ Admin-set is_premium=True with NO expiry date = permanent access
-           This is the correct behaviour for manually activated accounts.
-        """
         if self.subscription_expiry and timezone.now() > self.subscription_expiry:
             self.is_premium = False
             self.subscription_plan = None
@@ -189,10 +168,6 @@ class UserProfile(models.Model):
             self.lessons_used = 0
             self.save(update_fields=['is_premium', 'subscription_plan', 'lesson_limit', 'lessons_used'])
 
-
-    # ----------------------
-    # Admin Control Methods
-    # ----------------------
     def activate_premium(self, plan='weekly', reset_usage=True):
         self.is_premium = True
         self.subscription_plan = plan
@@ -208,7 +183,6 @@ class UserProfile(models.Model):
         self.subscription_plan = None
         self.subscription_start = None
         self.subscription_expiry = None
-        # 🔹 CHANGED: ensure lesson_limit reset to 3 for non-premium users
         self.lesson_limit = FREE_LESSON_LIMIT
         self.lessons_used = 0
         self.save()
@@ -221,11 +195,7 @@ class UserProfile(models.Model):
         self.is_active = True
         self.save(update_fields=['is_active'])
 
-    # ----------------------
-    # Safety Net
-    # ----------------------
     def save(self, *args, **kwargs):
-        # 🔹 CHANGED: enforce default 3 lessons if new guest or non-premium user
         if not self.pk:  # new object
             if not self.is_premium and self.lesson_limit is None:
                 self.lesson_limit = FREE_LESSON_LIMIT
@@ -255,6 +225,7 @@ class Subscription(models.Model):
     def __str__(self):
         return f"{self.user_profile} - {self.plan}"
 
+
 # -----------------------------
 # Teaching Strategy Model
 # -----------------------------
@@ -267,20 +238,16 @@ class TeachingStrategy(models.Model):
     def __str__(self):
         return self.name
 
+
 # -----------------------------
 # Strategy-Based Lesson Steps
 # -----------------------------
 class LessonStrategyStep(models.Model):
     lesson = models.ForeignKey(
-        Lesson,
-        on_delete=models.CASCADE,
-        related_name="strategy_steps"
+        Lesson, on_delete=models.CASCADE, related_name="strategy_steps"
     )
-
     strategy = models.ForeignKey(
-        TeachingStrategy,
-        on_delete=models.CASCADE,
-        related_name="lesson_steps"
+        TeachingStrategy, on_delete=models.CASCADE, related_name="lesson_steps"
     )
 
     step_order = models.PositiveIntegerField()
@@ -289,34 +256,21 @@ class LessonStrategyStep(models.Model):
 
     teacher_activity = models.TextField()
     learner_activity = models.TextField()
-    
-    # ✅ EXISTING - kept as-is
     generic_competence = models.TextField(blank=True, null=True)
-    
-    # ⭐ NEW ADDITIONS - Per-Step Level
     competence_integration = models.TextField(
-        blank=True, 
-        null=True,
+        blank=True, null=True,
         help_text="Explains HOW the competence is developed in this specific step"
     )
-
-    # ⭐ NEW ADDITIONS - Per-Lesson Level (stored in first step for efficiency)
-    # These only populate in step_order=1, shared across all strategies
     lesson_description = models.TextField(
-        blank=True,
-        null=True,
+        blank=True, null=True,
         help_text="1-2 sentence summary of lesson (only in step 1)"
     )
-    
     instructional_objective = models.TextField(
-        blank=True,
-        null=True,
+        blank=True, null=True,
         help_text="Professional ABCD format objective (only in step 1)"
     )
-    
     cross_cutting_issues = models.TextField(
-        blank=True,
-        null=True,
+        blank=True, null=True,
         help_text="CBC cross-cutting issues integration (only in step 1)"
     )
 
@@ -326,6 +280,11 @@ class LessonStrategyStep(models.Model):
 
     def __str__(self):
         return f"{self.lesson.title} - {self.strategy.name} - Step {self.step_order}"
+
+
+# -----------------------------
+# Generated Lesson Plan
+# -----------------------------
 class GeneratedLessonPlan(models.Model):
     """
     Persists every lesson plan generated by a logged-in user.
@@ -333,22 +292,15 @@ class GeneratedLessonPlan(models.Model):
     Used by the dashboard panel for history + bulk ZIP download.
     """
     profile = models.ForeignKey(
-        UserProfile,
-        on_delete=models.CASCADE,
-        related_name='generated_plans'
+        UserProfile, on_delete=models.CASCADE, related_name='generated_plans'
     )
-
-    # Metadata shown in the dashboard table
-    subject      = models.CharField(max_length=100, blank=True)
-    unit_title   = models.CharField(max_length=200, blank=True)
-    lesson_title = models.CharField(max_length=300, blank=True)
-    class_name   = models.CharField(max_length=100, blank=True)
-    term         = models.CharField(max_length=10,  blank=True)
-
-    # The full rendered HTML snapshot (for ZIP download)
+    subject       = models.CharField(max_length=100, blank=True)
+    unit_title    = models.CharField(max_length=200, blank=True)
+    lesson_title  = models.CharField(max_length=300, blank=True)
+    class_name    = models.CharField(max_length=100, blank=True)
+    term          = models.CharField(max_length=10,  blank=True)
     html_snapshot = models.TextField()
-
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -357,3 +309,44 @@ class GeneratedLessonPlan(models.Model):
 
     def __str__(self):
         return f"{self.profile} | {self.subject} – {self.lesson_title} ({self.created_at:%Y-%m-%d})"
+
+
+# -----------------------------
+# Manual Payment Proof
+# -----------------------------
+class ManualPaymentProof(models.Model):
+
+    PLAN_CHOICES = [
+        ('weekly',  'Weekly — 200 RWF'),
+        ('monthly', 'Monthly — 500 RWF'),
+        ('term',    'Term — 1000 RWF'),
+    ]
+
+    STATUS_CHOICES = [
+        ('pending',  '⏳ Pending'),
+        ('approved', '✅ Approved'),
+        ('rejected', '❌ Rejected'),
+    ]
+
+    user         = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='payment_proofs'
+    )
+    full_name    = models.CharField(max_length=150)
+    phone        = models.CharField(max_length=20)
+    plan         = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
+    tx_id        = models.CharField(max_length=100, unique=True)
+    amount       = models.CharField(max_length=20)
+    screenshot   = models.ImageField(upload_to='payment_proofs/%Y/%m/', blank=True, null=True)
+    status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_note   = models.TextField(blank=True, help_text='Optional note when approving or rejecting')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at  = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-submitted_at']
+        verbose_name = 'Manual Payment Proof'
+        verbose_name_plural = 'Manual Payment Proofs'
+
+    def __str__(self):
+        return f"{self.full_name} | {self.plan} | {self.status} | Tx:{self.tx_id}"

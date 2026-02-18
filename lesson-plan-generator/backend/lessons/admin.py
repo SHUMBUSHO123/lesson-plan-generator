@@ -401,17 +401,21 @@ class GeneratedLessonPlanAdmin(admin.ModelAdmin):
 # from lessons.models import ManualPaymentProof, Subscription, UserProfile  ← your existing imports
 
 
+
 @admin.register(ManualPaymentProof)
 class ManualPaymentProofAdmin(admin.ModelAdmin):
-    list_display  = ('full_name', 'phone', 'plan', 'tx_id', 'amount', 'status', 'submitted_at')
-    list_filter   = ('status', 'plan')
-    search_fields = ('full_name', 'tx_id', 'phone', 'user__email')
+    list_display    = ('full_name', 'phone', 'plan', 'tx_id', 'amount', 'status', 'submitted_at')
+    list_filter     = ('status', 'plan')
+    search_fields   = ('full_name', 'tx_id', 'phone', 'user__email')
     readonly_fields = ('submitted_at', 'reviewed_at', 'user', 'screenshot_preview')
-    ordering      = ('-submitted_at',)
+    ordering        = ('-submitted_at',)
 
     fieldsets = (
         ('Submitted Proof', {
-            'fields': ('user', 'full_name', 'phone', 'plan', 'tx_id', 'amount', 'screenshot', 'screenshot_preview', 'submitted_at')
+            'fields': (
+                'user', 'full_name', 'phone', 'plan',
+                'tx_id', 'amount', 'screenshot', 'screenshot_preview', 'submitted_at'
+            )
         }),
         ('Admin Decision', {
             'fields': ('status', 'admin_note', 'reviewed_at')
@@ -423,18 +427,14 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
     def screenshot_preview(self, obj):
         from django.utils.html import format_html
         if obj.screenshot:
-            return format_html('<img src="{}" style="max-height:200px;border-radius:8px;" />', obj.screenshot.url)
+            return format_html(
+                '<img src="{}" style="max-height:200px;border-radius:8px;" />',
+                obj.screenshot.url
+            )
         return '—'
     screenshot_preview.short_description = 'Screenshot Preview'
 
     def approve_selected(self, request, queryset):
-        """
-        Bulk approve: marks proofs as approved and activates subscriptions.
-        Extend this to actually create/extend Subscription objects as needed.
-        """
-        from lessons.models import Subscription  # adjust import to your actual model
-        from datetime import timedelta
-
         plan_days = {'weekly': 7, 'monthly': 30, 'term': 90}
         count = 0
 
@@ -443,17 +443,21 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
             proof.reviewed_at = timezone.now()
             proof.save()
 
-            # Activate subscription if user is linked
-            if proof.user:
-                days = plan_days.get(proof.plan, 30)
-                sub, created = Subscription.objects.get_or_create(user=proof.user)
-                now = timezone.now()
-                start = max(sub.end_date, now) if (not created and sub.end_date and sub.end_date > now) else now
-                sub.plan       = proof.plan
-                sub.start_date = start
-                sub.end_date   = start + timedelta(days=days)
-                sub.is_active  = True
-                sub.save()
+            if not proof.user:
+                continue  # guest — no account to activate
+
+            profile, _ = UserProfile.objects.get_or_create(user=proof.user)
+            profile.activate_premium(plan=proof.plan, reset_usage=True)
+
+            days     = plan_days.get(proof.plan, 30)
+            end_date = timezone.now() + timedelta(days=days)
+
+            Subscription.objects.create(
+                user_profile = profile,
+                plan         = proof.plan,
+                end_date     = end_date,
+                active       = True,
+            )
             count += 1
 
         self.message_user(request, f'✅ {count} proof(s) approved and subscriptions activated.')
@@ -461,8 +465,8 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
 
     def reject_selected(self, request, queryset):
         updated = queryset.filter(status='pending').update(
-            status='rejected',
-            reviewed_at=timezone.now()
+            status      = 'rejected',
+            reviewed_at = timezone.now()
         )
         self.message_user(request, f'❌ {updated} proof(s) rejected.')
     reject_selected.short_description = '❌ Reject selected proofs'

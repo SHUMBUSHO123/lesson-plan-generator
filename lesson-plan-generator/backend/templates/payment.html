@@ -25,6 +25,8 @@
         .nav-link-item:hover { background: #f0f8ff; color: #2D9CDB; }
         .nav-link-item.btn-primary-nav { background: #2D9CDB; color: #fff; }
         .nav-link-item.btn-primary-nav:hover { background: #1b7bb8; }
+        .nav-link-item.btn-back { background: #f0f0f0; color: #333; border: 1px solid #ddd; }
+        .nav-link-item.btn-back:hover { background: #e0e0e0; color: #111; }
         .nav-user { font-size: 0.9rem; color: #555; }
 
         /* ---------- Card ---------- */
@@ -50,35 +52,90 @@
         .btn-whatsapp { background-color: #25D366; color: white; }
         .btn-whatsapp:hover { background-color: #1ebe5d; color: white; }
 
+        /* ---------- Manual Payment Hero Banner ---------- */
+        .manual-hero {
+            background: linear-gradient(135deg, #fff8ec 0%, #fff3cd 100%);
+            border: 2px solid #f39c12;
+            border-radius: 14px;
+            padding: 20px 22px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .manual-hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 5px; height: 100%;
+            background: linear-gradient(180deg, #f39c12, #e67e22);
+            border-radius: 14px 0 0 14px;
+        }
+        .manual-hero-title {
+            font-size: 1.05rem;
+            font-weight: 800;
+            color: #c0392b;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .manual-hero-sub {
+            font-size: 0.88rem;
+            color: #7d5a00;
+            margin-bottom: 14px;
+        }
+        .dial-code-box {
+            background: #fff;
+            border: 1.5px dashed #f39c12;
+            border-radius: 10px;
+            padding: 12px 16px;
+            font-family: monospace;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #c0392b;
+            text-align: center;
+            letter-spacing: 0.5px;
+            margin-bottom: 14px;
+            word-break: break-all;
+        }
+        .plan-prices {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .plan-badge {
+            background: #fff;
+            border: 1.5px solid #f39c12;
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #c0392b;
+        }
+        .manual-note {
+            font-size: 0.83rem;
+            color: #6d4c00;
+            margin-top: 8px;
+        }
+
         /* ---------- Proof Section ---------- */
         .proof-section {
-            background: #f8fff8; border: 1px solid #c3e6cb;
-            border-radius: 10px; padding: 20px; margin-top: 10px;
+            background: #f8fff8;
+            border: 1px solid #c3e6cb;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 10px;
         }
         .proof-section h6 { color: #27ae60; font-weight: 700; margin-bottom: 15px; }
 
-        .upload-area {
-            border: 2px dashed #27ae60; border-radius: 8px;
-            padding: 20px; text-align: center; cursor: pointer;
-            background: #f0fff4; transition: background 0.3s;
+        /* ---------- Email note ---------- */
+        .email-note {
+            background: #eaf4ff; border: 1px solid #b3d4f5;
+            border-radius: 8px; padding: 12px 15px; font-size: 0.88rem; color: #1a5f99;
         }
-        .upload-area:hover { background: #d4edda; }
-        .upload-area input[type="file"] { display: none; }
-        .upload-preview { max-width: 100%; max-height: 180px; border-radius: 8px; margin-top: 10px; display: none; }
 
-        .manual-steps {
-            background-color: #fff8ec; border: 1px solid #ffd8a8;
-            border-radius: 8px; padding: 15px;
-        }
         .status-message { margin-top: 15px; font-weight: 500; min-height: 24px; text-align: center; }
-
-        .channel-badges { display: flex; gap: 8px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
-        .channel-badge {
-            font-size: 0.75rem; padding: 3px 10px; border-radius: 20px; font-weight: 600;
-        }
-        .badge-telegram { background: #e8f4fd; color: #0088cc; }
-        .badge-email    { background: #fef0e7; color: #e67e22; }
-        .badge-db       { background: #eafaf1; color: #27ae60; }
     </style>
 </head>
 <body>
@@ -87,9 +144,9 @@
 <nav class="navbar">
     <a href="{% url 'landing' %}" class="nav-brand">CBC Lesson Plan Generator</a>
     <div class="nav-links">
+        <a href="{% url 'index' %}" class="nav-link-item btn-back">← Back to Generator</a>
         {% if user.is_authenticated %}
             <span class="nav-user">Hello, {{ user.username }}</span>
-            <a href="{% url 'index' %}" class="nav-link-item">Dashboard</a>
             <a href="{% url 'logout' %}" class="nav-link-item">Logout</a>
         {% else %}
             <a href="{% url 'login' %}" class="nav-link-item">Login</a>
@@ -103,11 +160,6 @@
     <div class="payment-header">
         <h2>Subscribe to Premium</h2>
         <div class="secure-badge">🔒 Secure Subscription Activation</div>
-        <div class="channel-badges">
-            <span class="channel-badge badge-telegram">📨 Telegram Notify</span>
-            <span class="channel-badge badge-email">📧 Email Notify</span>
-            <span class="channel-badge badge-db">💾 Saved to Admin</span>
-        </div>
     </div>
 
     <!-- Plan Selector -->
@@ -153,70 +205,65 @@
             </button>
         </div>
 
-        <!-- ══ TAB 2: Manual Payment + Proof ══ -->
+        <!-- ══ TAB 2: Manual Payment ══ -->
         <div class="tab-pane fade" id="manualTab">
 
-            <!-- How to pay instructions -->
-            <div class="manual-steps mb-4">
-                <strong>How to Pay via MTN MoMo:</strong>
-                <ol class="mt-2 mb-2">
-                    <li>Dial <strong>*182*8*1*1944115*AMOUNT*PIN#</strong></li>
-                    <li>Replace <strong>AMOUNT</strong> with your plan price:</li>
-                </ol>
-                <ul class="mb-2">
-                    <li>Weekly → <strong>200 RWF</strong></li>
-                    <li>Monthly → <strong>500 RWF</strong></li>
-                    <li>Term → <strong>1000 RWF</strong></li>
-                </ul>
-                <ol start="3">
-                    <li>Confirm payment to <strong>ISOMOPLUS</strong>.</li>
-                    <li>Fill in the proof form below and submit.</li>
-                </ol>
+            <!-- ✦ Visual Manual Payment Banner ✦ -->
+            <div class="manual-hero">
+                <div class="manual-hero-title">
+                    📲 Dial this code on your phone to pay:
+                </div>
+                <div class="manual-hero-sub">Replace <strong>AMOUNT</strong> with your plan price below, and <strong>PIN</strong> with your MoMo PIN.</div>
+
+                <div class="dial-code-box">*182*8*1*1944115*AMOUNT*PIN#</div>
+
+                <div class="plan-prices">
+                    <span class="plan-badge">Weekly → 200 RWF</span>
+                    <span class="plan-badge">Monthly → 500 RWF</span>
+                    <span class="plan-badge">Term → 1000 RWF</span>
+                </div>
+
+                <div class="manual-note">
+                    ✅ Confirm payment to <strong>ISOMOPLUS</strong>, then fill the short form below so we can activate your account.
+                </div>
             </div>
 
-            <!-- ── Proof Form ── -->
+            <!-- ── Simplified Proof Form ── -->
             <div class="proof-section">
-                <h6>✅ Payment Proof — Fill All Fields</h6>
+                <h6>✅ Tell Us Who You Are — Quick Verification</h6>
 
+                <!-- Email note -->
+                <div class="email-note mb-3">
+                    📧 <strong>Important:</strong> Enter the email address you used to register.
+                    This is how we identify your account and activate your subscription.
+                </div>
+
+                <!-- Email field -->
+                <div class="mb-3">
+                    <label class="form-label">
+                        Your Account Email <span class="text-danger">*</span>
+                    </label>
+                    <input id="proofEmail" type="email" class="form-control"
+                           value="{{ user.email }}"
+                           placeholder="e.g. yourname@gmail.com"
+                           {% if user.is_authenticated %}readonly{% endif %}>
+                    {% if user.is_authenticated %}
+                    <div class="form-text text-success">✅ Auto-filled from your account.</div>
+                    {% else %}
+                    <div class="form-text text-muted">Must match the email you registered with.</div>
+                    {% endif %}
+                </div>
+
+                <!-- Name field -->
                 <div class="mb-3">
                     <label class="form-label">Full Name Used for Payment <span class="text-danger">*</span></label>
                     <input id="proofName" type="text" class="form-control"
                            placeholder="Exact name shown on MoMo confirmation">
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Transaction Reference / ID <span class="text-danger">*</span></label>
-                    <input id="proofTxId" type="text" class="form-control"
-                           placeholder="e.g. 1234567890">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Amount Paid (RWF) <span class="text-danger">*</span></label>
-                    <input id="proofAmount" type="number" class="form-control"
-                           placeholder="e.g. 500">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Phone Number Used <span class="text-danger">*</span></label>
-                    <input id="proofPhone" type="text" class="form-control"
-                           placeholder="e.g. 07XXXXXXXX">
-                </div>
-
-                <div class="mb-3">
-                    <label class="form-label">Screenshot of MoMo Confirmation <span class="text-danger">*</span></label>
-                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('screenshotInput').click()">
-                        <div id="uploadPrompt">
-                            📸 Click to upload screenshot<br>
-                            <small class="text-muted">JPG, PNG — max 5MB</small>
-                        </div>
-                        <input type="file" id="screenshotInput" accept="image/*">
-                        <img id="uploadPreview" class="upload-preview" alt="Screenshot preview">
-                    </div>
-                </div>
-
                 <!-- Submit buttons -->
                 <button id="proofSubmitButton" class="btn btn-manual btn-pay mb-3">
-                    📤 Submit Proof for Admin Approval
+                    📤 Submit for Admin Approval
                 </button>
 
                 <button id="whatsappButton" class="btn btn-whatsapp btn-pay">
@@ -246,38 +293,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
 
-    const planSelect     = document.getElementById('planSelect');
-    const payButton      = document.getElementById('payButton');
-    const termsCheck     = document.getElementById('termsCheck');
-    const paymentStatus  = document.getElementById('paymentStatus');
-    const proofSubmit    = document.getElementById('proofSubmitButton');
-    const whatsappBtn    = document.getElementById('whatsappButton');
-    const screenshotInput = document.getElementById('screenshotInput');
-    const uploadPreview  = document.getElementById('uploadPreview');
-    const uploadPrompt   = document.getElementById('uploadPrompt');
+    const planSelect    = document.getElementById('planSelect');
+    const payButton     = document.getElementById('payButton');
+    const termsCheck    = document.getElementById('termsCheck');
+    const paymentStatus = document.getElementById('paymentStatus');
+    const proofSubmit   = document.getElementById('proofSubmitButton');
+    const whatsappBtn   = document.getElementById('whatsappButton');
 
     // ── Fallback: sessionStorage plan if Django didn't pre-select ──
     const storedPlan = sessionStorage.getItem('selected_plan');
     if (storedPlan && !planSelect.value) planSelect.value = storedPlan;
     planSelect.addEventListener('change', () => sessionStorage.setItem('selected_plan', planSelect.value));
-
-    // ── Screenshot preview ──
-    screenshotInput.addEventListener('change', () => {
-        const file = screenshotInput.files[0];
-        if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showStatus('Screenshot must be under 5MB.', 'danger');
-            screenshotInput.value = '';
-            return;
-        }
-        const reader = new FileReader();
-        reader.onload = e => {
-            uploadPreview.src = e.target.result;
-            uploadPreview.style.display = 'block';
-            uploadPrompt.innerHTML = '✅ Screenshot selected — <u>click to change</u>';
-        };
-        reader.readAsDataURL(file);
-    });
 
     // ── Status helper ──
     function showStatus(msg, type = 'info') {
@@ -287,17 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Validate proof fields ──
     function validateProof() {
-        const name   = document.getElementById('proofName').value.trim();
-        const txId   = document.getElementById('proofTxId').value.trim();
-        const amount = document.getElementById('proofAmount').value.trim();
-        const phone  = document.getElementById('proofPhone').value.trim();
-        const file   = screenshotInput.files[0];
+        const email = document.getElementById('proofEmail').value.trim();
+        const name  = document.getElementById('proofName').value.trim();
 
-        if (!name)   { showStatus('Enter the full name used for payment.', 'warning'); return false; }
-        if (!txId)   { showStatus('Enter the transaction reference / ID.', 'warning'); return false; }
-        if (!amount) { showStatus('Enter the amount paid.', 'warning'); return false; }
-        if (!phone)  { showStatus('Enter the phone number used.', 'warning'); return false; }
-        if (!file)   { showStatus('Please upload a screenshot of your MoMo confirmation.', 'warning'); return false; }
+        if (!email) { showStatus('Enter your account email address.', 'warning'); return false; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            showStatus('Enter a valid email address.', 'warning'); return false;
+        }
+        if (!name) { showStatus('Enter the full name used for payment.', 'warning'); return false; }
         return true;
     }
 
@@ -309,23 +332,24 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus('⏳ Submitting your proof…', 'info');
 
         const formData = new FormData();
-        formData.append('plan',        planSelect.value);
-        formData.append('full_name',   document.getElementById('proofName').value.trim());
-        formData.append('tx_id',       document.getElementById('proofTxId').value.trim());
-        formData.append('amount',      document.getElementById('proofAmount').value.trim());
-        formData.append('phone',       document.getElementById('proofPhone').value.trim());
-        formData.append('screenshot',  screenshotInput.files[0]);
+        formData.append('plan',      planSelect.value);
+        formData.append('email',     document.getElementById('proofEmail').value.trim());
+        formData.append('full_name', document.getElementById('proofName').value.trim());
         formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
         try {
             const res  = await fetch("{% url 'submit_payment_proof' %}", {
                 method: 'POST',
-                body: formData   // multipart — do NOT set Content-Type header manually
+                body: formData
             });
             const data = await res.json();
 
             if (data.success) {
-                showStatus('✅ Proof submitted! Admin has been notified via Telegram & Email. You will be activated within 30 minutes.', 'success');
+                showStatus(
+                    '✅ Proof submitted! Admin has been notified. ' +
+                    'You will be activated within 30 minutes during working hours.',
+                    'success'
+                );
                 proofSubmit.textContent = '✅ Submitted';
             } else {
                 showStatus(data.error || 'Submission failed. Try WhatsApp instead.', 'danger');
@@ -337,27 +361,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── WhatsApp deep-link (pre-filled with proof fields) ──
+    // ── WhatsApp deep-link ──
     whatsappBtn.addEventListener('click', () => {
-        const name   = document.getElementById('proofName').value.trim()   || '(not filled)';
-        const txId   = document.getElementById('proofTxId').value.trim()   || '(not filled)';
-        const amount = document.getElementById('proofAmount').value.trim() || '(not filled)';
-        const phone  = document.getElementById('proofPhone').value.trim()  || '(not filled)';
-        const plan   = planSelect.options[planSelect.selectedIndex].text;
+        const email = document.getElementById('proofEmail').value.trim() || '(not filled)';
+        const name  = document.getElementById('proofName').value.trim()  || '(not filled)';
+        const plan  = planSelect.options[planSelect.selectedIndex].text;
 
         const message =
             `Hello Admin 👋%0A%0A` +
             `I have completed my MTN MoMo payment for *CBC Lesson Plan Generator*.%0A%0A` +
             `📋 *Payment Details:*%0A` +
             `• Plan: ${plan}%0A` +
-            `• Full Name: ${name}%0A` +
-            `• Transaction ID: ${txId}%0A` +
-            `• Amount Paid: ${amount} RWF%0A` +
-            `• Phone: ${phone}%0A%0A` +
+            `• Account Email: ${email}%0A` +
+            `• Full Name: ${name}%0A%0A` +
             `Please verify and activate my subscription. Thank you!`;
 
         window.open(`https://wa.me/250793599834?text=${message}`, '_blank');
     });
+
+    // ── Auto-switch to Manual tab with countdown ──
+    function redirectToManual(reason) {
+        let secs = 5;
+        showStatus(
+            `⚠️ ${reason} Redirecting to Manual Payment in <strong id="countdown">${secs}</strong>s…`,
+            'warning'
+        );
+        const interval = setInterval(() => {
+            secs--;
+            const el = document.getElementById('countdown');
+            if (el) el.textContent = secs;
+            if (secs <= 0) {
+                clearInterval(interval);
+                // Activate the Manual tab
+                const manualTabBtn = document.querySelector('[data-bs-target="#manualTab"]');
+                if (manualTabBtn) manualTabBtn.click();
+                showStatus('📋 Please follow the Manual Payment steps below.', 'info');
+                // Smooth scroll to manual section
+                document.getElementById('manualTab').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }, 1000);
+    }
 
     // ── Automated MTN MoMo ──
     payButton.addEventListener('click', async () => {
@@ -371,7 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus('⏳ Processing MTN payment…', 'info');
 
         try {
-            const res  = await fetch("{% url 'process_mtn_payment' %}", {
+            const res  = await fetch("{% url 'initiate_mtn_payment' %}", {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -383,10 +426,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.success) {
                 window.location.href = "{% url 'subscription_success' %}";
             } else {
-                showStatus(data.error || 'Payment failed. Use Manual tab instead.', 'danger');
+                redirectToManual(data.error || 'Automated payment failed.');
             }
         } catch (err) {
-            showStatus('Network error. Try again.', 'danger');
+            redirectToManual('Network error.');
         }
 
         payButton.disabled = false;

@@ -1,11 +1,8 @@
 # File: /lesson-plan-generator/backend/lessons/views_separated/payment_views.py
 
 import os
-import json
 import logging
 import requests as http_requests
-
-from datetime import timedelta
 
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -28,7 +25,6 @@ logger = logging.getLogger(__name__)
 # PAYMENT PAGE
 # ─────────────────────────────────────────────
 def payment_page(request):
-    # Read plan from URL → session → default 'monthly'
     plan = (
         request.GET.get('plan')
         or request.session.get('selected_plan')
@@ -87,12 +83,15 @@ def confirm_payment(request):
     if not days:
         return JsonResponse({'status': 'failed', 'error': 'Invalid plan'}, status=400)
 
-    profile.activate_premium(plan=plan, days=days, reset_usage=True)
+    # ✅ FIX: activate_premium() signature is activate_premium(plan, reset_usage=True)
+    # days are handled internally via PLAN_DURATIONS in models.py — do NOT pass days=
+    profile.activate_premium(plan=plan, reset_usage=True)
+    profile.refresh_from_db()
 
     return JsonResponse({
         'status':               'success',
         'message':              f"Subscription '{plan}' activated for {days} days.",
-        'subscription_expiry':  profile.subscription_expiry,
+        'subscription_expiry':  str(profile.subscription_expiry),  # serialize datetime to string
     })
 
 
@@ -118,22 +117,14 @@ def subscription_pending(request):
 
 def _send_telegram_notification(proof):
     """
-    Pushes a payment proof alert to your Telegram admin group.
-
-    ONE-TIME SETUP (5 minutes):
-    ──────────────────────────────────────────────────────────────
-    1. Open Telegram → search @BotFather → send /newbot
-    2. Name it e.g. "IsomoPlus Admin Bot"
-    3. Copy the TOKEN → add to .env.local and Render env vars:
+    ONE-TIME SETUP:
+    1. Telegram → @BotFather → /newbot → copy TOKEN
+    2. Create admin group → add bot → send any message
+    3. Visit: https://api.telegram.org/bot<TOKEN>/getUpdates
+       Find "chat" → "id" (negative number e.g. -1001234567890)
+    4. Add to .env.local + Render env vars:
            TELEGRAM_BOT_TOKEN=7xxxxxxxxx:AAxxxxxxx...
-    4. Create a Telegram group e.g. "IsomoPlus Admin Alerts"
-    5. Add your bot to the group as a member
-    6. Send any message in the group (e.g. "hello")
-    7. Visit: https://api.telegram.org/bot<TOKEN>/getUpdates
-       Find "chat" → "id"  (negative e.g. -1001234567890)
-    8. Add to .env.local and Render env vars:
            TELEGRAM_CHAT_ID=-1001234567890
-    ──────────────────────────────────────────────────────────────
     """
     token   = os.getenv('TELEGRAM_BOT_TOKEN')
     chat_id = os.getenv('TELEGRAM_CHAT_ID')
@@ -168,7 +159,6 @@ def _send_telegram_notification(proof):
             timeout=10
         )
 
-        # Send screenshot as follow-up photo if available
         if proof.screenshot:
             site_url = os.getenv('SITE_URL', '')
             img_url  = (
@@ -194,18 +184,13 @@ def _send_telegram_notification(proof):
 
 def _send_email_notification(proof):
     """
-    Sends a payment proof alert email to ADMIN_EMAIL via Gmail SMTP.
-
     ONE-TIME SETUP:
-    ──────────────────────────────────────────────────────────────
     1. Google Account → Security → 2-Step Verification → enable
-    2. https://myaccount.google.com/apppasswords
-       → Create App Password for "Mail" → copy the 16-char password
-    3. Add to .env.local and Render env vars:
+    2. https://myaccount.google.com/apppasswords → App Password for "Mail"
+    3. Add to .env.local + Render env vars:
            EMAIL_HOST_USER=yourgmail@gmail.com
            EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx
            ADMIN_EMAIL=yourgmail@gmail.com
-    ──────────────────────────────────────────────────────────────
     """
     admin_email = os.getenv('ADMIN_EMAIL')
     if not admin_email:
@@ -284,7 +269,7 @@ def _send_email_notification(proof):
                         'image/jpeg'
                     )
             except Exception as e:
-                logger.warning(f'Could not attach screenshot to email: {e}')
+                logger.warning(f'Could not attach screenshot: {e}')
 
         email.send(fail_silently=False)
         return True
@@ -296,20 +281,9 @@ def _send_email_notification(proof):
 
 # ─────────────────────────────────────────────
 # MANUAL PAYMENT — SUBMIT PROOF
-# Replaces the old no-op submit_manual_payment stub
 # ─────────────────────────────────────────────
 @csrf_exempt
 def submit_payment_proof(request):
-    """
-    POST multipart/form-data:
-        full_name, tx_id, amount, phone, plan, screenshot (file)
-
-    1. Validates all required fields
-    2. Saves ManualPaymentProof to database
-    3. Notifies admin via Telegram group (instant push)
-    4. Notifies admin via Gmail (with screenshot attached)
-    5. Returns JSON — frontend shows success/error message
-    """
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
@@ -320,7 +294,6 @@ def submit_payment_proof(request):
     plan       = request.POST.get('plan', 'monthly').strip()
     screenshot = request.FILES.get('screenshot')
 
-    # ── Validate required fields ──
     missing = [
         label for label, val in [
             ('Full Name', full_name),
@@ -344,7 +317,6 @@ def submit_payment_proof(request):
     if plan not in ('weekly', 'monthly', 'term'):
         plan = 'monthly'
 
-    # ── Save to database ──
     try:
         proof = ManualPaymentProof.objects.create(
             user       = request.user if request.user.is_authenticated else None,
@@ -363,7 +335,6 @@ def submit_payment_proof(request):
             status=500
         )
 
-    # ── Notify admin — failures are logged but never block the response ──
     telegram_ok = _send_telegram_notification(proof)
     email_ok    = _send_email_notification(proof)
 
