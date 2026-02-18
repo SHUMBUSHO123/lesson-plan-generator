@@ -1,4 +1,4 @@
-<!-- /lesson-plan-generator/backend/templates/pricing.html -->
+<!-- File: /lesson-plan-generator/backend/templates/pricing.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,23 +9,88 @@
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <style>
     body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; color: #333; }
-    .container { max-width: 1200px; margin: 0 auto; padding: 20px; text-align: center; }
+
+    /* ---------- Navbar ---------- */
+    .navbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 30px;
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .nav-brand { font-size: 1.1rem; font-weight: 700; color: #2D9CDB; text-decoration: none; }
+    .nav-links { display: flex; gap: 16px; align-items: center; }
+    .nav-link { color: #555; font-size: 0.95rem; font-weight: 500; padding: 6px 12px; border-radius: 6px; text-decoration: none; transition: all 0.3s; }
+    .nav-link:hover { background: #f0f8ff; color: #2D9CDB; }
+    .nav-link.btn-primary { background: #2D9CDB; color: #fff; border-radius: 20px; padding: 7px 18px; }
+    .nav-link.btn-primary:hover { background: #1b7bb8; }
+    .nav-user { font-size: 0.9rem; color: #555; }
+
+    /* ---------- Page ---------- */
+    .container { max-width: 1200px; margin: 0 auto; padding: 40px 20px; text-align: center; }
     h1 { font-size: 2.8rem; color: #2D9CDB; margin-bottom: 10px; }
     p.subtitle { font-size: 1.2rem; margin-bottom: 50px; color: #555; }
+
+    /* ---------- Cards ---------- */
     .pricing-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; margin-bottom: 50px; }
-    .card { background: #fff; border-radius: 15px; padding: 30px 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); flex: 1 1 280px; transition: transform 0.3s, box-shadow 0.3s; }
+    .card {
+        background: #fff; border-radius: 15px; padding: 30px 25px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08); flex: 1 1 250px; max-width: 280px;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
     .card:hover { transform: translateY(-5px); box-shadow: 0 10px 30px rgba(0,0,0,0.12); }
+    .card.featured { border: 2px solid #2D9CDB; }
     .card h3 { color: #2D9CDB; font-size: 1.4rem; margin-bottom: 15px; }
-    .card p.price { font-size: 2rem; font-weight: 700; margin-bottom: 15px; color: #27AE60; }
-    .card ul { list-style: none; padding: 0; margin-bottom: 20px; color: #555; }
-    .card ul li { margin-bottom: 10px; }
-    .btn-subscribe { background: #2D9CDB; color: #fff; padding: 12px 30px; border: none; border-radius: 30px; font-size: 1rem; font-weight: 600; cursor: pointer; text-decoration: none; transition: 0.3s; display: inline-block; }
+    .card p.price { font-size: 2rem; font-weight: 700; margin-bottom: 5px; color: #27AE60; }
+    .card p.duration { font-size: 0.9rem; color: #888; margin-bottom: 15px; }
+    .card ul { list-style: none; padding: 0; margin-bottom: 25px; color: #555; text-align: left; }
+    .card ul li { margin-bottom: 10px; font-size: 0.95rem; }
+
+    /* ---------- Buttons ---------- */
+    .btn-subscribe {
+        background: #2D9CDB; color: #fff; padding: 12px 30px;
+        border: none; border-radius: 30px; font-size: 1rem;
+        font-weight: 600; cursor: pointer; text-decoration: none;
+        transition: 0.3s; display: inline-block;
+    }
     .btn-subscribe:hover { background: #1b7bb8; transform: scale(1.05); }
+    .btn-subscribe.secondary { background: #27AE60; }
+    .btn-subscribe.secondary:hover { background: #1e8e4f; }
+    .btn-subscribe.outline {
+        background: #fff; color: #2D9CDB;
+        border: 2px solid #2D9CDB;
+    }
+    .btn-subscribe.outline:hover { background: #f0f8ff; }
+
     footer { text-align: center; padding: 30px 20px; background: #f1f3f6; color: #555; font-size: 0.95rem; }
-    @media (max-width: 768px) { .pricing-cards { flex-direction: column; gap: 20px; } }
+
+    @media (max-width: 768px) {
+        .pricing-cards { flex-direction: column; align-items: center; }
+        h1 { font-size: 2rem; }
+        .navbar { padding: 12px 16px; }
+    }
   </style>
 </head>
 <body>
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+    <a href="{% url 'landing' %}" class="nav-brand">CBC Lesson Plan Generator</a>
+    <div class="nav-links">
+        {% if user.is_authenticated %}
+            <span class="nav-user">Hello, {{ user.username }}</span>
+            <a href="{% url 'index' %}" class="nav-link">Dashboard</a>
+            <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+        {% else %}
+            <a href="{% url 'login' %}" class="nav-link">Login</a>
+            <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
+        {% endif %}
+    </div>
+</nav>
 
 <div class="container">
   <h1>Pricing Plans</h1>
@@ -33,82 +98,86 @@
 
   <div class="pricing-cards">
 
-    <!-- Free Plan -->
+    <!-- ── Free Plan ── -->
     <div class="card">
       <h3>Free</h3>
       <p class="price">0 RWF</p>
+      <p class="duration">forever</p>
       <ul>
-        <li>Up to 3 lesson plans</li>
-        <li>Basic features</li>
-        <li>No subscription required</li>
+        <li>✔ Up to 3 lesson plans</li>
+        <li>✔ Basic features</li>
+        <li>✖ PDF / DOCX download</li>
+        <li>✖ No subscription required</li>
       </ul>
-      {% if user.is_authenticated %}
-        <a href="{% url 'landing' %}" class="btn-subscribe">Start Free</a>
-      {% else %}
-        <a href="{% url 'register' %}?next={% url 'landing' %}" class="btn-subscribe">
-          Get Started
-        </a>
-      {% endif %}
+      <a href="{% url 'index' %}" class="btn-subscribe outline">
+        Start Free
+      </a>
     </div>
 
-    <!-- Weekly Plan -->
+    <!-- ── Weekly Plan ── -->
     <div class="card">
       <h3>Weekly</h3>
       <p class="price">200 RWF</p>
+      <p class="duration">per week</p>
       <ul>
-        <li>Unlimited lesson plans for 7 days</li>
-        <li>Download PDF/Word</li>
-        <li>Priority support</li>
+        <li>✔ Unlimited lesson plans for 7 days</li>
+        <li>✔ Download PDF</li>
+        <li>✖ Copy to Word</li>
+        <li>✖ Download DOCX</li>
       </ul>
       {% if user.is_authenticated %}
+        {# ✅ Logged-in: go straight to payment — no register redirect #}
         <a href="{% url 'payment' %}?plan=weekly" class="btn-subscribe">
           Subscribe
         </a>
       {% else %}
-        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=weekly"
-           class="btn-subscribe">
+        {# ✅ Guest: go to register carrying ?plan= so register view redirects to payment after signup #}
+        <a href="{% url 'register' %}?plan=weekly" class="btn-subscribe">
           Register to Subscribe
         </a>
       {% endif %}
     </div>
 
-    <!-- Monthly Plan -->
-    <div class="card">
+    <!-- ── Monthly Plan ── -->
+    <div class="card featured">
       <h3>Monthly</h3>
       <p class="price">500 RWF</p>
+      <p class="duration">per month</p>
       <ul>
-        <li>Unlimited lesson plans for 30 days</li>
-        <li>Download PDF/Word</li>
-        <li>Premium features unlocked</li>
+        <li>✔ Unlimited lesson plans for 30 days</li>
+        <li>✔ Download PDF</li>
+        <li>✔ Copy to Word</li>
+        <li>✔ Download DOCX</li>
       </ul>
       {% if user.is_authenticated %}
-        <a href="{% url 'payment' %}?plan=monthly" class="btn-subscribe">
+        <a href="{% url 'payment' %}?plan=monthly" class="btn-subscribe secondary">
           Subscribe
         </a>
       {% else %}
-        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=monthly"
-           class="btn-subscribe">
+        <a href="{% url 'register' %}?plan=monthly" class="btn-subscribe secondary">
           Register to Subscribe
         </a>
       {% endif %}
     </div>
 
-    <!-- Term Plan -->
+    <!-- ── Term Plan ── -->
     <div class="card">
       <h3>Term</h3>
       <p class="price">1000 RWF</p>
+      <p class="duration">per term (90 days)</p>
       <ul>
-        <li>Unlimited lesson plans for 90 days</li>
-        <li>Full access to all features</li>
-        <li>Premium support</li>
+        <li>✔ Unlimited lesson plans for 90 days</li>
+        <li>✔ Download PDF</li>
+        <li>✔ Copy to Word</li>
+        <li>✔ Download DOCX</li>
+        <li>✔ 24/7 Priority support</li>
       </ul>
       {% if user.is_authenticated %}
         <a href="{% url 'payment' %}?plan=term" class="btn-subscribe">
           Subscribe
         </a>
       {% else %}
-        <a href="{% url 'register' %}?next={% url 'payment' %}?plan=term"
-           class="btn-subscribe">
+        <a href="{% url 'register' %}?plan=term" class="btn-subscribe">
           Register to Subscribe
         </a>
       {% endif %}
@@ -116,8 +185,8 @@
 
   </div>
 
-  <a href="{% url 'landing' %}" class="btn-subscribe" style="background: #27AE60; margin-top: 20px;">
-    Back to Home
+  <a href="{% url 'index' %}" class="btn-subscribe secondary" style="margin-top: 10px;">
+    ← Back to Generator
   </a>
 
 </div>

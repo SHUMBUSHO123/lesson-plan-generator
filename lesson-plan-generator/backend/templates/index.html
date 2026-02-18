@@ -4,32 +4,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Open Graph / WhatsApp Preview -->
-<!-- Open Graph / WhatsApp Preview -->
-    <meta property="og:title" content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
-    <meta property="og:description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download." />
-    <meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
-    <meta property="og:url" content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="CBC Lesson Generator" />
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
-    <meta name="twitter:description" content="Generate structured CBC lesson plans instantly." />
-    <meta name="twitter:image" content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
+    <!-- ═══════════════════════════════════════════════════════════
+         PRIMARY SEO META TAGS
+         These are read by Google and as fallback by social platforms
+    ════════════════════════════════════════════════════════════════ -->
+    <title>CBC Lesson Plan Generator – Save 3+ Hours Per Week</title>
+    <meta name="description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download. Trusted by Kenyan teachers." />
+    <meta name="keywords" content="CBC lesson plan, Rwandan lesson plan generator, curriculum based competency, teacher tools Kenya" />
+    <meta name="author" content="IsomoPlus" />
 
-    <title>🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀</title>
+    <!-- ═══════════════════════════════════════════════════════════
+         OPEN GRAPH TAGS — WhatsApp, Facebook, LinkedIn, Telegram
+         Rules:
+           ✅ og:image MUST be absolute HTTPS URL
+           ✅ og:image size: 1200×630px recommended
+           ✅ og:image must be publicly accessible (no auth)
+           ✅ og:url must be the canonical page URL
+    ════════════════════════════════════════════════════════════════ -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:site_name"   content="CBC Lesson Generator" />
+    <meta property="og:title"       content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
+    <meta property="og:description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download. Trusted by Kenyan teachers." />
+    <meta property="og:url"         content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
+    <!--
+        og:image — CRITICAL for WhatsApp preview thumbnail.
+        The image at /static/images/preview.jpg MUST be:
+          • At least 300×200px (1200×630px ideal)
+          • Under 300KB file size
+          • Publicly reachable via HTTPS
+          • NOT behind login/authentication
+        If your domain is example.com, the final URL should look like:
+          https://example.com/static/images/preview.jpg
+    -->
+    <meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
+    <meta property="og:image:width"  content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt"    content="CBC Lesson Plan Generator – professional lesson plans in seconds" />
+    <meta property="og:locale"       content="en_KE" />
 
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">  <!-- 4a: dashboard styles -->
+    <!-- ═══════════════════════════════════════════════════════════
+         TWITTER CARD TAGS — Twitter/X, and used as fallback
+         by some apps that don't read og: tags
+    ════════════════════════════════════════════════════════════════ -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:site"        content="@IsomoPlus" />
+    <meta name="twitter:title"       content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
+    <meta name="twitter:description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download." />
+    <meta name="twitter:image"       content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
+    <meta name="twitter:image:alt"   content="CBC Lesson Plan Generator preview" />
+
+    <!-- ═══════════════════════════════════════════════════════════
+         PWA / MOBILE APP META TAGS
+    ════════════════════════════════════════════════════════════════ -->
     <link rel="manifest" href="{% static 'manifest.json' %}">
     <meta name="theme-color" content="#4CAF50">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CBC Lesson Gen">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js"></script>
+    <!-- ═══════════════════════════════════════════════════════════
+         STYLESHEETS
+    ════════════════════════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SCRIPTS (deferred so they don't block page render)
+    ════════════════════════════════════════════════════════════════ -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js" defer></script>
     <script src="{% static 'js/script.js' %}" defer></script>
     <script src="{% static 'js/installPrompt.js' %}" defer></script>
 </head>
@@ -55,17 +100,17 @@
     </div>
 </nav>
 
-<!-- 4b: Dashboard panel — between </nav> and <div class="container"> -->
+<!-- Dashboard Panel -->
 <div id="dashboardPanel" class="dashboard-panel" style="display:none;">
 
-    <!-- ── GUEST VIEW: slim usage banner ─────────────────────────────── -->
+    <!-- ── GUEST VIEW: slim usage banner ── -->
     <div id="guestBanner" class="dash-guest-banner" style="display:none;">
         <span class="dash-guest-icon">🎓</span>
         <span id="guestBannerText">Checking usage…</span>
         <a href="{% url 'pricing' %}" class="dash-upgrade-link">Upgrade for unlimited →</a>
     </div>
 
-    <!-- ── LOGGED-IN VIEW: full dashboard ────────────────────────────── -->
+    <!-- ── LOGGED-IN VIEW: full dashboard ── -->
     <div id="fullDashboard" style="display:none;">
         <div class="dash-header">
             <h2 class="dash-title">📊 My Dashboard</h2>
@@ -260,34 +305,35 @@
                     <label class="optional">References</label>
                     <input type="text" id="references">
                 </div>
+
+                <!-- Location Plan -->
                 <div class="form-group full-width">
+                    <label class="optional">Plan for this Class (Location)</label>
+                    <select id="locationPlan">
+                        <option value="">-- Select Location --</option>
+                        <option value="Inside classroom">Inside classroom</option>
+                        <option value="Outside classroom">Outside classroom</option>
+                        <option value="Computer laboratory">Computer laboratory</option>
+                        <option value="Field work">Field work</option>
+                        <option value="Library">Library</option>
+                    </select>
+                </div>
 
-                    <!-- Location Plan -->
-                    <div class="form-group full-width">
-                        <label class="optional">Plan for this Class (Location)</label>
-                        <select id="locationPlan">
-                            <option value="">-- Select Location --</option>
-                            <option value="Inside classroom">Inside classroom</option>
-                            <option value="Outside classroom">Outside classroom</option>
-                            <option value="Computer laboratory">Computer laboratory</option>
-                            <option value="Field work">Field work</option>
-                            <option value="Library">Library</option>
-                        </select>
-                    </div>
+                <!-- Learning Materials -->
+                <div class="form-group full-width">
+                    <label class="optional">Learning Materials (Select all that apply)</label>
+                    <select id="materials" multiple>
+                        <option value="Textbook">Textbook</option>
+                        <option value="Chalkboard">Chalkboard</option>
+                        <option value="Projector">Projector</option>
+                        <option value="Computer">Computer</option>
+                        <option value="Charts">Charts</option>
+                        <option value="Laboratory equipment">Laboratory equipment</option>
+                    </select>
+                </div>
 
-                    <!-- Learning Materials -->
-                    <div class="form-group full-width">
-                        <label class="optional">Learning Materials (Select all that apply)</label>
-                        <select id="materials" multiple>
-                            <option value="Textbook">Textbook</option>
-                            <option value="Chalkboard">Chalkboard</option>
-                            <option value="Projector">Projector</option>
-                            <option value="Computer">Computer</option>
-                            <option value="Charts">Charts</option>
-                            <option value="Laboratory equipment">Laboratory equipment</option>
-                        </select>
-                    </div>
-
+                <!-- Teaching Strategy -->
+                <div class="form-group full-width">
                     <label class="optional">Teaching Strategy</label>
                     <select id="strategy">
                         <option value="">Select Strategy</option>
@@ -376,17 +422,22 @@
     </div>
 </div>
 
-<button id="installBtn" style="display:none; position: fixed; bottom: 20px; right: 20px; z-index: 999;">
+<!-- PWA Install Button -->
+<button id="installBtn" style="display:none; position:fixed; bottom:20px; right:20px; z-index:999;">
     Install App
 </button>
 
-<!-- ====== CSRF token ====== -->
+<!-- ═══════════════════════════════════════════════════════════
+     CSRF TOKEN — exposed to JS for AJAX requests
+════════════════════════════════════════════════════════════════ -->
 <script>
     const csrfInput = document.querySelector('#lessonForm input[name=csrfmiddlewaretoken]');
     window.CSRF_TOKEN = csrfInput ? csrfInput.value : '';
 </script>
 
-<!-- ====== SERVICE WORKER ====== -->
+<!-- ═══════════════════════════════════════════════════════════
+     SERVICE WORKER — enables offline/PWA support
+════════════════════════════════════════════════════════════════ -->
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -397,40 +448,35 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- ====== UNIFIED SUBSCRIBE LOGIC — single block, no conflicts ====== -->
+<!-- ═══════════════════════════════════════════════════════════
+     SUBSCRIPTION / MODAL LOGIC
+════════════════════════════════════════════════════════════════ -->
 <script>
     window.isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
 
-    // ✅ Close modal
     function closeModal() {
         document.getElementById('subscribeModal').style.display = 'none';
     }
 
-    // ✅ Close modal when clicking the backdrop
+    // Close modal on backdrop click
     window.addEventListener('click', function(e) {
         const modal = document.getElementById('subscribeModal');
         if (e.target === modal) closeModal();
     });
 
-    // ✅ Single unified subscribe function
-    // Preserves ?plan= at every redirect step
+    // Unified subscribe — preserves ?plan= through login/register flow
     function subscribe(plan) {
         closeModal();
-
-        // Always store in sessionStorage as backup
         sessionStorage.setItem('selected_plan', plan);
 
         if (window.isAuthenticated) {
-            // Logged-in → go directly to payment with plan in URL
             window.location.href = "{% url 'payment' %}?plan=" + plan;
         } else {
-            // Guest → go to register carrying plan so it survives signup
             window.location.href = "{% url 'register' %}?plan=" + plan;
         }
     }
 
-    // ✅ Attach click handlers to pricing buttons using data-plan attribute
-    // Buttons now use data-plan instead of onclick to avoid conflicts
+    // Attach click handlers via data-plan attribute (no inline onclick conflicts)
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.choose-btn[data-plan]').forEach(btn => {
             btn.addEventListener('click', () => subscribe(btn.dataset.plan));

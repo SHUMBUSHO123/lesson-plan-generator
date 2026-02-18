@@ -1,8 +1,9 @@
+# File: /lesson-plan-generator/backend/cbc_backend/settings.py
+
 from pathlib import Path
 import os
 from dotenv import load_dotenv
 import dj_database_url
-
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,8 +23,14 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS')
 if ALLOWED_HOSTS:
     ALLOWED_HOSTS = ALLOWED_HOSTS.split(',')
 else:
-    # fallback if env var is missing
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'lesson-plan-generator-va4h.onrender.com']
+
+# Fix session/cookie trust on Render.com (HTTPS proxy)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE   = not DEBUG
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SECURE      = not DEBUG
+SESSION_ENGINE          = 'django.contrib.sessions.backends.db'
 
 
 # ---------------------------
@@ -41,13 +48,14 @@ INSTALLED_APPS = [
     'corsheaders',
 ]
 
+
 # ---------------------------
 # MIDDLEWARE
 # ---------------------------
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # for static files in production
-    'corsheaders.middleware.CorsMiddleware', 
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,8 +64,9 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # for dev only, restrict in production
+CORS_ALLOW_ALL_ORIGINS = True  # restrict in production
 ROOT_URLCONF = 'cbc_backend.urls'
+
 
 # ---------------------------
 # TEMPLATES
@@ -79,10 +88,10 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'cbc_backend.wsgi.application'
 
-# ---------------------------
-# DATABASE CONFIGURATION
-# ---------------------------
 
+# ---------------------------
+# DATABASE
+# ---------------------------
 USE_SUPABASE = os.getenv('USE_SUPABASE', 'False') == 'True'
 SUPABASE_DATABASE_URL = os.getenv('SUPABASE_DATABASE_URL')
 
@@ -107,11 +116,12 @@ else:
 # PASSWORD VALIDATION
 # ---------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
+
 
 # ---------------------------
 # INTERNATIONALIZATION
@@ -121,26 +131,76 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+
 # ---------------------------
 # STATIC FILES
 # ---------------------------
 STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']  # dev
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # for collectstatic
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Use normal static storage in development for instant updates
 if DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 else:
-    # Production storage with cache-busting
     STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+
+# ---------------------------
+# MEDIA FILES (screenshot uploads)
+# ---------------------------
+MEDIA_URL  = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# ---------------------------
+# EMAIL — Gmail SMTP
+# ---------------------------
+# Setup steps:
+#   1. Google Account → Security → 2-Step Verification → enable
+#   2. https://myaccount.google.com/apppasswords → create App Password for "Mail"
+#   3. Add to .env.local / Render env vars:
+#        EMAIL_HOST_USER=yourgmail@gmail.com
+#        EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx   (16-char app password)
+#        ADMIN_EMAIL=yourgmail@gmail.com
+# ---------------------------
+EMAIL_BACKEND       = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST          = 'smtp.gmail.com'
+EMAIL_PORT          = 587
+EMAIL_USE_TLS       = True
+EMAIL_HOST_USER     = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL  = os.getenv('EMAIL_HOST_USER')
+
+
+# ---------------------------
+# TELEGRAM BOT
+# ---------------------------
+# Setup steps:
+#   1. Telegram → @BotFather → /newbot → copy TOKEN
+#   2. Create admin group → add bot → send any message
+#   3. Visit https://api.telegram.org/bot<TOKEN>/getUpdates
+#      Find "chat" → "id"  (negative number e.g. -1001234567890)
+#   4. Add to .env.local / Render env vars:
+#        TELEGRAM_BOT_TOKEN=7xxxxxxxxx:AAxxxxxxx...
+#        TELEGRAM_CHAT_ID=-1001234567890
+# ---------------------------
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
+TELEGRAM_CHAT_ID   = os.getenv('TELEGRAM_CHAT_ID')
+
+
+# ---------------------------
+# SITE URL (used in Telegram/email admin links)
+# ---------------------------
+SITE_URL = os.getenv('SITE_URL', 'https://lesson-plan-generator-va4h.onrender.com')
+
 
 # ---------------------------
 # PWA / SERVICE WORKER
 # ---------------------------
-PWA_APP_NAME = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
-PWA_APP_DESCRIPTION = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
+PWA_APP_NAME         = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
+PWA_APP_DESCRIPTION  = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
 PWA_SERVICE_WORKER_PATH = '/sw.js'
+
 
 # ---------------------------
 # DJANGO REST FRAMEWORK
