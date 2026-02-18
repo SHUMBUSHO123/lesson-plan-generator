@@ -645,3 +645,12 @@ footer {
     .pricing-card .price { font-size: 1.75rem; }
     .choose-btn        { font-size: 0.88rem; padding: 11px 14px; }
 }
+
+.field-error {
+    border: 2px solid #f44336 !important;
+    background-color: #fff5f5 !important;
+}
+
+.field-error:focus {
+    outline-color: #f44336;
+}

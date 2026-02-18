@@ -214,8 +214,6 @@ class UserProfileAdmin(admin.ModelAdmin):
 
     actions = [activate_selected_premium, deactivate_selected_premium]
 
-    # subscription_status is a callable — must be listed here
-    # so Django treats it as a readonly method, not a model field
     readonly_fields = ('subscription_status', 'created_at', 'updated_at')
 
     fieldsets = (
@@ -286,18 +284,27 @@ class UserProfileAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """
-        KEY FIX: Always recalculates expiry AND lesson_limit when plan is set.
-        Removed all 'if not' guards — changing Monthly → Term now correctly
-        overwrites the old 200 limit with 600, and recalculates expiry too.
-        subscription_start is only set to now() if not already provided.
+        FIX 1: Block saving premium without a plan selected.
+        FIX 2: Always reset subscription_start to now() to prevent
+                stale start date causing immediate ❌ Expired on old accounts.
         """
+        from django.contrib import messages
+
+        # ── Block premium with no plan ────────────────────────────────
+        if obj.is_premium and not obj.subscription_plan:
+            messages.error(
+                request,
+                "❌ Please select a subscription plan before activating premium."
+            )
+            return  # Do not save
+
+        # ── Recalculate everything fresh on every premium save ────────
         if obj.is_premium and obj.subscription_plan:
-            if not obj.subscription_start:
-                obj.subscription_start = timezone.now()
-            # ✅ No 'if not' guard — always overwrites old values
+            obj.subscription_start  = timezone.now()  # always fresh — fixes stale date bug
             days = PLAN_DURATIONS.get(obj.subscription_plan, 5)
             obj.subscription_expiry = obj.subscription_start + timedelta(days=days)
-            obj.lesson_limit = SUBSCRIPTION_LIMITS.get(obj.subscription_plan)
+            obj.lesson_limit        = SUBSCRIPTION_LIMITS.get(obj.subscription_plan)
+            obj.lessons_used        = 0  # reset counter on fresh activation
 
         super().save_model(request, obj, form, change)
 
@@ -395,13 +402,10 @@ class GeneratedLessonPlanAdmin(admin.ModelAdmin):
         return mark_safe('—')
     html_snapshot_preview.short_description = 'HTML Preview'
 
-# ADD THIS TO YOUR lessons/admin.py
-# ─────────────────────────────────────────────────────────────────────────────
 
-# from lessons.models import ManualPaymentProof, Subscription, UserProfile  ← your existing imports
-
-
-
+# ===============================
+# MANUAL PAYMENT PROOF ADMIN
+# ===============================
 @admin.register(ManualPaymentProof)
 class ManualPaymentProofAdmin(admin.ModelAdmin):
     list_display    = ('full_name', 'phone', 'plan', 'tx_id', 'amount', 'status', 'submitted_at')

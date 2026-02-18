@@ -33,36 +33,24 @@ document.addEventListener("DOMContentLoaded", async () => {
     attachPayButton();
     attachDownloadButtons();
 
-    // Use server-injected data instantly — no fetch needed on first load
-    if (window.__DASHBOARD__) {
-        renderDashboard(window.__DASHBOARD__);
-    }
-
-    // Fire remaining calls in parallel (not sequential)
-    await Promise.all([
-        prefillUserData(),
-        updateGenerateButtonStatus()
-    ]);
-});
-
-// loadDashboard now only called AFTER generating a new plan
-document.addEventListener("DOMContentLoaded", async () => {
-    if (levelSelect) loadLevels();
-    attachGenerateButton();
-    attachPayButton();
-    attachDownloadButtons();
+    // Clear field errors as user fills them
+    document.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('change', () => el.classList.remove('field-error'));
+        el.addEventListener('input',  () => el.classList.remove('field-error'));
+    });
 
     // Use server-injected data instantly — no fetch needed on first load
     if (window.__DASHBOARD__) {
         renderDashboard(window.__DASHBOARD__);
     }
 
-    // Fire remaining calls in parallel (not sequential)
+    // Fire remaining calls in parallel
     await Promise.all([
         prefillUserData(),
         updateGenerateButtonStatus()
     ]);
 });
+
 // ===============================
 // FETCH HELPERS
 // ===============================
@@ -157,6 +145,38 @@ if (unitSelect) unitSelect.addEventListener('change', () => {
 });
 
 // ===============================
+// FIELD VALIDATION & HIGHLIGHTING
+// ===============================
+function highlightEmptyFields() {
+    const requiredFields = [
+        'schoolName', 'teacherName', 'term', 'date',
+        'level', 'className', 'subject', 'unitNo',
+        'lessonNo', 'totalLessons', 'duration',
+        'classSize', 'unitTitle', 'lessonTitle'
+    ];
+
+    let hasEmpty = false;
+    requiredFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (!el.value || el.value === '') {
+            el.classList.add('field-error');
+            hasEmpty = true;
+        } else {
+            el.classList.remove('field-error');
+        }
+    });
+
+    // Scroll to first error
+    if (hasEmpty) {
+        const first = document.querySelector('.field-error');
+        if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    return hasEmpty;
+}
+
+// ===============================
 // FORM DATA
 // ===============================
 function getFormData() {
@@ -226,7 +246,6 @@ async function updateGenerateButtonStatus() {
         const data = await checkAccess(true);
         const canGo = data.is_premium || data.can_generate;
 
-        // Never fully disable — always clickable so modal can trigger on limit reached.
         btn.disabled = false;
 
         if (!canGo) {
@@ -246,24 +265,20 @@ async function updateGenerateButtonStatus() {
 
 // ===============================
 // SHOW PAYWALL MODAL
-// Customises the modal header based on whether user is logged in or a guest
 // ===============================
 function showPaywallModal() {
     const modal = document.getElementById('subscribeModal');
     if (!modal) return;
 
-    // Update the header message based on auth state
     const headerEl = modal.querySelector('.pricing-header');
     if (headerEl) {
         if (window.isAuthenticated) {
-            // Logged-in user who has used all their free plans
             headerEl.innerHTML = `
                 <h1>🔒 You've Used All 3 Free Lesson Plans</h1>
                 <h2>Upgrade to Keep Generating</h2>
                 <p>Choose a plan below to unlock unlimited lesson plans and download features.</p>
             `;
         } else {
-            // Guest who hit the limit
             headerEl.innerHTML = `
                 <h1>🎓 Free Limit Reached (3 of 3 Used)</h1>
                 <h2>Create a Free Account to Continue</h2>
@@ -308,14 +323,15 @@ function closeModal() {
 // GENERATE LESSON PLAN
 // ===============================
 async function generateLessonPlanFromForm() {
-    if (!unitSelect.value || !lessonSelect.value) {
-        alert("Please fill all required fields!");
+    // Highlight empty fields first
+    if (highlightEmptyFields()) {
+        alert("Please fill in all highlighted fields!");
         return;
     }
+
     const btn = document.getElementById('generateButton');
 
     await requirePremium(async () => {
-        // Temporarily show loading state
         if (btn) { btn.disabled = true; btn.textContent = '⏳ Generating...'; }
 
         try {
@@ -361,10 +377,9 @@ async function generateLessonPlanFromForm() {
             alert("Unable to generate lesson plan. Check connection.");
             lessonPlanContent.textContent = '';
         } finally {
-            // Always restore button state after generation attempt
             if (btn) {
                 btn.disabled = false;
-                updateGenerateButtonStatus(); // re-check limit in case it was just used up
+                updateGenerateButtonStatus();
             }
         }
     }, true);
@@ -611,16 +626,13 @@ async function downloadWord() {
     }
 }
 
-
 // ===============================
 // DASHBOARD
 // ===============================
-
 let dashboardData     = null;
 let selectedPlanIds   = new Set();
 let dashboardExpanded = true;
 
-// loadDashboard now only called AFTER generating a new plan
 async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/`, {
@@ -634,6 +646,7 @@ async function loadDashboard() {
         console.warn("Dashboard load skipped:", err.message);
     }
 }
+
 function renderDashboard(data) {
     const panel = document.getElementById('dashboardPanel');
     if (!panel) return;
@@ -656,7 +669,6 @@ function renderGuestBanner(data) {
     const text      = document.getElementById('guestBannerText');
     if (text) {
         if (remaining <= 0) {
-            // ── Guest limit reached: clear call to action ──
             text.innerHTML = `
                 <strong style="color:#f44336">Free limit reached (3 of 3 used).</strong>
                 <a href="/register/"
@@ -815,7 +827,7 @@ function attachDashboardEvents() {
     if (selectAllBtn) {
         selectAllBtn.replaceWith(selectAllBtn.cloneNode(true));
         document.getElementById('dashSelectAll').addEventListener('click', () => {
-            const checks   = document.querySelectorAll('.dash-plan-check');
+            const checks     = document.querySelectorAll('.dash-plan-check');
             const allChecked = [...checks].every(cb => cb.checked);
             checks.forEach(cb => {
                 cb.checked = !allChecked;
