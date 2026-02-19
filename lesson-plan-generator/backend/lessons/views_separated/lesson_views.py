@@ -26,12 +26,7 @@ from django.http import HttpResponse
 def use_lesson_atomic(profile):
     """
     Increment lessons used safely using F() to avoid race conditions.
-    FIX: skip increment for active premium users — their counter should
-    only move when they actually consume from their plan limit.
     """
-    if profile.is_subscription_active():
-        profile.refresh_from_db()
-        return
     profile.lessons_used = F('lessons_used') + 1
     profile.save(update_fields=['lessons_used'])
     profile.refresh_from_db()
