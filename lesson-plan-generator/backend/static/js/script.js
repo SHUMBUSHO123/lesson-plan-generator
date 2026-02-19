@@ -274,7 +274,7 @@ function showPaywallModal() {
     if (headerEl) {
         if (window.isAuthenticated) {
             headerEl.innerHTML = `
-                <h1>🔒 You've Used All 3 Free Lesson Plans</h1>
+                <h1>🔒 Upgrade to Continue</h1>
                 <h2>Upgrade to Keep Generating</h2>
                 <p>Choose a plan below to unlock unlimited lesson plans and download features.</p>
             `;

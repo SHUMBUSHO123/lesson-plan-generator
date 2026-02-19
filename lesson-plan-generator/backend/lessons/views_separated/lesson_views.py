@@ -26,7 +26,12 @@ from django.http import HttpResponse
 def use_lesson_atomic(profile):
     """
     Increment lessons used safely using F() to avoid race conditions.
+    FIX: skip increment for active premium users — their counter should
+    only move when they actually consume from their plan limit.
     """
+    if profile.is_subscription_active():
+        profile.refresh_from_db()
+        return
     profile.lessons_used = F('lessons_used') + 1
     profile.save(update_fields=['lessons_used'])
     profile.refresh_from_db()
@@ -168,7 +173,6 @@ def get_user_dashboard(request):
     Uses request.user.is_authenticated as the ONLY authority for auth state.
     Guests receive a counter only — no plan history, no premium data leakage.
     """
-    # ✅ FIX: use Django's auth state — never trust session device_id for identity
     is_authenticated = request.user.is_authenticated
 
     if is_authenticated:
@@ -176,10 +180,10 @@ def get_user_dashboard(request):
         profile, _ = UserProfile.objects.get_or_create(user=request.user)
         profile.expire_subscription_if_needed()
 
-        limit     = profile.get_current_lesson_limit()
-        used      = profile.lessons_used
+        limit = profile.get_current_lesson_limit()
+        used  = profile.lessons_used
+
         # None only when lesson_limit is truly NULL (permanent admin grant)
-        # Term/Monthly/Weekly users have a real limit and show a real count
         if profile.lesson_limit is None and profile.is_premium:
             remaining = None
         else:
@@ -221,8 +225,7 @@ def get_user_dashboard(request):
         ]
 
     else:
-        # ✅ Guest: resolve device-based profile for usage counter only
-        # Never expose premium data or plan history for guests
+        # Guest: resolve device-based profile for usage counter only
         profile = resolve_profile(request)
 
         limit     = profile.get_current_lesson_limit()
@@ -231,7 +234,7 @@ def get_user_dashboard(request):
 
         payload = {
             "is_authenticated":    False,
-            "is_premium":          False,  # always False for guests
+            "is_premium":          False,
             "subscription_plan":   None,
             "subscription_expiry": None,
             "lessons_used":        used,
@@ -240,7 +243,7 @@ def get_user_dashboard(request):
             "can_download_pdf":    False,
             "can_download_docx":   False,
             "can_copy_word":       False,
-            "recent_plans":        [],     # always empty for guests
+            "recent_plans":        [],
         }
 
     return Response(payload)
@@ -256,7 +259,6 @@ def bulk_zip_download(request):
     Returns a ZIP of HTML snapshots.
     Security: only the owner's plans are included.
     """
-    # ✅ Use Django auth — not profile.user
     if not request.user.is_authenticated:
         return Response({"error": "Login required to download plans."}, status=401)
 
@@ -266,7 +268,6 @@ def bulk_zip_download(request):
     if not plan_ids or not isinstance(plan_ids, list):
         return Response({"error": "Provide a list of plan_ids."}, status=400)
 
-    # Security: only fetch plans belonging to this user's profile
     plans = GeneratedLessonPlan.objects.filter(
         id__in=plan_ids,
         profile=profile
@@ -275,7 +276,6 @@ def bulk_zip_download(request):
     if not plans.exists():
         return Response({"error": "No matching plans found."}, status=404)
 
-    # Build ZIP in memory
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for plan in plans:

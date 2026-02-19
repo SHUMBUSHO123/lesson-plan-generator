@@ -137,10 +137,19 @@ class UserProfile(models.Model):
         return self.lesson_limit is None
 
     def get_current_lesson_limit(self):
-        if self.is_premium and self.subscription_plan:
-            return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
+        """
+        FIX: Always respect manually set lesson_limit first.
+        This allows admin to override limits (e.g. give 100 lessons
+        instead of the plan default 50) without it being overwritten.
+        Only falls back to plan default if lesson_limit is NULL.
+        """
+        # ① Admin manually set a specific limit — always use it
         if self.lesson_limit is not None:
             return self.lesson_limit
+        # ② No manual limit — fall back to plan default
+        if self.is_premium and self.subscription_plan:
+            return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
+        # ③ Free user with no limit set
         return FREE_LESSON_LIMIT
 
     def can_generate_plan(self):
@@ -149,6 +158,11 @@ class UserProfile(models.Model):
         return self.lessons_used < self.get_current_lesson_limit()
 
     def use_lesson(self):
+        """
+        Increment lesson counter.
+        Premium users with active subscription skip increment —
+        their counter is managed separately via use_lesson_atomic.
+        """
         if self.is_subscription_active() or self.has_unlimited_access():
             return
         UserProfile.objects.filter(pk=self.pk).update(lessons_used=F('lessons_used') + 1)

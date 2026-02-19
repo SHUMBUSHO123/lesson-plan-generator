@@ -171,6 +171,17 @@ class GuestFilter(admin.SimpleListFilter):
 # ===============================
 class UserProfileAdminForm(forms.ModelForm):
 
+    force_reset = forms.BooleanField(
+        required=False,
+        initial=False,
+        label="🔄 Reset subscription from selected plan",
+        help_text=(
+            "✅ CHECK THIS to recalculate start date, expiry, lesson limit "
+            "and reset lessons used to 0 based on the selected plan. "
+            "❌ LEAVE UNCHECKED to manually edit lesson_limit / lessons_used freely."
+        )
+    )
+
     class Meta:
         model = UserProfile
         fields = '__all__'
@@ -228,14 +239,17 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
         ('Subscription', {
             'description': (
-                '💡 Tip: Select a Plan + check Is Premium, then Save. '
-                'Expiry and lesson limit are always recalculated automatically. '
+                '💡 TWO MODES: '
+                '① RESET MODE — check Is Premium + select plan + check 🔄 Reset → Save. '
+                'Auto-sets dates, limit and clears usage. '
+                '② MANUAL MODE — uncheck 🔄 Reset, edit lesson_limit / lessons_used freely → Save. '
                 'Weekly = 5 days / 50 lessons | '
                 'Monthly = 20 days / 200 lessons | '
                 'Term = 60 days / 600 lessons.'
             ),
             'fields': (
                 'subscription_plan',
+                'force_reset',
                 'subscription_start',
                 'subscription_expiry',
                 'subscription_status',
@@ -258,7 +272,7 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
     )
 
-    # ── Custom columns ─────────────────────────────────────────────────
+    # ── Custom columns ──────────────────────────────────────────────
     def account_label(self, obj):
         if obj.user:
             return obj.user.email or obj.user.username
@@ -284,27 +298,62 @@ class UserProfileAdmin(admin.ModelAdmin):
 
     def save_model(self, request, obj, form, change):
         """
-        FIX 1: Block saving premium without a plan selected.
-        FIX 2: Always reset subscription_start to now() to prevent
-                stale start date causing immediate ❌ Expired on old accounts.
+        DYNAMIC SAVE — two modes:
+
+        🔄 RESET MODE (force_reset=True OR first-time activation):
+           → Auto-sets subscription_start to now()
+           → Calculates subscription_expiry from plan duration
+           → Sets lesson_limit from plan defaults
+           → Resets lessons_used to 0
+           Use for: new activation, renewing, switching plans
+
+        ✏️ MANUAL MODE (force_reset=False + already active):
+           → Saves exactly what admin typed
+           → lesson_limit and lessons_used kept as-is
+           Use for: custom overrides (e.g. give user 90 lessons instead of 50)
+
+        🚫 BLOCKED: is_premium=True with no plan selected
         """
         from django.contrib import messages
 
-        # ── Block premium with no plan ────────────────────────────────
+        # ── Block premium with no plan ───────────────────────────────
         if obj.is_premium and not obj.subscription_plan:
             messages.error(
                 request,
                 "❌ Please select a subscription plan before activating premium."
             )
-            return  # Do not save
+            return
 
-        # ── Recalculate everything fresh on every premium save ────────
         if obj.is_premium and obj.subscription_plan:
-            obj.subscription_start  = timezone.now()  # always fresh — fixes stale date bug
-            days = PLAN_DURATIONS.get(obj.subscription_plan, 5)
-            obj.subscription_expiry = obj.subscription_start + timedelta(days=days)
-            obj.lesson_limit        = SUBSCRIPTION_LIMITS.get(obj.subscription_plan)
-            obj.lessons_used        = 0  # reset counter on fresh activation
+            force_reset = form.cleaned_data.get('force_reset', False)
+            original    = UserProfile.objects.filter(pk=obj.pk).first()
+            first_time  = (
+                original is None or
+                not original.is_premium or
+                not original.subscription_expiry
+            )
+
+            if force_reset or first_time:
+                # ── RESET MODE: recalculate everything from plan ─────
+                obj.subscription_start  = timezone.now()
+                days = PLAN_DURATIONS.get(obj.subscription_plan, 5)
+                obj.subscription_expiry = obj.subscription_start + timedelta(days=days)
+                obj.lesson_limit        = SUBSCRIPTION_LIMITS.get(obj.subscription_plan)
+                obj.lessons_used        = 0
+
+                messages.success(
+                    request,
+                    f"✅ Subscription reset: {obj.subscription_plan.capitalize()} plan. "
+                    f"Limit = {obj.lesson_limit} lessons, "
+                    f"Expires = {obj.subscription_expiry.strftime('%d %b %Y')}."
+                )
+            else:
+                # ── MANUAL MODE: keep admin's typed values ───────────
+                messages.info(
+                    request,
+                    f"💾 Manual save: lesson_limit={obj.lesson_limit}, "
+                    f"lessons_used={obj.lessons_used} kept as entered."
+                )
 
         super().save_model(request, obj, form, change)
 
@@ -429,7 +478,6 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
     actions = ['approve_selected', 'reject_selected']
 
     def screenshot_preview(self, obj):
-        from django.utils.html import format_html
         if obj.screenshot:
             return format_html(
                 '<img src="{}" style="max-height:200px;border-radius:8px;" />',
@@ -448,7 +496,7 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
             proof.save()
 
             if not proof.user:
-                continue  # guest — no account to activate
+                continue
 
             profile, _ = UserProfile.objects.get_or_create(user=proof.user)
             profile.activate_premium(plan=proof.plan, reset_usage=True)
