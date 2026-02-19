@@ -347,10 +347,10 @@ class ManualPaymentProof(models.Model):
         on_delete=models.SET_NULL, related_name='payment_proofs'
     )
     full_name    = models.CharField(max_length=150)
-    phone        = models.CharField(max_length=20)
+    phone        = models.CharField(max_length=20,  blank=True, null=True)   # ← optional now
     plan         = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
-    tx_id        = models.CharField(max_length=100, unique=True)
-    amount       = models.CharField(max_length=20)
+    tx_id        = models.CharField(max_length=100, blank=True, null=True)   # ← optional, unique removed
+    amount       = models.CharField(max_length=20,  blank=True, null=True)   # ← optional now
     screenshot   = models.ImageField(upload_to='payment_proofs/%Y/%m/', blank=True, null=True)
     status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     admin_note   = models.TextField(blank=True, help_text='Optional note when approving or rejecting')
@@ -363,4 +363,4 @@ class ManualPaymentProof(models.Model):
         verbose_name_plural = 'Manual Payment Proofs'
 
     def __str__(self):
-        return f"{self.full_name} | {self.plan} | {self.status} | Tx:{self.tx_id}"
+        return f"{self.full_name} | {self.plan} | {self.status}"

@@ -287,30 +287,13 @@ def submit_payment_proof(request):
     if request.method != 'POST':
         return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
-    full_name  = request.POST.get('full_name', '').strip()
-    tx_id      = request.POST.get('tx_id', '').strip()
-    amount     = request.POST.get('amount', '').strip()
-    phone      = request.POST.get('phone', '').strip()
-    plan       = request.POST.get('plan', 'monthly').strip()
-    screenshot = request.FILES.get('screenshot')
+    full_name = request.POST.get('full_name', '').strip()
+    plan      = request.POST.get('plan', 'monthly').strip()
 
-    missing = [
-        label for label, val in [
-            ('Full Name', full_name),
-            ('Transaction ID', tx_id),
-            ('Amount', amount),
-            ('Phone', phone),
-        ] if not val
-    ]
-    if missing:
+    # Only full_name is required
+    if not full_name:
         return JsonResponse(
-            {'success': False, 'error': f"Missing: {', '.join(missing)}"},
-            status=400
-        )
-
-    if not screenshot:
-        return JsonResponse(
-            {'success': False, 'error': 'Screenshot of MoMo confirmation is required.'},
+            {'success': False, 'error': 'Full name is required.'},
             status=400
         )
 
@@ -319,14 +302,10 @@ def submit_payment_proof(request):
 
     try:
         proof = ManualPaymentProof.objects.create(
-            user       = request.user if request.user.is_authenticated else None,
-            full_name  = full_name,
-            tx_id      = tx_id,
-            amount     = amount,
-            phone      = phone,
-            plan       = plan,
-            screenshot = screenshot,
-            status     = 'pending',
+            user      = request.user if request.user.is_authenticated else None,
+            full_name = full_name,
+            plan      = plan,
+            status    = 'pending',
         )
     except Exception as e:
         logger.error(f'Failed to save ManualPaymentProof: {e}')
