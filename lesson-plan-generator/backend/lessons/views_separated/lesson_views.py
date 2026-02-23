@@ -318,10 +318,10 @@ def get_user_prefill(request):
     lesson_title = ""
 
     if unit_id:
-        unit = Unit.objects.filter(id=unit_id).first()
+        unit = Unit.objects.filter(id=unit_id, is_active=True).first()
         if unit:
             unit_display = f"Unit {unit.number} – {unit.title}"
-            first_lesson = unit.lessons.order_by("number").first()
+            first_lesson = unit.lessons.filter(is_active=True).order_by("number").first()
             if first_lesson:
                 lesson_title = first_lesson.title
 

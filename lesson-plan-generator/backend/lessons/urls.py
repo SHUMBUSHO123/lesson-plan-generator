@@ -1,10 +1,8 @@
 # File: /lesson-plan-generator/backend/lessons/urls.py
-
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
-
 from .views_separated import payment_views
 from .views_separated.auth_views import register, login_user, logout_user
 from .views_separated.crud_views import (

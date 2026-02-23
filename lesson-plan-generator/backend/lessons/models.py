@@ -13,6 +13,7 @@ from django.db.models import F
 
 class Level(models.Model):
     name = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
         return self.name
@@ -21,6 +22,7 @@ class Level(models.Model):
 class Class(models.Model):
     level = models.ForeignKey(Level, related_name='classes', on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
         return f"{self.level.name} - {self.name}"
@@ -29,6 +31,7 @@ class Class(models.Model):
 class Subject(models.Model):
     class_field = models.ForeignKey(Class, related_name='subjects', on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
         return f"{self.class_field.name} - {self.name}"
@@ -40,6 +43,7 @@ class Unit(models.Model):
     title = models.CharField(max_length=100)
     key_unit_competence = models.TextField()
     total_lessons = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
         return f"{self.subject.name} - Unit {self.number}: {self.title}"
@@ -51,6 +55,7 @@ class Lesson(models.Model):
     title = models.TextField()
     references = models.TextField(blank=True, null=True)
     is_premium = models.BooleanField(default=True)
+    is_active = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
         return f"Lesson {self.number}: {self.title}"
@@ -347,10 +352,10 @@ class ManualPaymentProof(models.Model):
         on_delete=models.SET_NULL, related_name='payment_proofs'
     )
     full_name    = models.CharField(max_length=150)
-    phone        = models.CharField(max_length=20,  blank=True, null=True)   # ← optional now
+    phone        = models.CharField(max_length=20,  blank=True, null=True)
     plan         = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
-    tx_id        = models.CharField(max_length=100, blank=True, null=True)   # ← optional, unique removed
-    amount       = models.CharField(max_length=20,  blank=True, null=True)   # ← optional now
+    tx_id        = models.CharField(max_length=100, blank=True, null=True)
+    amount       = models.CharField(max_length=20,  blank=True, null=True)
     screenshot   = models.ImageField(upload_to='payment_proofs/%Y/%m/', blank=True, null=True)
     status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     admin_note   = models.TextField(blank=True, help_text='Optional note when approving or rejecting')
@@ -364,3 +369,20 @@ class ManualPaymentProof(models.Model):
 
     def __str__(self):
         return f"{self.full_name} | {self.plan} | {self.status}"
+
+
+# =============================================================================
+# ✅ SOFT DELETE — QUERY REFERENCE
+# =============================================================================
+# After running migrations, update ALL views/querysets to filter active only:
+#
+#   Level.objects.filter(is_active=True)
+#   Class.objects.filter(level=selected_level, is_active=True)
+#   Subject.objects.filter(class_field=selected_class, is_active=True)
+#   Unit.objects.filter(subject=selected_subject, is_active=True)
+#   Lesson.objects.filter(unit=selected_unit, is_active=True)
+#
+# To deactivate (soft delete) any record from Django Admin:
+#   → Open the record → Uncheck "Is active" → Save
+#   → Data is preserved; it simply won't appear in filtered queries.
+# =============================================================================
