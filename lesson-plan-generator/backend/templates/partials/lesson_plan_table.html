@@ -1,110 +1,221 @@
-<div class='text-center bold' style='font-size:12pt;margin-bottom:10px;'>LESSON PLAN</div>
-<!-- ================= SCHOOL & TEACHER INFO ================= -->
- 
+{# ============================================================= #}
+{# lesson_plan_table.html — CBC Single-Page Lesson Plan          #}
+{# One page: compact font, tight spacing, tick-box evaluation    #}
+{# ============================================================= #}
 
+<style>
+  .lp-wrap {
+    font-family: Arial, sans-serif;
+    font-size: 8.5pt;
+    line-height: 1.25;
+    color: #000;
+  }
+  .lp-wrap table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 5px;
+  }
+  .lp-wrap th,
+  .lp-wrap td {
+    border: 1px solid #444;
+    padding: 2px 4px;
+    vertical-align: top;
+  }
+  .lp-wrap th {
+    background-color: #d9e1f2;
+    font-weight: bold;
+    text-align: center;
+  }
+  .lp-wrap .label {
+    font-weight: bold;
+    background-color: #f2f2f2;
+    white-space: nowrap;
+  }
+  .lp-wrap .title-row {
+    text-align: center;
+    font-size: 11pt;
+    font-weight: bold;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .lp-wrap .school-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 8.5pt;
+    margin-bottom: 4px;
+  }
+  .lp-wrap .desc-row td {
+    font-style: italic;
+    background-color: #f9f9f9;
+    font-size: 8pt;
+  }
+  .lp-wrap .eval-options {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .lp-wrap .eval-options li {
+    margin-bottom: 2px;
+  }
+  .lp-wrap .eval-options li::before {
+    content: "\2610\00a0"; /* ☐ unchecked box */
+    font-size: 10pt;
+  }
+  .lp-wrap .competence-integration {
+    font-style: italic;
+    font-size: 7.8pt;
+    color: #222;
+    margin-top: 3px;
+  }
+  @media print {
+    .lp-wrap { font-size: 8pt; }
+    .lp-wrap th, .lp-wrap td { padding: 2px 3px; }
+  }
+</style>
 
-<table width="100%" style="margin-bottom:10px;">
-  <tr>
-    <td width="50%">
-      <strong>School Name:</strong> {{ lesson_info.school_name|default_if_none:''|escape }}
-    </td>
-    <td width="50%">
-      <strong>Teacher’s Name:</strong> {{ lesson_info.teacher_name|default_if_none:''|escape }}
-    </td>
-  </tr>
-</table>
+<div class="lp-wrap">
 
+  <!-- ══════════ TITLE ══════════ -->
+  <div class="title-row">LESSON PLAN</div>
 
-<!-- ================= BASIC LESSON INFO ================= -->
+  <!-- ══════════ SCHOOL & TEACHER ══════════ -->
+  <div class="school-row">
+    <span><strong>School Name:</strong> {{ lesson_info.school_name|default_if_none:''|escape }}</span>
+    <span><strong>Teacher's Name:</strong> {{ lesson_info.teacher_name|default_if_none:''|escape }}</span>
+  </div>
 
-<table border="1" cellspacing="0" cellpadding="4" width="100%">
-  <tr>
-    <th>Term</th>
-    <th colspan="2">Date</th>
-    <th>Subject</th>
-    <th>Class</th>
-    <th>Unit No</th>
-    <th>Lesson No</th>
-    <th>Duration</th>
-    <th>Class size</th>
-  </tr>
-  <tr>
-    <td>{{ lesson_info.term|escape }}</td>
-    <td colspan="2">{{ lesson_info.date|default_if_none:'' }}</td>
-    <td>{{ lesson_info.subject|escape }}</td>
-    <td>{{ lesson_info.class_name|escape }}</td>
-    <td>
-      Unit {{ unit_info.unit_number }} – {{ unit_info.unit_title|escape }}
-    </td>
+  <!-- ══════════ HEADER GRID ══════════ -->
+  <table>
+    <tr>
+      <th>Term</th>
+      <th>Date</th>
+      <th>Subject</th>
+      <th>Class</th>
+      <th>Unit No</th>
+      <th>Lesson No</th>
+      <th>Duration</th>
+      <th>Class size</th>
+    </tr>
+    <tr>
+      <td>{{ lesson_info.term|escape }}</td>
+      <td>{{ lesson_info.date|default_if_none:'' }}</td>
+      <td>{{ lesson_info.subject|escape }}</td>
+      <td>{{ lesson_info.class_name|escape }}</td>
+      <td>Unit {{ unit_info.unit_number }}</td>
+      <td>{{ lesson_number }} of {{ unit_info.total_lessons }}</td>
+      <td>{{ lesson_duration }} min</td>
+      <td>{{ lesson_info.class_size }}</td>
+    </tr>
+  </table>
 
-    <td>{{ lesson_number }} of {{ unit_info.total_lessons }}</td>
-    <td>{{ lesson_duration }} min</td>
-    <td>{{ lesson_info.class_size }}</td>
-  </tr>
-  <tr>
-    <td colspan="5" class="bold">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category	</td>
-    <td colspan="4">{{ special_needs|default:"No specific special educational needs identified in this class"|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Unit title</td>
-    <td colspan="7">{{ unit_info.unit_title|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Key Unit Competence</td>
-    <td colspan="7">{{ unit_info.key_unit_competence|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Title of the lesson</td>
-    <td colspan="7">{{ lesson_info.lesson_title|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Instructional Objective</td>
-    <td colspan="7">By the end of this lesson, learners should be able to explain and demonstrate {{ lesson_info.lesson_title|escape }} with accuracy and confidence.</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Plan for this Class (location: in / outside)</td>
-    <td colspan="7">{{ lesson_info.location_plan|default_if_none:''|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">Learning Materials (for all learners)</td>
-    <td colspan="7">{{ lesson_info.materials|default_if_none:''|escape }}</td>
-  </tr>
-  <tr>
-    <td colspan="2" class="bold">References</td>
-    <td colspan="7">{{ lesson_info.references|default_if_none:''|escape }}</td>
-  </tr>
-</table>
+  <!-- ══════════ LESSON INFO TABLE ══════════ -->
+  <table>
 
-<br/>
+    <tr>
+      <td class="label" style="width:22%;">Special Educational Needs</td>
+      <td colspan="3">{{ special_needs|default:"No specific special educational needs identified in this class"|escape }}</td>
+    </tr>
 
-<!-- ================= TEACHING & LEARNING ACTIVITIES ================= -->
+    <tr>
+      <td class="label">Unit Title</td>
+      <td colspan="3">{{ unit_info.unit_title|escape }}</td>
+    </tr>
 
-<table border="1" cellspacing="0" cellpadding="4" width="100%">
-  <tr>
-    <th rowspan="3" style="width:15%">Timing / Step</th>
-    <th colspan="2">Description of Teaching and Learning Activity</th>
-    <th rowspan="3" style="width:30%">Generic Competences / Cross Cutting Issues</th>
-  </tr>
-  <tr>
-    <td colspan="2"></td>
-  </tr>
-  <tr>
-    <th style="width:27.5%">Teacher Activities</th>
-    <th style="width:27.5%">Learner Activities</th>
-  </tr>
+    <tr>
+      <td class="label">Key Unit Competence</td>
+      <td colspan="3">{{ unit_info.key_unit_competence|escape }}</td>
+    </tr>
 
-{% for step in steps %}
+    <tr>
+      <td class="label">Title of the Lesson</td>
+      <td colspan="3">{{ lesson_info.lesson_title|escape }}</td>
+    </tr>
 
-  <tr>
-    <td class="bold">{{ step.title }}<br/>{{ step.duration_minutes }} min</td>
-    <td>{{ step.teacher_activity|escape }}</td>
-    <td>{{ step.learner_activity|escape }}</td>
-    <td>{{ step.competence|default_if_none:''|escape }}</td>
-  </tr>
-  {% endfor %}
+    <tr>
+      <td class="label">Instructional Objective</td>
+      <td colspan="3">{{ instructional_objective|default_if_none:''|escape }}</td>
+    </tr>
 
-  <tr>
-    <td class="bold">Teacher self-evaluation</td>
-    <td colspan="3">{{ lesson_info.self_evaluation|default_if_none:''|escape }}</td>
-  </tr>
-</table>
+    <tr>
+      <td class="label">Plan for this Class</td>
+      <td colspan="3">{{ lesson_info.location_plan|default_if_none:''|escape }}</td>
+    </tr>
+
+    <tr>
+      <td class="label">Learning Materials</td>
+      <td colspan="3">{{ lesson_info.materials|default_if_none:''|escape }}</td>
+    </tr>
+
+    <tr>
+      <td class="label">References</td>
+      <td colspan="3">{{ lesson_info.references|default_if_none:''|escape }}</td>
+    </tr>
+
+    <tr>
+      <td class="label">Cross Cutting Issues &amp; Integration</td>
+      <td colspan="3" style="white-space:pre-line;">{{ cross_cutting_issues|default_if_none:''|escape }}</td>
+    </tr>
+
+  </table>
+
+  <!-- ══════════ TEACHING & LEARNING ACTIVITIES ══════════ -->
+  <table>
+
+    <!-- Header row — lesson description lives here as the subtitle -->
+    <tr>
+      <th style="width:14%;" rowspan="3">Timing / Step</th>
+      <th colspan="2">Description of Teaching and Learning Activity</th>
+      <th style="width:28%;" rowspan="3">Generic Competences and How They Are Integrated</th>
+    </tr>
+
+    <!-- Lesson description as sub-header inside the activity table -->
+    <tr class="desc-row">
+      <td colspan="2">
+        <strong>Lesson Description:</strong>&nbsp;{{ lesson_description|default_if_none:''|escape }}
+      </td>
+    </tr>
+
+    <tr>
+      <th style="width:29%;">Teacher Activities</th>
+      <th style="width:29%;">Learner Activities</th>
+    </tr>
+
+    {% for step in steps %}
+    <tr>
+      <td class="label">
+        {{ step.title }}<br/>
+        <span style="font-weight:normal;">{{ step.duration_minutes }} min</span>
+      </td>
+      <td>{{ step.teacher_activity|escape }}</td>
+      <td>{{ step.learner_activity|escape }}</td>
+      <td>
+        <strong>{{ step.competence|default_if_none:''|escape }}</strong>
+        {% if step.competence_integration %}
+          <div class="competence-integration">
+            <strong>Integration:</strong> {{ step.competence_integration|escape }}
+          </div>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+
+    <!-- ══ TEACHER SELF-EVALUATION — tick-box options ══ -->
+    <tr>
+      <td class="label">Teacher Self-Evaluation</td>
+      <td colspan="3">
+        <ul class="eval-options">
+          {% for option in self_evaluation_options %}
+            <li>{{ option|escape }}</li>
+          {% endfor %}
+        </ul>
+        {% if lesson_info.self_evaluation %}
+          <div style="margin-top:4px; font-style:italic; font-size:7.8pt;">
+            <strong>Additional notes:</strong> {{ lesson_info.self_evaluation|escape }}
+          </div>
+        {% endif %}
+      </td>
+    </tr>
+
+  </table>
+
+</div>{# end .lp-wrap #}
