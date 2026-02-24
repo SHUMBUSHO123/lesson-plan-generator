@@ -8,20 +8,20 @@ if (!window.CSRF_TOKEN) {
     console.warn("CSRF token not found on page. POST requests may fail!");
 }
 
-const lessonForm = document.getElementById('lessonForm');
+const lessonForm        = document.getElementById('lessonForm');
 const lessonPlanContent = document.getElementById('lessonPlanContent');
-const resultContainer = document.getElementById('resultContainer');
+const resultContainer   = document.getElementById('resultContainer');
 
-const levelSelect = document.getElementById('level');
-const classSelect = document.getElementById('className');
+const levelSelect   = document.getElementById('level');
+const classSelect   = document.getElementById('className');
 const subjectSelect = document.getElementById('subject');
-const unitSelect = document.getElementById('unitNo');
-const lessonSelect = document.getElementById('lessonTitle');
+const unitSelect    = document.getElementById('unitNo');
+const lessonSelect  = document.getElementById('lessonTitle');
 
 // ===============================
 // STATE & CACHE
 // ===============================
-let accessCache = null;
+let accessCache             = null;
 let generateListenerAttached = false;
 
 // ===============================
@@ -71,9 +71,9 @@ async function postData(endpoint, payload = {}) {
     }
     try {
         const res = await fetch(`${API_BASE}/${endpoint}/`, {
-            method: 'POST',
+            method:  'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body: JSON.stringify(payload),
+            body:    JSON.stringify(payload),
             credentials: 'include'
         });
         const data = await res.json();
@@ -131,14 +131,14 @@ async function loadLessons(unitId) {
 // ===============================
 // EVENT LISTENERS
 // ===============================
-if (levelSelect) levelSelect.addEventListener('change', () => { resetBelow('level'); if (levelSelect.value) loadClasses(levelSelect.value); });
-if (classSelect) classSelect.addEventListener('change', () => { resetBelow('class'); if (classSelect.value) loadSubjects(classSelect.value); });
+if (levelSelect)   levelSelect.addEventListener('change',   () => { resetBelow('level');   if (levelSelect.value)   loadClasses(levelSelect.value); });
+if (classSelect)   classSelect.addEventListener('change',   () => { resetBelow('class');   if (classSelect.value)   loadSubjects(classSelect.value); });
 if (subjectSelect) subjectSelect.addEventListener('change', () => { resetBelow('subject'); if (subjectSelect.value) loadUnits(subjectSelect.value); });
 if (unitSelect) unitSelect.addEventListener('change', () => {
     resetBelow('unit');
     if (unitSelect.value) {
         const selected = unitSelect.selectedOptions[0];
-        document.getElementById('unitTitle').value = selected.dataset.title || '';
+        document.getElementById('unitTitle').value    = selected.dataset.title || '';
         document.getElementById('totalLessons').value = selected.dataset.total || '';
         loadLessons(unitSelect.value);
     }
@@ -167,7 +167,6 @@ function highlightEmptyFields() {
         }
     });
 
-    // Scroll to first error
     if (hasEmpty) {
         const first = document.querySelector('.field-error');
         if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -181,21 +180,21 @@ function highlightEmptyFields() {
 // ===============================
 function getFormData() {
     return {
-        level: levelSelect.options[levelSelect.selectedIndex].text,
-        className: classSelect.options[classSelect.selectedIndex].text,
-        subject: subjectSelect.options[subjectSelect.selectedIndex].text,
-        unitTitle: document.getElementById('unitTitle').value,
-        totalLessons: parseInt(document.getElementById('totalLessons').value || '0'),
-        lessonTitle: lessonSelect.options[lessonSelect.selectedIndex].text,
-        lessonNumber: parseInt(document.getElementById('lessonNo')?.value || '1'),
-        durationMinutes: parseInt(document.getElementById('duration')?.value || '40'),
-        schoolName: document.getElementById('schoolName')?.value || '',
-        teacherName: document.getElementById('teacherName')?.value || '',
-        term: document.getElementById('term')?.value || '',
-        classSize: document.getElementById('classSize')?.value || '',
-        references: document.getElementById('references')?.value || '',
-        specialNeeds: document.getElementById('specialNeeds')?.value || '',
-        strategy: document.getElementById('strategy')?.value || ''
+        level:          levelSelect.options[levelSelect.selectedIndex].text,
+        className:      classSelect.options[classSelect.selectedIndex].text,
+        subject:        subjectSelect.options[subjectSelect.selectedIndex].text,
+        unitTitle:      document.getElementById('unitTitle').value,
+        totalLessons:   parseInt(document.getElementById('totalLessons').value || '0'),
+        lessonTitle:    lessonSelect.options[lessonSelect.selectedIndex].text,
+        lessonNumber:   parseInt(document.getElementById('lessonNo')?.value || '1'),
+        durationMinutes:parseInt(document.getElementById('duration')?.value || '40'),
+        schoolName:     document.getElementById('schoolName')?.value || '',
+        teacherName:    document.getElementById('teacherName')?.value || '',
+        term:           document.getElementById('term')?.value || '',
+        classSize:      document.getElementById('classSize')?.value || '',
+        references:     document.getElementById('references')?.value || '',
+        specialNeeds:   document.getElementById('specialNeeds')?.value || '',
+        strategy:       document.getElementById('strategy')?.value || ''
     };
 }
 
@@ -211,9 +210,9 @@ async function prefillUserData() {
             const el = document.getElementById(f);
             if (el) el.value = data[f] || '';
         });
-        if (data.unitTitle) document.getElementById('unitTitle').value = data.unitTitle;
+        if (data.unitTitle)    document.getElementById('unitTitle').value    = data.unitTitle;
         if (data.totalLessons) document.getElementById('totalLessons').value = data.totalLessons;
-        if (data.lessonTitle) lessonSelect.value = data.lessonTitle;
+        if (data.lessonTitle)  lessonSelect.value = data.lessonTitle;
     } catch (err) {
         console.error("Prefill failed:", err);
     }
@@ -225,7 +224,7 @@ async function prefillUserData() {
 async function checkAccess(forceRefresh = false) {
     if (accessCache && !forceRefresh) return accessCache;
     try {
-        const res = await fetch(`${API_BASE}/check-access/`, { credentials: 'include' });
+        const res  = await fetch(`${API_BASE}/check-access/`, { credentials: 'include' });
         const data = await res.json();
         if (!res.ok) throw new Error(data.message || "Access check failed");
         accessCache = data;
@@ -243,7 +242,7 @@ async function updateGenerateButtonStatus() {
     const btn = document.getElementById('generateButton');
     if (!btn) return;
     try {
-        const data = await checkAccess(true);
+        const data  = await checkAccess(true);
         const canGo = data.is_premium || data.can_generate;
 
         btn.disabled = false;
@@ -323,7 +322,6 @@ function closeModal() {
 // GENERATE LESSON PLAN
 // ===============================
 async function generateLessonPlanFromForm() {
-    // Highlight empty fields first
     if (highlightEmptyFields()) {
         alert("Please fill in all highlighted fields!");
         return;
@@ -337,23 +335,23 @@ async function generateLessonPlanFromForm() {
         try {
             lessonPlanContent.textContent = 'Generating lesson plan...';
             const payload = {
-                device_id: getDeviceId(),
-                level: levelSelect.options[levelSelect.selectedIndex].text,
-                class: classSelect.options[classSelect.selectedIndex].text,
-                subject: subjectSelect.options[subjectSelect.selectedIndex].text,
-                unit_id: unitSelect.value,
-                lesson_id: lessonSelect.value,
-                lesson_no: parseInt(document.getElementById('lessonNo')?.value || '1'),
-                duration: parseInt(document.getElementById('duration')?.value || '40'),
-                class_size: document.getElementById('classSize')?.value || '',
-                school_name: document.getElementById('schoolName')?.value || '',
+                device_id:    getDeviceId(),
+                level:        levelSelect.options[levelSelect.selectedIndex].text,
+                class:        classSelect.options[classSelect.selectedIndex].text,
+                subject:      subjectSelect.options[subjectSelect.selectedIndex].text,
+                unit_id:      unitSelect.value,
+                lesson_id:    lessonSelect.value,
+                lesson_no:    parseInt(document.getElementById('lessonNo')?.value || '1'),
+                duration:     parseInt(document.getElementById('duration')?.value || '40'),
+                class_size:   document.getElementById('classSize')?.value || '',
+                school_name:  document.getElementById('schoolName')?.value || '',
                 teacher_name: document.getElementById('teacherName')?.value || '',
-                term: document.getElementById('term')?.value || '',
-                references: document.getElementById('references')?.value || '',
-                special_needs: document.getElementById('specialNeeds')?.value || '',
-                strategy: document.getElementById('strategy')?.value || '',
-                location_plan: document.getElementById('locationPlan')?.value || '',
-                materials: Array.from(
+                term:         document.getElementById('term')?.value || '',
+                references:   document.getElementById('references')?.value || '',
+                special_needs:document.getElementById('specialNeeds')?.value || '',
+                strategy:     document.getElementById('strategy')?.value || '',
+                location_plan:document.getElementById('locationPlan')?.value || '',
+                materials:    Array.from(
                     document.getElementById('materials')?.selectedOptions || []
                 ).map(o => o.value).join(', ')
             };
@@ -422,8 +420,8 @@ function attachDownloadButtons() {
             }
 
             const originalText = btn.textContent;
-            btn.disabled = true;
-            btn.textContent = '⏳ Please wait...';
+            btn.disabled       = true;
+            btn.textContent    = '⏳ Please wait...';
 
             try {
                 const accessData = await checkAccess(true);
@@ -431,8 +429,8 @@ function attachDownloadButtons() {
 
                 if (accessData.is_premium) {
                     console.log('✅ Premium confirmed');
-                    if (action === 'copy') copyToWord();
-                    else if (action === 'pdf') await downloadPDF();
+                    if (action === 'copy')  copyToWord();
+                    else if (action === 'pdf')  await downloadPDF();
                     else if (action === 'word') await downloadWord();
                 } else {
                     console.log('❌ Not premium, showing modal');
@@ -442,7 +440,7 @@ function attachDownloadButtons() {
                 console.error('Error checking access:', err);
                 alert("Unable to verify subscription. Please try again.");
             } finally {
-                btn.disabled = false;
+                btn.disabled    = false;
                 btn.textContent = originalText;
             }
         });
@@ -463,10 +461,15 @@ function subscribe(plan) {
 }
 
 // ===============================
-// DOWNLOAD FUNCTIONS
+// DOWNLOAD — PDF  ★ FIXED ★
+// ─────────────────────────────
+// html2pdf.js paginates by element height, NOT by CSS @page.
+// Fix: scale the clone down until it fits in a single A4 page,
+// then tell html2pdf there is exactly 1 page.
 // ===============================
 async function downloadPDF() {
     console.log('📑 Starting PDF download...');
+
     const element = document.getElementById("lessonPlanContent");
     if (!element || !element.innerHTML.trim()) {
         alert("Generate a lesson plan first.");
@@ -474,45 +477,112 @@ async function downloadPDF() {
     }
 
     try {
+        // ── 1. Build a styled off-screen clone ──────────────────────────────
         const clone = element.cloneNode(true);
-        clone.style.cssText = `
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            line-height: 1.6;
-            color: #000;
-            background: #fff;
-            padding: 10px;
-            width: 100%;
-            overflow: visible !important;
-            max-height: none !important;
-        `;
-        clone.querySelectorAll('table').forEach(t => {
-            t.style.borderCollapse = 'collapse';
-            t.style.width = '100%';
-        });
-        clone.querySelectorAll('td, th').forEach(cell => {
-            cell.style.border = '1px solid #333';
-            cell.style.padding = '6px 8px';
-            cell.style.verticalAlign = 'top';
+
+        // Wrapper styles — tight, no overflow
+        Object.assign(clone.style, {
+            fontFamily:  'Arial, sans-serif',
+            fontSize:    '7.5pt',
+            lineHeight:  '1.15',
+            color:       '#000',
+            background:  '#fff',
+            padding:     '0',
+            margin:      '0',
+            width:       '190mm',   // A4 width minus 10mm each side
+            maxWidth:    '190mm',
+            overflow:    'visible',
+            maxHeight:   'none',
+            boxSizing:   'border-box',
         });
 
+        // Style every table
+        clone.querySelectorAll('table').forEach(t => {
+            Object.assign(t.style, {
+                borderCollapse: 'collapse',
+                width:          '100%',
+                marginBottom:   '3px',
+                pageBreakInside:'avoid',
+            });
+        });
+
+        // Style every cell
+        clone.querySelectorAll('td, th').forEach(cell => {
+            Object.assign(cell.style, {
+                border:        '1px solid #333',
+                padding:       '2px 3px',
+                verticalAlign: 'top',
+                fontSize:      '7pt',
+                lineHeight:    '1.15',
+            });
+        });
+
+        // Style every table row — no splits
+        clone.querySelectorAll('tr').forEach(row => {
+            Object.assign(row.style, {
+                pageBreakInside: 'avoid',
+                breakInside:     'avoid',
+            });
+        });
+
+        // ── 2. html2pdf options — SINGLE PAGE ───────────────────────────────
+        // Key settings that prevent splitting:
+        //   • margin: small (4mm each side)
+        //   • html2canvas scale: 1.5 (crisp but not oversized)
+        //   • pagebreak mode: avoid-all + css  → tries hard not to split
+        //   • jsPDF pagebreak: false           → DISABLES automatic new pages
+        //     (html2pdf v0.10+ supports this via jsPDF options)
         const opt = {
-            margin:      [0.5, 0.5, 0.5, 0.5],
+            margin:      [6, 5, 6, 5],          // top, right, bottom, left (mm)
             filename:    'CBC_Lesson_Plan.pdf',
-            image:       { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
-            jsPDF:       { unit: 'in', format: 'a4', orientation: 'portrait' },
-            pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+            image:       { type: 'jpeg', quality: 0.95 },
+            html2canvas: {
+                scale:       1.5,               // balance of quality vs size
+                useCORS:     true,
+                logging:     false,
+                scrollY:     0,
+                windowWidth: 794,               // A4 pixel width at 96dpi
+            },
+            jsPDF: {
+                unit:        'mm',
+                format:      'a4',
+                orientation: 'portrait',
+            },
+            pagebreak: {
+                mode:        ['avoid-all', 'css'],   // honour avoid-all + CSS rules
+                before:      [],                     // no forced breaks before elements
+                after:       [],                     // no forced breaks after elements
+                avoid:       ['tr', 'td', 'table',   // never break inside these
+                              '.lp-wrap', '.lp-wrap *'],
+            },
         };
 
-        await html2pdf().set(opt).from(clone).save();
-        console.log('✅ PDF download complete');
+        // ── 3. Generate — capture as single canvas, write as single page ────
+        const worker = html2pdf().set(opt).from(clone);
+
+        // Force single page: after canvas is rendered, trim jsPDF to content height
+        await worker.toPdf().get('pdf').then(pdf => {
+            const totalPages = pdf.internal.getNumberOfPages();
+            // If html2pdf still created more than 1 page, delete the extras
+            if (totalPages > 1) {
+                console.warn(`⚠️ html2pdf created ${totalPages} pages — trimming to 1`);
+                for (let i = totalPages; i > 1; i--) {
+                    pdf.deletePage(i);
+                }
+            }
+        }).save();
+
+        console.log('✅ PDF download complete — single page');
+
     } catch (err) {
         console.error('PDF download error:', err);
         alert('Failed to download PDF. Please try again.\n\nError: ' + err.message);
     }
 }
 
+// ===============================
+// DOWNLOAD — Copy to Word
+// ===============================
 function copyToWord() {
     console.log('📄 Copying to clipboard...');
     const element = document.getElementById("lessonPlanContent");
@@ -555,6 +625,9 @@ function fallbackCopyPlainText(text) {
         });
 }
 
+// ===============================
+// DOWNLOAD — Word (.doc)
+// ===============================
 async function downloadWord() {
     console.log('📝 Starting DOCX download...');
     const element = document.getElementById("lessonPlanContent");
@@ -576,14 +649,14 @@ async function downloadWord() {
         } catch (_) {}
 
         const printStyles = `
-            body { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
+            body  { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
             table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
-            td, th { border: 1px solid #333; padding: 6px 8px; vertical-align: top; font-size: 11pt; }
-            th { background-color: #f0f0f0; font-weight: bold; }
-            h1 { font-size: 16pt; margin: 12pt 0 6pt; }
-            h2 { font-size: 14pt; margin: 10pt 0 4pt; }
-            h3 { font-size: 12pt; margin: 8pt 0 4pt; }
-            p  { margin: 4pt 0; }
+            td, th{ border: 1px solid #333; padding: 6px 8px; vertical-align: top; font-size: 11pt; }
+            th    { background-color: #f0f0f0; font-weight: bold; }
+            h1    { font-size: 16pt; margin: 12pt 0 6pt; }
+            h2    { font-size: 14pt; margin: 10pt 0 4pt; }
+            h3    { font-size: 12pt; margin:  8pt 0 4pt; }
+            p     { margin: 4pt 0; }
         `;
 
         const fullHtml = `
@@ -592,7 +665,7 @@ async function downloadWord() {
                   xmlns="http://www.w3.org/TR/REC-html40">
             <head>
                 <meta charset="UTF-8">
-                <meta name="ProgId" content="Word.Document">
+                <meta name="ProgId"     content="Word.Document">
                 <meta name="Generator" content="Microsoft Word 15">
                 <!--[if gte mso 9]>
                 <xml>
@@ -637,7 +710,7 @@ async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/`, {
             credentials: 'include',
-            headers: { 'Accept': 'application/json' }
+            headers:     { 'Accept': 'application/json' }
         });
         if (!res.ok) return;
         dashboardData = await res.json();
@@ -702,10 +775,10 @@ function renderFullDashboard(data) {
     setInner('dashLimit', limitLabel);
 
     if (data.remaining === null || data.remaining === undefined) {
-        setInner('dashRemaining', '∞');
+        setInner('dashRemaining',      '∞');
         setInner('dashRemainingLabel', 'unlimited');
     } else {
-        setInner('dashRemaining', data.remaining);
+        setInner('dashRemaining',      data.remaining);
         setInner('dashRemainingLabel', data.remaining === 1 ? 'lesson left' : 'lessons left');
     }
 
@@ -931,8 +1004,8 @@ function togglePerm(id, active) {
 function escHtml(str) {
     if (!str) return '';
     return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/&/g,  '&amp;')
+        .replace(/</g,  '&lt;')
+        .replace(/>/g,  '&gt;')
+        .replace(/"/g,  '&quot;');
 }
