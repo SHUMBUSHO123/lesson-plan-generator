@@ -477,71 +477,101 @@ async function downloadPDF() {
     }
 
     try {
-        // ── 1. Build a styled off-screen clone ──────────────────────────────
-        const clone = element.cloneNode(true);
+        // ── 1. Create a full-page hidden container ───────────────────────────
+        // We render into a fixed-position container at exactly A4 width
+        // so html2canvas captures the FULL width — nothing gets cropped.
+        const A4_PX = 1122;   // A4 at 96dpi = 794px — we use 1122 (118dpi) for crispness
 
-        // Wrapper styles — tight, no overflow
-        Object.assign(clone.style, {
-            fontFamily:  'Arial, sans-serif',
-            fontSize:    '7.5pt',
-            lineHeight:  '1.15',
-            color:       '#000',
-            background:  '#fff',
-            padding:     '0',
-            margin:      '0',
-            width:       '190mm',   // A4 width minus 10mm each side
-            maxWidth:    '190mm',
-            overflow:    'visible',
-            maxHeight:   'none',
-            boxSizing:   'border-box',
+        const wrapper = document.createElement('div');
+        Object.assign(wrapper.style, {
+            position:   'fixed',
+            top:        '0',
+            left:       '0',
+            width:      A4_PX + 'px',
+            zIndex:     '-9999',
+            background: '#fff',
+            padding:    '20px',
+            boxSizing:  'border-box',
+            visibility: 'hidden',   // hidden but still rendered by browser
         });
 
-        // Style every table
+        // ── 2. Clone & style the lesson plan ────────────────────────────────
+        const clone = element.cloneNode(true);
+        Object.assign(clone.style, {
+            fontFamily: 'Arial, sans-serif',
+            fontSize:   '8pt',
+            lineHeight: '1.2',
+            color:      '#000',
+            background: '#fff',
+            width:      '100%',
+            overflow:   'visible',
+            maxHeight:  'none',
+            boxSizing:  'border-box',
+        });
+
+        // Tables — full width, no collapse
         clone.querySelectorAll('table').forEach(t => {
             Object.assign(t.style, {
-                borderCollapse: 'collapse',
-                width:          '100%',
-                marginBottom:   '3px',
-                pageBreakInside:'avoid',
+                borderCollapse:  'collapse',
+                width:           '100%',
+                marginBottom:    '4px',
+                tableLayout:     'auto',
             });
         });
 
-        // Style every cell
+        // Cells — consistent padding & font
         clone.querySelectorAll('td, th').forEach(cell => {
             Object.assign(cell.style, {
                 border:        '1px solid #333',
-                padding:       '2px 3px',
+                padding:       '3px 4px',
                 verticalAlign: 'top',
-                fontSize:      '7pt',
-                lineHeight:    '1.15',
+                fontSize:      '7.5pt',
+                lineHeight:    '1.2',
+                wordBreak:     'break-word',
             });
         });
 
-        // Style every table row — no splits
+        // th background
+        clone.querySelectorAll('th').forEach(th => {
+            th.style.backgroundColor = '#d9e1f2';
+            th.style.fontWeight      = 'bold';
+        });
+
+        // Rows — no page breaks inside
         clone.querySelectorAll('tr').forEach(row => {
-            Object.assign(row.style, {
-                pageBreakInside: 'avoid',
-                breakInside:     'avoid',
-            });
+            row.style.pageBreakInside = 'avoid';
+            row.style.breakInside     = 'avoid';
         });
 
-        // ── 2. html2pdf options — SINGLE PAGE ───────────────────────────────
-        // Key settings that prevent splitting:
-        //   • margin: small (4mm each side)
-        //   • html2canvas scale: 1.5 (crisp but not oversized)
-        //   • pagebreak mode: avoid-all + css  → tries hard not to split
-        //   • jsPDF pagebreak: false           → DISABLES automatic new pages
-        //     (html2pdf v0.10+ supports this via jsPDF options)
+        wrapper.appendChild(clone);
+        document.body.appendChild(wrapper);
+
+        // Small delay so browser fully renders the injected DOM
+        await new Promise(resolve => setTimeout(resolve, 150));
+
+        // ── 3. Measure actual rendered height ───────────────────────────────
+        const contentHeight = wrapper.scrollHeight;
+        const contentWidth  = wrapper.scrollWidth;
+        console.log(`📐 Content size: ${contentWidth}×${contentHeight}px`);
+
+        // ── 4. html2pdf options ─────────────────────────────────────────────
         const opt = {
-            margin:      [6, 5, 6, 5],          // top, right, bottom, left (mm)
+            margin:      [8, 8, 8, 8],              // mm — even 8mm margins all sides
             filename:    'CBC_Lesson_Plan.pdf',
-            image:       { type: 'jpeg', quality: 0.95 },
+            image:       { type: 'jpeg', quality: 0.97 },
             html2canvas: {
-                scale:       1.5,               // balance of quality vs size
+                scale:       2,                     // crisp at retina
                 useCORS:     true,
                 logging:     false,
+                scrollX:     0,
                 scrollY:     0,
-                windowWidth: 794,               // A4 pixel width at 96dpi
+                windowWidth: A4_PX,                 // matches our wrapper width exactly
+                width:       A4_PX,
+                onclone:     (doc) => {
+                    // ensure cloned doc also has no scroll offset
+                    doc.documentElement.scrollTop = 0;
+                    doc.body.scrollTop            = 0;
+                },
             },
             jsPDF: {
                 unit:        'mm',
@@ -549,34 +579,37 @@ async function downloadPDF() {
                 orientation: 'portrait',
             },
             pagebreak: {
-                mode:        ['avoid-all', 'css'],   // honour avoid-all + CSS rules
-                before:      [],                     // no forced breaks before elements
-                after:       [],                     // no forced breaks after elements
-                avoid:       ['tr', 'td', 'table',   // never break inside these
-                              '.lp-wrap', '.lp-wrap *'],
+                mode:  ['avoid-all', 'css'],
+                avoid: ['tr', 'td', 'table', '.lp-wrap'],
             },
         };
 
-        // ── 3. Generate — capture as single canvas, write as single page ────
-        const worker = html2pdf().set(opt).from(clone);
-
-        // Force single page: after canvas is rendered, trim jsPDF to content height
-        await worker.toPdf().get('pdf').then(pdf => {
-            const totalPages = pdf.internal.getNumberOfPages();
-            // If html2pdf still created more than 1 page, delete the extras
-            if (totalPages > 1) {
-                console.warn(`⚠️ html2pdf created ${totalPages} pages — trimming to 1`);
-                for (let i = totalPages; i > 1; i--) {
-                    pdf.deletePage(i);
+        // ── 5. Render, trim extra pages, save ───────────────────────────────
+        await html2pdf()
+            .set(opt)
+            .from(wrapper)
+            .toPdf()
+            .get('pdf')
+            .then(pdf => {
+                const totalPages = pdf.internal.getNumberOfPages();
+                if (totalPages > 1) {
+                    console.warn(`⚠️ Trimming ${totalPages} → 1 page`);
+                    for (let i = totalPages; i > 1; i--) {
+                        pdf.deletePage(i);
+                    }
                 }
-            }
-        }).save();
+            })
+            .save();
 
-        console.log('✅ PDF download complete — single page');
+        console.log('✅ PDF download complete — single page, full width');
 
     } catch (err) {
         console.error('PDF download error:', err);
         alert('Failed to download PDF. Please try again.\n\nError: ' + err.message);
+    } finally {
+        // Always clean up the hidden wrapper from the DOM
+        const w = document.body.querySelector('div[style*="-9999"]');
+        if (w) document.body.removeChild(w);
     }
 }
 
