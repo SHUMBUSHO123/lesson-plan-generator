@@ -187,7 +187,7 @@ def build_lesson_plan_context(request_data, profile):
         special_needs            – str
         lesson_description       – str  (1-2 sentences, from seeded step 1)
         instructional_objective  – str  (dynamic CBC format, randomly selected)
-        cross_cutting_issues     – str  (CBC-required, from seeded step 1)
+        #cross_cutting_issues     – str  (CBC-required, from seeded step 1)
         steps                    – list of exactly 3 step dicts
         self_evaluation_options  – list of 4 tick-box strings for teacher evaluation
         is_single_page           – True  (template flag)
@@ -277,7 +277,6 @@ def build_lesson_plan_context(request_data, profile):
     steps                   = []
     lesson_description      = None
     instructional_objective = None
-    cross_cutting_issues    = None
 
     db_steps = (
         LessonStrategyStep.objects
@@ -299,15 +298,7 @@ def build_lesson_plan_context(request_data, profile):
                     step.instructional_objective
                     or random.choice(OBJECTIVE_TEMPLATES).format(title=lesson.title)
                 )
-                cross_cutting_issues = (
-                    step.cross_cutting_issues
-                    or (
-                        "Peace and Values Education, Standardization Culture\n\n"
-                        "Integration: Developed through respectful collaboration "
-                        "and precise use of terminology."
-                    )
-                )
-
+                
             steps.append({
                 "title":                  f"{step.step_order}: {step.step_title}",
                 "duration_minutes":       step.duration_minutes,
@@ -334,13 +325,6 @@ def build_lesson_plan_context(request_data, profile):
 
         # ── Dynamic instructional objective — randomly pick one of 5 formats ──
         instructional_objective = random.choice(OBJECTIVE_TEMPLATES).format(title=title)
-
-        cross_cutting_issues = (
-            "Peace and Values Education, Inclusive Education\n\n"
-            "Integration: Peace education is fostered through respectful peer interaction. "
-            "Inclusive education is ensured through differentiated support for all learners."
-        )
-
         steps = [
             {
                 "title":                  "1: Introduction",
@@ -420,7 +404,6 @@ def build_lesson_plan_context(request_data, profile):
         # CBC-complete lesson-level fields (always populated)
         "lesson_description":      lesson_description,
         "instructional_objective": instructional_objective,
-        "cross_cutting_issues":    cross_cutting_issues,
         # Exactly 3 step rows → renders as one page
         "steps":                   steps,
         # 4 tick-box options for teacher self-evaluation
