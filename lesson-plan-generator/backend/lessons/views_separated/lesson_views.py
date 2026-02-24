@@ -251,7 +251,7 @@ def get_user_dashboard(request):
 def bulk_zip_download(request):
     """
     Accepts: { "plan_ids": [1, 2, 3] }
-    Returns a ZIP of HTML snapshots.
+    Returns a ZIP of standalone HTML files — each renders as one A4 page.
     Security: only the owner's plans are included.
     """
     if not request.user.is_authenticated:
@@ -271,6 +271,130 @@ def bulk_zip_download(request):
     if not plans.exists():
         return Response({"error": "No matching plans found."}, status=404)
 
+    # ── Shared single-page CSS injected into every HTML file in the ZIP ──
+    PLAN_CSS = """
+        /* ── Page setup: A4, tight margins ── */
+        @page {
+            size: A4 portrait;
+            margin: 8mm;
+        }
+
+        /* ── Base reset ── */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            color: #000;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 7.5pt;
+            line-height: 1.15;
+            padding: 0;
+        }
+
+        /* ── Tables ── */
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 4px;
+            page-break-inside: avoid;
+            break-inside:      avoid;
+        }
+
+        td, th {
+            border: 1px solid #333;
+            padding: 2px 4px;
+            vertical-align: top;
+        }
+
+        th {
+            background-color: #d9e1f2;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* ── Prevent ANY row from splitting across pages ── */
+        tr {
+            page-break-inside: avoid;
+            break-inside:      avoid;
+        }
+
+        /* ── Label cells ── */
+        .label {
+            font-weight: bold;
+            background-color: #f2f2f2;
+            white-space: nowrap;
+        }
+
+        /* ── Title ── */
+        .title-row {
+            text-align: center;
+            font-size: 11pt;
+            font-weight: bold;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+
+        /* ── School / teacher header ── */
+        .school-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 8pt;
+            margin-bottom: 4px;
+        }
+
+        /* ── Lesson description sub-header ── */
+        .desc-row td {
+            font-style: italic;
+            background-color: #f9f9f9;
+            font-size: 7.8pt;
+        }
+
+        /* ── Competence integration note ── */
+        .competence-integration {
+            font-style: italic;
+            font-size: 7.5pt;
+            color: #222;
+            margin-top: 2px;
+        }
+
+        /* ── Self-evaluation tick boxes ── */
+        .eval-options {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .eval-options li {
+            margin-bottom: 2px;
+            font-size: 7.5pt;
+        }
+
+        .eval-options li::before {
+            content: "\\2610\\00a0";   /* ☐ */
+            font-size: 9pt;
+        }
+
+        /* ── Force whole plan to stay on one page ── */
+        .lp-wrap {
+            page-break-inside: avoid;
+            break-inside:      avoid;
+        }
+
+        .lp-wrap * {
+            page-break-inside: avoid;
+            break-inside:      avoid;
+        }
+    """
+
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
         for plan in plans:
@@ -278,18 +402,18 @@ def bulk_zip_download(request):
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{plan.subject} – {plan.lesson_title}</title>
   <style>
-    body {{ font-family: Arial, sans-serif; font-size: 12pt; padding: 20px; color: #000; }}
-    table {{ border-collapse: collapse; width: 100%; margin-bottom: 16pt; }}
-    td, th {{ border: 1px solid #333; padding: 6px 8px; vertical-align: top; }}
-    th {{ background: #f0f0f0; font-weight: bold; }}
+{PLAN_CSS}
   </style>
 </head>
 <body>
 {plan.html_snapshot}
 </body>
 </html>"""
+
+            # Build a safe filename
             safe_subject = "".join(
                 c for c in plan.subject if c.isalnum() or c in " _-"
             )[:30].strip()

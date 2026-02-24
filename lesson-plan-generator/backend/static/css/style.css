@@ -275,7 +275,7 @@ input:focus, select:focus, textarea:focus {
 .btn-pdf   { background: #10b981; }
 
 /* ================================
-   LESSON PLAN CONTENT
+   LESSON PLAN CONTENT (screen)
 ================================= */
 .lesson-plan {
     font-size: 10pt;
@@ -325,7 +325,7 @@ footer {
     display: none;
     position: fixed;
     z-index: 10000;
-    inset: 0;                            /* top/right/bottom/left: 0 */
+    inset: 0;
     background-color: rgba(0,0,0,0.65);
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -333,7 +333,6 @@ footer {
     box-sizing: border-box;
 }
 
-/* JS sets display:flex → center the box */
 .modal[style*="display: flex"],
 .modal[style*="display:flex"] {
     display: flex !important;
@@ -419,7 +418,7 @@ footer {
 }
 
 /* ================================
-   PRICING GRID  — 3 columns desktop
+   PRICING GRID
 ================================= */
 .pricing-grid {
     display: grid;
@@ -445,7 +444,6 @@ footer {
     box-shadow: 0 10px 28px rgba(0,0,0,0.12);
 }
 
-/* Featured card */
 .pricing-card.featured {
     border-color: #f57c00;
     background: #fff8f0;
@@ -505,7 +503,6 @@ footer {
 
 .pricing-card ul li:last-child { border-bottom: none; }
 
-/* Badge (legacy support) */
 .pricing-card .badge {
     background: #2D9CDB;
     color: #fff;
@@ -548,7 +545,6 @@ footer {
 
 .choose-btn:active { transform: scale(0.97); }
 
-/* Primary / featured plan button */
 .choose-btn.primary {
     background: linear-gradient(135deg, #ff9800, #f57c00);
     box-shadow: 0 4px 12px rgba(255,152,0,0.3);
@@ -560,14 +556,82 @@ footer {
 }
 
 /* ================================
-   PRINT STYLING
+   FIELD VALIDATION
 ================================= */
+.field-error {
+    border: 2px solid #f44336 !important;
+    background-color: #fff5f5 !important;
+}
+
+.field-error:focus {
+    outline-color: #f44336;
+}
+
+/* ================================
+   PRINT / PDF — SINGLE PAGE FIT
+   Forces the entire lesson plan
+   onto one A4 page with no splits.
+================================= */
+@page {
+    size: A4 portrait;
+    margin: 8mm;
+}
+
 @media print {
-    body { background: white; padding: 0; color: black; }
-    .header, .form-container, .download-buttons,
-    .navbar, footer { display: none !important; }
-    .result-container { box-shadow: none; padding: 0; display: block !important; }
-    .lesson-plan { font-size: 9pt; }
+
+    /* Hide everything except the plan */
+    body {
+        background: white !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        color: #000 !important;
+    }
+
+    .header,
+    .form-container,
+    .download-buttons,
+    .navbar,
+    footer {
+        display: none !important;
+    }
+
+    .result-container {
+        box-shadow: none !important;
+        padding: 0 !important;
+        display: block !important;
+        width: 100% !important;
+    }
+
+    /* Shrink font to fit A4 */
+    .lp-wrap {
+        font-size: 7.5pt !important;
+        line-height: 1.15 !important;
+    }
+
+    /* Tighten cell padding at print time */
+    .lp-wrap td,
+    .lp-wrap th {
+        padding: 2px 3px !important;
+    }
+
+    /* Prevent tables from splitting across pages */
+    .lp-wrap table {
+        page-break-inside: avoid !important;
+        break-inside:      avoid !important;
+    }
+
+    /* Prevent individual rows from splitting */
+    .lp-wrap tr {
+        page-break-inside: avoid !important;
+        break-inside:      avoid !important;
+    }
+
+    /* Hard lock — nothing inside .lp-wrap may split */
+    .lp-wrap,
+    .lp-wrap * {
+        page-break-inside: avoid !important;
+        break-inside:      avoid !important;
+    }
 }
 
 /* ================================
@@ -584,7 +648,7 @@ footer {
 
     .pricing-card         { padding: 22px 14px 20px; }
     .pricing-card .price  { font-size: 1.9rem; }
-    .pricing-card.featured { transform: scale(1.0); } /* no overflow */
+    .pricing-card.featured { transform: scale(1.0); }
     .pricing-modal        { padding: 28px 20px 24px; }
     .pricing-header h2    { font-size: 1.5rem; }
 }
@@ -610,7 +674,6 @@ footer {
     .download-buttons  { flex-direction: column; gap: 10px; }
     .download-btn      { width: 100%; padding: 14px; }
 
-    /* Modal */
     .modal             { padding: 10px; }
     .modal-content     { border-radius: 14px; }
 
@@ -620,7 +683,6 @@ footer {
     .pricing-header h2 { font-size: 1.35rem; }
     .pricing-header p  { font-size: 0.9rem; }
 
-    /* Stack cards vertically */
     .pricing-grid {
         grid-template-columns: 1fr;
         gap: 16px;
@@ -628,8 +690,8 @@ footer {
 
     .pricing-card          { padding: 22px 18px 18px; }
     .pricing-card.featured {
-        transform: none;   /* remove scale — prevents horizontal overflow */
-        order: -1;         /* show featured card first */
+        transform: none;
+        order: -1;
     }
     .pricing-card .price   { font-size: 2rem; }
 
@@ -644,13 +706,4 @@ footer {
     .pricing-header h2 { font-size: 1.2rem; }
     .pricing-card .price { font-size: 1.75rem; }
     .choose-btn        { font-size: 0.88rem; padding: 11px 14px; }
-}
-
-.field-error {
-    border: 2px solid #f44336 !important;
-    background-color: #fff5f5 !important;
-}
-
-.field-error:focus {
-    outline-color: #f44336;
 }
