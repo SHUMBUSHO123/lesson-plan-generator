@@ -21,7 +21,7 @@ const lessonSelect  = document.getElementById('lessonTitle');
 // ===============================
 // STATE & CACHE
 // ===============================
-let accessCache             = null;
+let accessCache              = null;
 let generateListenerAttached = false;
 
 // ===============================
@@ -33,21 +33,20 @@ document.addEventListener("DOMContentLoaded", async () => {
     attachPayButton();
     attachDownloadButtons();
 
-    // Clear field errors as user fills them
+    // Clear field errors as user types
     document.querySelectorAll('input, select').forEach(el => {
         el.addEventListener('change', () => el.classList.remove('field-error'));
         el.addEventListener('input',  () => el.classList.remove('field-error'));
     });
 
-    // Use server-injected data instantly — no fetch needed on first load
+    // Use server-injected dashboard data instantly
     if (window.__DASHBOARD__) {
         renderDashboard(window.__DASHBOARD__);
     }
 
-    // Fire remaining calls in parallel
     await Promise.all([
         prefillUserData(),
-        updateGenerateButtonStatus()
+        updateGenerateButtonStatus(),
     ]);
 });
 
@@ -57,13 +56,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 async function fetchData(endpoint, params = {}) {
     const url = new URL(`${API_BASE}/${endpoint}/`);
     Object.entries(params).forEach(([k, v]) => url.searchParams.append(k, v));
-    const res = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+    const res = await fetch(url, {
+        headers:     { 'Accept': 'application/json' },
+        credentials: 'include',
+    });
     if (!res.ok) throw new Error(`API error ${res.status}`);
     return await res.json();
 }
 
 async function postData(endpoint, payload = {}) {
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                      || window.CSRF_TOKEN;
     if (!csrfToken) {
         console.error("CSRF token missing!");
         alert("CSRF token missing. Please refresh the page and try again.");
@@ -71,10 +74,10 @@ async function postData(endpoint, payload = {}) {
     }
     try {
         const res = await fetch(`${API_BASE}/${endpoint}/`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-            body:    JSON.stringify(payload),
-            credentials: 'include'
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body:        JSON.stringify(payload),
+            credentials: 'include',
         });
         const data = await res.json();
         return { ok: res.ok, data };
@@ -85,55 +88,102 @@ async function postData(endpoint, payload = {}) {
 }
 
 // ===============================
+// SHARED DOWNLOAD PAYLOAD
+// Builds the same form payload used by generate, PDF, and Word endpoints.
+// Single source of truth — change field names here once, all 3 calls update.
+// ===============================
+function buildDownloadPayload() {
+    return {
+        device_id:     getDeviceId(),
+        level:         levelSelect.options[levelSelect.selectedIndex].text,
+        class:         classSelect.options[classSelect.selectedIndex].text,
+        subject:       subjectSelect.options[subjectSelect.selectedIndex].text,
+        unit_id:       unitSelect.value,
+        lesson_id:     lessonSelect.value,
+        lesson_no:     parseInt(document.getElementById('lessonNo')?.value    || '1'),
+        duration:      parseInt(document.getElementById('duration')?.value    || '40'),
+        class_size:    document.getElementById('classSize')?.value            || '',
+        school_name:   document.getElementById('schoolName')?.value           || '',
+        teacher_name:  document.getElementById('teacherName')?.value          || '',
+        term:          document.getElementById('term')?.value                 || '',
+        references:    document.getElementById('references')?.value           || '',
+        special_needs: document.getElementById('specialNeeds')?.value         || '',
+        strategy:      document.getElementById('strategy')?.value             || '',
+        location_plan: document.getElementById('locationPlan')?.value         || '',
+        materials:     Array.from(
+            document.getElementById('materials')?.selectedOptions || []
+        ).map(o => o.value).join(', '),
+    };
+}
+
+// ===============================
 // DROPDOWN RESET & LOADERS
 // ===============================
 function resetBelow(level) {
-    if (level === 'level') classSelect.innerHTML = `<option value="">Select Class</option>`;
-    if (['level', 'class'].includes(level)) subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
-    if (['level', 'class', 'subject'].includes(level)) unitSelect.innerHTML = `<option value="">Select Unit</option>`;
-    if (['level', 'class', 'subject', 'unit'].includes(level)) lessonSelect.innerHTML = `<option value="">Select Lesson</option>`;
+    if (level === 'level')
+        classSelect.innerHTML = `<option value="">Select Class</option>`;
+    if (['level', 'class'].includes(level))
+        subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
+    if (['level', 'class', 'subject'].includes(level))
+        unitSelect.innerHTML = `<option value="">Select Unit</option>`;
+    if (['level', 'class', 'subject', 'unit'].includes(level))
+        lessonSelect.innerHTML = `<option value="">Select Lesson</option>`;
 }
 
 async function loadLevels() {
     const levels = await fetchData('levels') || [];
     levelSelect.innerHTML = `<option value="">Select Level</option>`;
-    levels.forEach(l => levelSelect.innerHTML += `<option value="${l.id}">${l.name}</option>`);
+    levels.forEach(l => levelSelect.innerHTML +=
+        `<option value="${l.id}">${l.name}</option>`);
 }
 
 async function loadClasses(levelId) {
     classSelect.innerHTML = `<option value="">Loading...</option>`;
     const classes = await fetchData('classes', { level_id: levelId }) || [];
     classSelect.innerHTML = `<option value="">Select Class</option>`;
-    classes.forEach(c => classSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+    classes.forEach(c => classSelect.innerHTML +=
+        `<option value="${c.id}">${c.name}</option>`);
 }
 
 async function loadSubjects(classId) {
     subjectSelect.innerHTML = `<option value="">Loading...</option>`;
     const subjects = await fetchData('subjects', { class_id: classId }) || [];
     subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
-    subjects.forEach(s => subjectSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+    subjects.forEach(s => subjectSelect.innerHTML +=
+        `<option value="${s.id}">${s.name}</option>`);
 }
 
 async function loadUnits(subjectId) {
     unitSelect.innerHTML = `<option value="">Loading...</option>`;
     const units = await fetchData('units', { subject_id: subjectId }) || [];
     unitSelect.innerHTML = `<option value="">Select Unit</option>`;
-    units.forEach(u => unitSelect.innerHTML += `<option value="${u.id}" data-title="${u.title}" data-total="${u.total_lessons}">Unit ${u.number} - ${u.title}</option>`);
+    units.forEach(u => unitSelect.innerHTML +=
+        `<option value="${u.id}" data-title="${u.title}" data-total="${u.total_lessons}">Unit ${u.number} - ${u.title}</option>`);
 }
 
 async function loadLessons(unitId) {
     lessonSelect.innerHTML = `<option value="">Loading...</option>`;
     const lessons = await fetchData('lessons', { unit_id: unitId }) || [];
     lessonSelect.innerHTML = `<option value="">Select Lesson</option>`;
-    lessons.forEach(l => lessonSelect.innerHTML += `<option value="${l.id}">${l.title}</option>`);
+    lessons.forEach(l => lessonSelect.innerHTML +=
+        `<option value="${l.id}">${l.title}</option>`);
 }
 
 // ===============================
-// EVENT LISTENERS
+// EVENT LISTENERS — DROPDOWNS
 // ===============================
-if (levelSelect)   levelSelect.addEventListener('change',   () => { resetBelow('level');   if (levelSelect.value)   loadClasses(levelSelect.value); });
-if (classSelect)   classSelect.addEventListener('change',   () => { resetBelow('class');   if (classSelect.value)   loadSubjects(classSelect.value); });
-if (subjectSelect) subjectSelect.addEventListener('change', () => { resetBelow('subject'); if (subjectSelect.value) loadUnits(subjectSelect.value); });
+if (levelSelect)   levelSelect.addEventListener('change', () => {
+    resetBelow('level');
+    if (levelSelect.value) loadClasses(levelSelect.value);
+});
+if (classSelect)   classSelect.addEventListener('change', () => {
+    resetBelow('class');
+    if (classSelect.value) loadSubjects(classSelect.value);
+});
+if (subjectSelect) subjectSelect.addEventListener('change', () => {
+    resetBelow('subject');
+    if (subjectSelect.value) loadUnits(subjectSelect.value);
+});
 if (unitSelect) unitSelect.addEventListener('change', () => {
     resetBelow('unit');
     if (unitSelect.value) {
@@ -145,18 +195,18 @@ if (unitSelect) unitSelect.addEventListener('change', () => {
 });
 
 // ===============================
-// FIELD VALIDATION & HIGHLIGHTING
+// FIELD VALIDATION
 // ===============================
 function highlightEmptyFields() {
-    const requiredFields = [
+    const required = [
         'schoolName', 'teacherName', 'term', 'date',
         'level', 'className', 'subject', 'unitNo',
         'lessonNo', 'totalLessons', 'duration',
-        'classSize', 'unitTitle', 'lessonTitle'
+        'classSize', 'unitTitle', 'lessonTitle',
     ];
 
     let hasEmpty = false;
-    requiredFields.forEach(id => {
+    required.forEach(id => {
         const el = document.getElementById(id);
         if (!el) return;
         if (!el.value || el.value === '') {
@@ -176,35 +226,12 @@ function highlightEmptyFields() {
 }
 
 // ===============================
-// FORM DATA
-// ===============================
-function getFormData() {
-    return {
-        level:          levelSelect.options[levelSelect.selectedIndex].text,
-        className:      classSelect.options[classSelect.selectedIndex].text,
-        subject:        subjectSelect.options[subjectSelect.selectedIndex].text,
-        unitTitle:      document.getElementById('unitTitle').value,
-        totalLessons:   parseInt(document.getElementById('totalLessons').value || '0'),
-        lessonTitle:    lessonSelect.options[lessonSelect.selectedIndex].text,
-        lessonNumber:   parseInt(document.getElementById('lessonNo')?.value || '1'),
-        durationMinutes:parseInt(document.getElementById('duration')?.value || '40'),
-        schoolName:     document.getElementById('schoolName')?.value || '',
-        teacherName:    document.getElementById('teacherName')?.value || '',
-        term:           document.getElementById('term')?.value || '',
-        classSize:      document.getElementById('classSize')?.value || '',
-        references:     document.getElementById('references')?.value || '',
-        specialNeeds:   document.getElementById('specialNeeds')?.value || '',
-        strategy:       document.getElementById('strategy')?.value || ''
-    };
-}
-
-// ===============================
 // PREFILL USER DATA
 // ===============================
 async function prefillUserData() {
     try {
         const res = await fetch(`${API_BASE}/get_user_prefill/`, { credentials: 'include' });
-        if (!res.ok) throw new Error(`Failed to fetch prefill data: ${res.status}`);
+        if (!res.ok) throw new Error(`Prefill failed: ${res.status}`);
         const data = await res.json();
         ['schoolName', 'teacherName', 'term', 'classSize', 'references'].forEach(f => {
             const el = document.getElementById(f);
@@ -236,7 +263,7 @@ async function checkAccess(forceRefresh = false) {
 }
 
 // ===============================
-// UPDATE GENERATE BUTTON STATUS
+// GENERATE BUTTON STATUS
 // ===============================
 async function updateGenerateButtonStatus() {
     const btn = document.getElementById('generateButton');
@@ -244,9 +271,7 @@ async function updateGenerateButtonStatus() {
     try {
         const data  = await checkAccess(true);
         const canGo = data.is_premium || data.can_generate;
-
         btn.disabled = false;
-
         if (!canGo) {
             btn.classList.add('btn-limit-reached');
             btn.title       = 'Limit reached — click to subscribe';
@@ -263,7 +288,7 @@ async function updateGenerateButtonStatus() {
 }
 
 // ===============================
-// SHOW PAYWALL MODAL
+// PAYWALL MODAL
 // ===============================
 function showPaywallModal() {
     const modal = document.getElementById('subscribeModal');
@@ -290,13 +315,9 @@ function showPaywallModal() {
             `;
         }
     }
-
     modal.style.display = 'flex';
 }
 
-// ===============================
-// REQUIRE PREMIUM
-// ===============================
 async function requirePremium(action, allowFree = false) {
     try {
         const data = await checkAccess(true);
@@ -334,29 +355,8 @@ async function generateLessonPlanFromForm() {
 
         try {
             lessonPlanContent.textContent = 'Generating lesson plan...';
-            const payload = {
-                device_id:    getDeviceId(),
-                level:        levelSelect.options[levelSelect.selectedIndex].text,
-                class:        classSelect.options[classSelect.selectedIndex].text,
-                subject:      subjectSelect.options[subjectSelect.selectedIndex].text,
-                unit_id:      unitSelect.value,
-                lesson_id:    lessonSelect.value,
-                lesson_no:    parseInt(document.getElementById('lessonNo')?.value || '1'),
-                duration:     parseInt(document.getElementById('duration')?.value || '40'),
-                class_size:   document.getElementById('classSize')?.value || '',
-                school_name:  document.getElementById('schoolName')?.value || '',
-                teacher_name: document.getElementById('teacherName')?.value || '',
-                term:         document.getElementById('term')?.value || '',
-                references:   document.getElementById('references')?.value || '',
-                special_needs:document.getElementById('specialNeeds')?.value || '',
-                strategy:     document.getElementById('strategy')?.value || '',
-                location_plan:document.getElementById('locationPlan')?.value || '',
-                materials:    Array.from(
-                    document.getElementById('materials')?.selectedOptions || []
-                ).map(o => o.value).join(', ')
-            };
 
-            const { ok, data } = await postData('generate_lesson_plan', payload);
+            const { ok, data } = await postData('generate_lesson_plan', buildDownloadPayload());
 
             if (!ok) {
                 if (data.redirect || data.error) {
@@ -406,12 +406,10 @@ function attachGenerateButton() {
 }
 
 function attachDownloadButtons() {
-    console.log('🔧 Attaching download buttons...');
     document.querySelectorAll('.download-btn').forEach(btn => {
         const action = btn.dataset.action;
         btn.addEventListener('click', async (e) => {
             e.preventDefault();
-            console.log(`📥 Download button clicked: ${action}`);
 
             const element = document.getElementById("lessonPlanContent");
             if (!element || !element.innerHTML.trim()) {
@@ -425,15 +423,12 @@ function attachDownloadButtons() {
 
             try {
                 const accessData = await checkAccess(true);
-                console.log('Fresh access data:', accessData);
 
                 if (accessData.is_premium) {
-                    console.log('✅ Premium confirmed');
                     if (action === 'copy')  copyToWord();
                     else if (action === 'pdf')  await downloadPDF();
                     else if (action === 'word') await downloadWord();
                 } else {
-                    console.log('❌ Not premium, showing modal');
                     showPaywallModal();
                 }
             } catch (err) {
@@ -449,7 +444,10 @@ function attachDownloadButtons() {
 
 function attachPayButton() {
     const payBtn = document.getElementById('payButton');
-    if (payBtn) payBtn.addEventListener('click', async (e) => { e.preventDefault(); subscribeFromPage?.(); });
+    if (payBtn) payBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        subscribeFromPage?.();
+    });
 }
 
 // ===============================
@@ -461,14 +459,14 @@ function subscribe(plan) {
 }
 
 // ===============================
-// DOWNLOAD — PDF  ★ FIXED ★
-// ─────────────────────────────
-// html2pdf.js paginates by element height, NOT by CSS @page.
-// Fix: scale the clone down until it fits in a single A4 page,
-// then tell html2pdf there is exactly 1 page.
+// DOWNLOAD — PDF (backend ReportLab)
+// ─────────────────────────────────
+// Posts form data to /api/download_pdf/
+// Server builds a pixel-perfect A4 PDF with ReportLab (pure Python).
+// No html2pdf.js, no browser screenshot, real selectable text.
 // ===============================
 async function downloadPDF() {
-    console.log('📑 Starting PDF download...');
+    console.log('📑 Requesting PDF from server...');
 
     const element = document.getElementById("lessonPlanContent");
     if (!element || !element.innerHTML.trim()) {
@@ -477,144 +475,77 @@ async function downloadPDF() {
     }
 
     try {
-        // ── 1. Create a full-page hidden container ───────────────────────────
-        // We render into a fixed-position container at exactly A4 width
-        // so html2canvas captures the FULL width — nothing gets cropped.
-        const A4_PX = 1122;   // A4 at 96dpi = 794px — we use 1122 (118dpi) for crispness
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                          || window.CSRF_TOKEN;
 
-        const wrapper = document.createElement('div');
-        Object.assign(wrapper.style, {
-            position:   'fixed',
-            top:        '0',
-            left:       '0',
-            width:      A4_PX + 'px',
-            zIndex:     '-9999',
-            background: '#fff',
-            padding:    '20px',
-            boxSizing:  'border-box',
-            visibility: 'hidden',   // hidden but still rendered by browser
+        const res = await fetch(`${API_BASE}/download_pdf/`, {
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            credentials: 'include',
+            body:        JSON.stringify(buildDownloadPayload()),
         });
 
-        // ── 2. Clone & style the lesson plan ────────────────────────────────
-        const clone = element.cloneNode(true);
-        Object.assign(clone.style, {
-            fontFamily: 'Arial, sans-serif',
-            fontSize:   '8pt',
-            lineHeight: '1.2',
-            color:      '#000',
-            background: '#fff',
-            width:      '100%',
-            overflow:   'visible',
-            maxHeight:  'none',
-            boxSizing:  'border-box',
-        });
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Server error ${res.status}`);
+        }
 
-        // Tables — full width, no collapse
-        clone.querySelectorAll('table').forEach(t => {
-            Object.assign(t.style, {
-                borderCollapse:  'collapse',
-                width:           '100%',
-                marginBottom:    '4px',
-                tableLayout:     'auto',
-            });
-        });
-
-        // Cells — consistent padding & font
-        clone.querySelectorAll('td, th').forEach(cell => {
-            Object.assign(cell.style, {
-                border:        '1px solid #333',
-                padding:       '3px 4px',
-                verticalAlign: 'top',
-                fontSize:      '7.5pt',
-                lineHeight:    '1.2',
-                wordBreak:     'break-word',
-            });
-        });
-
-        // th background
-        clone.querySelectorAll('th').forEach(th => {
-            th.style.backgroundColor = '#d9e1f2';
-            th.style.fontWeight      = 'bold';
-        });
-
-        // Rows — no page breaks inside
-        clone.querySelectorAll('tr').forEach(row => {
-            row.style.pageBreakInside = 'avoid';
-            row.style.breakInside     = 'avoid';
-        });
-
-        wrapper.appendChild(clone);
-        document.body.appendChild(wrapper);
-
-        // Small delay so browser fully renders the injected DOM
-        await new Promise(resolve => setTimeout(resolve, 150));
-
-        // ── 3. Measure actual rendered height ───────────────────────────────
-        const contentHeight = wrapper.scrollHeight;
-        const contentWidth  = wrapper.scrollWidth;
-        console.log(`📐 Content size: ${contentWidth}×${contentHeight}px`);
-
-        // ── 4. html2pdf options ─────────────────────────────────────────────
-        const opt = {
-            margin:      [8, 8, 8, 8],              // mm — even 8mm margins all sides
-            filename:    'CBC_Lesson_Plan.pdf',
-            image:       { type: 'jpeg', quality: 0.97 },
-            html2canvas: {
-                scale:       2,                     // crisp at retina
-                useCORS:     true,
-                logging:     false,
-                scrollX:     0,
-                scrollY:     0,
-                windowWidth: A4_PX,                 // matches our wrapper width exactly
-                width:       A4_PX,
-                onclone:     (doc) => {
-                    // ensure cloned doc also has no scroll offset
-                    doc.documentElement.scrollTop = 0;
-                    doc.body.scrollTop            = 0;
-                },
-            },
-            jsPDF: {
-                unit:        'mm',
-                format:      'a4',
-                orientation: 'portrait',
-            },
-            pagebreak: {
-                mode:  ['avoid-all', 'css'],
-                avoid: ['tr', 'td', 'table', '.lp-wrap'],
-            },
-        };
-
-        // ── 5. Render, trim extra pages, save ───────────────────────────────
-        await html2pdf()
-            .set(opt)
-            .from(wrapper)
-            .toPdf()
-            .get('pdf')
-            .then(pdf => {
-                const totalPages = pdf.internal.getNumberOfPages();
-                if (totalPages > 1) {
-                    console.warn(`⚠️ Trimming ${totalPages} → 1 page`);
-                    for (let i = totalPages; i > 1; i--) {
-                        pdf.deletePage(i);
-                    }
-                }
-            })
-            .save();
-
-        console.log('✅ PDF download complete — single page, full width');
+        await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plan.pdf');
+        console.log('✅ PDF downloaded from server');
 
     } catch (err) {
         console.error('PDF download error:', err);
         alert('Failed to download PDF. Please try again.\n\nError: ' + err.message);
-    } finally {
-        // Always clean up the hidden wrapper from the DOM
-        const w = document.body.querySelector('div[style*="-9999"]');
-        if (w) document.body.removeChild(w);
     }
 }
 
 // ===============================
-// DOWNLOAD — Copy to Word
+// DOWNLOAD — Word (backend python-docx)
+// ──────────────────────────────────────
+// Posts form data to /api/download_word/
+// Server builds a real .docx with python-docx (pure Python, zero system deps).
+// Fully editable in Microsoft Word, LibreOffice, and Google Docs.
+// ===============================
+async function downloadWord() {
+    console.log('📝 Requesting Word document from server...');
+
+    const element = document.getElementById("lessonPlanContent");
+    if (!element || !element.innerHTML.trim()) {
+        alert("Generate a lesson plan first.");
+        return;
+    }
+
+    try {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                          || window.CSRF_TOKEN;
+
+        const res = await fetch(`${API_BASE}/download_word/`, {
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            credentials: 'include',
+            body:        JSON.stringify(buildDownloadPayload()),
+        });
+
+        if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Server error ${res.status}`);
+        }
+
+        await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plan.docx');
+        console.log('✅ Word document downloaded from server');
+
+    } catch (err) {
+        console.error('Word download error:', err);
+        alert('Failed to download Word document. Please try again.\n\nError: ' + err.message);
+    }
+}
+
+// ===============================
+// DOWNLOAD — Copy to Word (JS clipboard)
+// ────────────────────────────────────────
+// Copies the rendered HTML to clipboard as rich text.
+// User pastes into Word with Ctrl+V — formatting is preserved.
+// Stays JS because clipboard API needs user gesture context.
 // ===============================
 function copyToWord() {
     console.log('📄 Copying to clipboard...');
@@ -628,19 +559,15 @@ function copyToWord() {
     const plainText   = element.innerText;
 
     if (window.ClipboardItem && navigator.clipboard.write) {
-        const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
-        const textBlob = new Blob([plainText],   { type: 'text/plain' });
-        const item     = new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob });
-
+        const item = new ClipboardItem({
+            'text/html':  new Blob([htmlContent], { type: 'text/html' }),
+            'text/plain': new Blob([plainText],   { type: 'text/plain' }),
+        });
         navigator.clipboard.write([item])
             .then(() => {
-                console.log('✅ Rich HTML copied');
-                alert("Lesson plan copied with formatting!\nOpen Microsoft Word and press Ctrl+V (or Cmd+V on Mac) to paste.");
+                alert("Lesson plan copied with formatting!\nOpen Microsoft Word and press Ctrl+V to paste.");
             })
-            .catch(err => {
-                console.warn('Rich copy failed, falling back to plain text:', err);
-                fallbackCopyPlainText(plainText);
-            });
+            .catch(() => fallbackCopyPlainText(plainText));
     } else {
         fallbackCopyPlainText(plainText);
     }
@@ -649,87 +576,26 @@ function copyToWord() {
 function fallbackCopyPlainText(text) {
     navigator.clipboard.writeText(text)
         .then(() => {
-            console.log('✅ Plain text copied');
             alert("Lesson plan copied (plain text).\nPaste into Microsoft Word — formatting may be limited.");
         })
-        .catch(err => {
-            console.error('Copy failed entirely:', err);
+        .catch(() => {
             alert("Copy failed. Please select the lesson plan text manually and use Ctrl+C.");
         });
 }
 
 // ===============================
-// DOWNLOAD — Word (.doc)
+// SHARED BLOB DOWNLOAD HELPER
+// Triggers a file download from a Blob — used by PDF and Word.
 // ===============================
-async function downloadWord() {
-    console.log('📝 Starting DOCX download...');
-    const element = document.getElementById("lessonPlanContent");
-    if (!element || !element.innerHTML.trim()) {
-        alert("Generate a lesson plan first.");
-        return;
-    }
-
-    try {
-        let styleContent = '';
-        try {
-            Array.from(document.styleSheets).forEach(sheet => {
-                try {
-                    Array.from(sheet.cssRules || []).forEach(rule => {
-                        styleContent += rule.cssText + '\n';
-                    });
-                } catch (_) {}
-            });
-        } catch (_) {}
-
-        const printStyles = `
-            body  { font-family: Arial, sans-serif; font-size: 12pt; color: #000; }
-            table { border-collapse: collapse; width: 100%; margin-bottom: 12pt; }
-            td, th{ border: 1px solid #333; padding: 6px 8px; vertical-align: top; font-size: 11pt; }
-            th    { background-color: #f0f0f0; font-weight: bold; }
-            h1    { font-size: 16pt; margin: 12pt 0 6pt; }
-            h2    { font-size: 14pt; margin: 10pt 0 4pt; }
-            h3    { font-size: 12pt; margin:  8pt 0 4pt; }
-            p     { margin: 4pt 0; }
-        `;
-
-        const fullHtml = `
-            <html xmlns:o="urn:schemas-microsoft-com:office:office"
-                  xmlns:w="urn:schemas-microsoft-com:office:word"
-                  xmlns="http://www.w3.org/TR/REC-html40">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="ProgId"     content="Word.Document">
-                <meta name="Generator" content="Microsoft Word 15">
-                <!--[if gte mso 9]>
-                <xml>
-                    <w:WordDocument>
-                        <w:View>Print</w:View>
-                        <w:Zoom>100</w:Zoom>
-                        <w:DoNotOptimizeForBrowser/>
-                    </w:WordDocument>
-                </xml>
-                <![endif]-->
-                <style>${styleContent}${printStyles}</style>
-            </head>
-            <body>${element.innerHTML}</body>
-            </html>
-        `.trim();
-
-        const blob = new Blob(['\ufeff', fullHtml], { type: 'application/msword' });
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'CBC_Lesson_Plan.doc';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1000);
-
-        console.log('✅ Word document download complete');
-    } catch (err) {
-        console.error('Word download error:', err);
-        alert('Failed to create Word document. Please try again.\n\nError: ' + err.message);
-    }
+async function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
 }
 
 // ===============================
@@ -743,7 +609,7 @@ async function loadDashboard() {
     try {
         const res = await fetch(`${API_BASE}/dashboard/`, {
             credentials: 'include',
-            headers:     { 'Accept': 'application/json' }
+            headers:     { 'Accept': 'application/json' },
         });
         if (!res.ok) return;
         dashboardData = await res.json();
@@ -802,10 +668,11 @@ function renderFullDashboard(data) {
     const limit = data.lesson_limit ?? 0;
 
     setInner('dashUsed', used);
-    const limitLabel = (data.remaining === null || data.remaining === undefined)
-        ? 'Unlimited plan'
-        : `of ${limit} total`;
-    setInner('dashLimit', limitLabel);
+    setInner('dashLimit',
+        (data.remaining === null || data.remaining === undefined)
+            ? 'Unlimited plan'
+            : `of ${limit} total`
+    );
 
     if (data.remaining === null || data.remaining === undefined) {
         setInner('dashRemaining',      '∞');
@@ -829,7 +696,8 @@ function renderFullDashboard(data) {
     const planEl = document.getElementById('dashPlan');
     if (planEl) {
         if (data.is_premium && data.subscription_plan) {
-            planEl.textContent = data.subscription_plan.charAt(0).toUpperCase() + data.subscription_plan.slice(1);
+            planEl.textContent = data.subscription_plan.charAt(0).toUpperCase()
+                               + data.subscription_plan.slice(1);
             planEl.style.color = '#81C784';
         } else if (data.is_premium) {
             planEl.textContent = 'Premium';
@@ -844,7 +712,9 @@ function renderFullDashboard(data) {
     if (expiryEl) {
         if (data.subscription_expiry) {
             const d = new Date(data.subscription_expiry);
-            expiryEl.textContent = `Expires: ${d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`;
+            expiryEl.textContent = `Expires: ${d.toLocaleDateString('en-GB', {
+                day: '2-digit', month: 'short', year: 'numeric'
+            })}`;
         } else if (data.is_premium) {
             expiryEl.textContent = 'No expiry set';
         } else {
@@ -985,12 +855,13 @@ async function handleBulkZip() {
     btn.textContent    = '⏳ Zipping…';
 
     try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
+                          || window.CSRF_TOKEN;
         const res = await fetch(`${API_BASE}/plans/zip/`, {
-            method:  'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             credentials: 'include',
-            body: JSON.stringify({ plan_ids: [...selectedPlanIds] }),
+            body:        JSON.stringify({ plan_ids: [...selectedPlanIds] }),
         });
 
         if (!res.ok) {
@@ -998,15 +869,7 @@ async function handleBulkZip() {
             throw new Error(err.error || `Server error ${res.status}`);
         }
 
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement('a');
-        a.href     = url;
-        a.download = 'CBC_Lesson_Plans.zip';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plans.zip');
 
         selectedPlanIds.clear();
         document.querySelectorAll('.dash-plan-check').forEach(cb => cb.checked = false);

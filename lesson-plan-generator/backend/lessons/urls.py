@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from .views_separated import payment_views
 from .views_separated.auth_views import register, login_user, logout_user
+from lessons.views_separated.lesson_views import download_lesson_pdf,  download_lesson_word
 from .views_separated.crud_views import (
     LevelViewSet, ClassViewSet, SubjectViewSet, UnitViewSet, LessonViewSet
 )
@@ -46,6 +47,10 @@ urlpatterns = [
     path("generate_lesson_plan/", generate_lesson_plan, name="generate_lesson_plan"),
     path("check-access/",         check_access,         name="check_access"),
     path("plans/zip/",            bulk_zip_download,    name="bulk_zip_download"),
+    
+
+    path('download_pdf/', download_lesson_pdf),
+    path('download_word/', download_lesson_word),
 
     # ── Payment API ──
     # ✅ FIXED: name was 'process_mtn_payment', template uses 'initiate_mtn_payment'
