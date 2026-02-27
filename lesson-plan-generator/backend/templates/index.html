@@ -16,27 +16,12 @@
 
     <!-- ═══════════════════════════════════════════════════════════
          OPEN GRAPH TAGS — WhatsApp, Facebook, LinkedIn, Telegram
-         Rules:
-           ✅ og:image MUST be absolute HTTPS URL
-           ✅ og:image size: 1200×630px recommended
-           ✅ og:image must be publicly accessible (no auth)
-           ✅ og:url must be the canonical page URL
     ════════════════════════════════════════════════════════════════ -->
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="CBC Lesson Generator" />
     <meta property="og:title"       content="CBC Lesson Plan Generator – Save 3+ Hours Per Week" />
     <meta property="og:description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download. Trusted by Kenyan teachers." />
     <meta property="og:url"         content="{{ request.scheme }}://{{ request.get_host }}{{ request.path }}" />
-    <!--
-        og:image — CRITICAL for WhatsApp preview thumbnail.
-        The image at /static/images/preview.jpg MUST be:
-          • At least 300×200px (1200×630px ideal)
-          • Under 300KB file size
-          • Publicly reachable via HTTPS
-          • NOT behind login/authentication
-        If your domain is example.com, the final URL should look like:
-          https://example.com/static/images/preview.jpg
-    -->
     <meta property="og:image"       content="{{ request.scheme }}://{{ request.get_host }}{% static 'images/preview.jpg' %}" />
     <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
@@ -44,8 +29,7 @@
     <meta property="og:locale"       content="en_KE" />
 
     <!-- ═══════════════════════════════════════════════════════════
-         TWITTER CARD TAGS — Twitter/X, and used as fallback
-         by some apps that don't read og: tags
+         TWITTER CARD TAGS
     ════════════════════════════════════════════════════════════════ -->
     <meta name="twitter:card"        content="summary_large_image" />
     <meta name="twitter:site"        content="@IsomoPlus" />
@@ -242,6 +226,22 @@
                 <div class="form-group">
                     <label class="required">Date</label>
                     <input type="date" id="date" required>
+                </div>
+
+                <!-- ══════════════════════════════════════════════════
+                     LANGUAGE SELECTOR — added for multilingual support
+                     Placed before Level so it reloads the entire
+                     Level → Class → Subject → Unit → Lesson chain
+                     when the teacher switches language.
+                ═══════════════════════════════════════════════════ -->
+                <div class="form-group full-width">
+                    <label class="required">Language / Langue / Lugha / Ururimi</label>
+                    <select id="language" required>
+                        <option value="en">🇬🇧 English</option>
+                        <option value="rw">🇷🇼 Kinyarwanda</option>
+                        <option value="sw">🇹🇿 Kiswahili</option>
+                        <option value="fr">🇫🇷 Français</option>
+                    </select>
                 </div>
 
                 <!-- Level, Class, Subject, Unit -->

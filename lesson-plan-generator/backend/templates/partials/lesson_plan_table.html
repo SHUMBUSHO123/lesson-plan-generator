@@ -1,215 +1,128 @@
-{# ============================================================= #}
-{# lesson_plan_table.html — CBC Single-Page Lesson Plan          #}
-{# One page: compact font, tight spacing, tick-box evaluation    #}
-{# ============================================================= #}
-
 <style>
-  .lp-wrap {
-    font-family: Arial, sans-serif;
-    font-size: 8.5pt;
-    line-height: 1.25;
-    color: #000;
-  }
-  .lp-wrap table {
-    border-collapse: collapse;
-    width: 100%;
-    margin-bottom: 5px;
-  }
-  .lp-wrap th,
-  .lp-wrap td {
-    border: 1px solid #444;
-    padding: 2px 4px;
-    vertical-align: top;
-  }
-  .lp-wrap th {
-    background-color: #d9e1f2;
-    font-weight: bold;
-    text-align: center;
-  }
-  .lp-wrap .label {
-    font-weight: bold;
-    background-color: #f2f2f2;
-    white-space: nowrap;
-  }
-  .lp-wrap .title-row {
-    text-align: center;
-    font-size: 11pt;
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin-bottom: 4px;
-  }
-  .lp-wrap .school-row {
-    display: flex;
-    justify-content: space-between;
-    font-size: 8.5pt;
-    margin-bottom: 4px;
-  }
-  .lp-wrap .desc-row td {
-    font-style: italic;
-    background-color: #f9f9f9;
-    font-size: 8pt;
-  }
-  .lp-wrap .eval-options {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-  .lp-wrap .eval-options li {
-    margin-bottom: 2px;
-  }
-  .lp-wrap .eval-options li::before {
-    content: "\2610\00a0"; /* ☐ unchecked box */
-    font-size: 10pt;
-  }
-  .lp-wrap .competence-integration {
-    font-style: italic;
-    font-size: 7.8pt;
-    color: #222;
-    margin-top: 3px;
-  }
-  @media print {
-    .lp-wrap { font-size: 8pt; }
-    .lp-wrap th, .lp-wrap td { padding: 2px 3px; }
-  }
+  .lp-wrap { font-family: Arial, sans-serif; font-size: 8.5pt; line-height: 1.25; color: #000; }
+  .lp-wrap table { border-collapse: collapse; width: 100%; margin-bottom: 5px; }
+  .lp-wrap th, .lp-wrap td { border: 1px solid #444; padding: 2px 4px; vertical-align: top; }
+  .lp-wrap th { background-color: #d9e1f2; font-weight: bold; text-align: center; }
+  .lp-wrap .label { font-weight: bold; background-color: #f2f2f2; white-space: nowrap; }
+  .lp-wrap .title-row { text-align: center; font-size: 11pt; font-weight: bold; letter-spacing: 1px; margin-bottom: 4px; }
+  .lp-wrap .school-row { display: flex; justify-content: space-between; font-size: 8.5pt; margin-bottom: 4px; }
+  .lp-wrap .desc-row td { font-style: italic; background-color: #f9f9f9; font-size: 8pt; }
+  .lp-wrap .eval-options { list-style: none; margin: 0; padding: 0; }
+  .lp-wrap .eval-options li { margin-bottom: 2px; }
+  .lp-wrap .eval-options li::before { content: "\2610\00a0"; font-size: 10pt; }
+  .lp-wrap .competence-integration { font-style: italic; font-size: 7.8pt; color: #222; margin-top: 3px; }
 </style>
 
 <div class="lp-wrap">
 
-  <!-- ══════════ TITLE ══════════ -->
-  <div class="title-row">LESSON PLAN</div>
-
-  <!-- ══════════ SCHOOL & TEACHER ══════════ -->
-  <div class="school-row">
-    <span><strong>School Name:</strong> {{ lesson_info.school_name|default_if_none:''|escape }}</span>
-    <span><strong>Teacher's Name:</strong> {{ lesson_info.teacher_name|default_if_none:''|escape }}</span>
+  <div class="title-row">
+    {% if language == "rw" %}GAHUNDA Y'ISOMO
+    {% elif language == "sw" %}MPANGO WA SOMO
+    {% elif language == "fr" %}FICHE DE LEÇON
+    {% else %}LESSON PLAN
+    {% endif %}
   </div>
 
-  <!-- ══════════ HEADER GRID ══════════ -->
+  <div class="school-row">
+    <span><strong>{% if language == "rw" %}Izina ry'ishuri{% elif language == "sw" %}Jina la shule{% elif language == "fr" %}Nom de l'école{% else %}School Name{% endif %}:</strong> {{ lesson_info.school_name|default_if_none:''|escape }}</span>
+    <span><strong>{% if language == "rw" %}Izina ry'umwarimu{% elif language == "sw" %}Jina la mwalimu{% elif language == "fr" %}Nom de l'enseignant{% else %}Teacher's Name{% endif %}:</strong> {{ lesson_info.teacher_name|default_if_none:''|escape }}</span>
+  </div>
+
   <table>
     <tr>
-      <th>Term</th>
-      <th>Date</th>
-      <th>Subject</th>
-      <th>Class</th>
-      <th>Unit No</th>
-      <th>Lesson No</th>
-      <th>Duration</th>
-      <th>Class size</th>
+      <th>{% if language == "rw" %}Igihembwe{% elif language == "sw" %}Muhula{% elif language == "fr" %}Trimestre{% else %}Term{% endif %}</th>
+      <th>{% if language == "rw" %}Itariki{% elif language == "sw" %}Tarehe{% elif language == "fr" %}Date{% else %}Date{% endif %}</th>
+      <th>{% if language == "rw" %}Inyigisho{% elif language == "sw" %}Somo{% elif language == "fr" %}Branche{% else %}Subject{% endif %}</th>
+      <th>{% if language == "rw" %}Umwaka wa{% elif language == "sw" %}Kidato{% elif language == "fr" %}Classe{% else %}Class{% endif %}</th>
+      <th>{% if language == "rw" %}Umutwe wa{% elif language == "sw" %}Mada{% elif language == "fr" %}Contexte{% else %}Unit No{% endif %}</th>
+      <th>{% if language == "rw" %}Isomo rya{% elif language == "sw" %}Idadi ya masomo{% elif language == "fr" %}Leçon Numéro{% else %}Lesson No{% endif %}</th>
+      <th>{% if language == "rw" %}Igihe isomo rimara{% elif language == "sw" %}Muda{% elif language == "fr" %}Durée{% else %}Duration{% endif %}</th>
+      <th>{% if language == "rw" %}Umubare w'abanyeshuri{% elif language == "sw" %}Idadi ya wanafunzi{% elif language == "fr" %}Nombre d'apprenants{% else %}Class size{% endif %}</th>
     </tr>
     <tr>
       <td>{{ lesson_info.term|escape }}</td>
       <td>{{ lesson_info.date|default_if_none:'' }}</td>
       <td>{{ lesson_info.subject|escape }}</td>
       <td>{{ lesson_info.class_name|escape }}</td>
-      <td>Unit {{ unit_info.unit_number }}</td>
-      <td>{{ lesson_number }} of {{ unit_info.total_lessons }}</td>
+      <td>{{ unit_info.unit_number }}</td>
+      <td>{{ lesson_number }} / {{ unit_info.total_lessons }}</td>
       <td>{{ lesson_duration }} min</td>
       <td>{{ lesson_info.class_size }}</td>
     </tr>
   </table>
 
-  <!-- ══════════ LESSON INFO TABLE ══════════ -->
   <table>
-
     <tr>
-      <td class="label" style="width:22%;">Special Educational Needs</td>
-      <td colspan="3">{{ special_needs|default:"No specific special educational needs identified in this class"|escape }}</td>
+      <td class="label" style="width:28%;">{% if language == "rw" %}Abafite ibyo bagenerwa byihariye mu myigire no mu myigishirize n'umubare wabo{% elif language == "sw" %}Aina ya wanafunzi wenye mahitaji maalum ya kielimu{% elif language == "fr" %}Types de besoins particuliers et nombre d'apprenants concernés{% else %}Type of Special Educational Needs to be catered for in this lesson and number of learners in each category{% endif %}</td>
+      <td colspan="3">{{ special_needs|default:"—"|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Unit Title</td>
+      <td class="label">{% if language == "rw" %}Umutwe{% elif language == "sw" %}Mada{% elif language == "fr" %}Contexte{% else %}Unit Title{% endif %}</td>
       <td colspan="3">{{ unit_info.unit_title|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Key Unit Competence</td>
+      <td class="label">{% if language == "rw" %}Ubushobozi bw'ingenzi bugamijwe{% elif language == "sw" %}Uwezo uhitajiwao katika somo{% elif language == "fr" %}Compétence clé{% else %}Key Unit Competence{% endif %}</td>
       <td colspan="3">{{ unit_info.key_unit_competence|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Title of the Lesson</td>
+      <td class="label">{% if language == "rw" %}Isomo{% elif language == "sw" %}Somo lenyewe{% elif language == "fr" %}Titre de la leçon{% else %}Title of the Lesson{% endif %}</td>
       <td colspan="3">{{ lesson_info.lesson_title|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Instructional Objective</td>
+      <td class="label">{% if language == "rw" %}Intego ngenamukoro{% elif language == "sw" %}Malengo ya kujifunza{% elif language == "fr" %}Objectif Opérationnel de la leçon{% else %}Instructional Objective{% endif %}</td>
       <td colspan="3">{{ instructional_objective|default_if_none:''|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Plan for this Class</td>
+      <td class="label">{% if language == "rw" %}Imiterere y'aho isomo ribera{% elif language == "sw" %}Mahali ambapo somo litapofundishiwa{% elif language == "fr" %}Lieu de la leçon{% else %}Plan for this Class (Location){% endif %}</td>
       <td colspan="3">{{ lesson_info.location_plan|default_if_none:''|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">Learning Materials</td>
+      <td class="label">{% if language == "rw" %}Imfashanyigisho{% elif language == "sw" %}Vifaa au zana kwa wanafunzi wote{% elif language == "fr" %}Matériel didactique{% else %}Learning Materials{% endif %}</td>
       <td colspan="3">{{ lesson_info.materials|default_if_none:''|escape }}</td>
     </tr>
-
     <tr>
-      <td class="label">References</td>
+      <td class="label">{% if language == "rw" %}Imyandiko n'ibitabo byifashishijwe{% elif language == "sw" %}Vitabu vya rejea{% elif language == "fr" %}Références{% else %}References{% endif %}</td>
       <td colspan="3">{{ lesson_info.references|default_if_none:''|escape }}</td>
     </tr>
   </table>
 
-  <!-- ══════════ TEACHING & LEARNING ACTIVITIES ══════════ -->
   <table>
-
-    <!-- Header row — lesson description lives here as the subtitle -->
     <tr>
-      <th style="width:14%;" rowspan="3">Timing / Step</th>
-      <th colspan="2">Description of Teaching and Learning Activity</th>
-      <th style="width:28%;" rowspan="3">Generic Competences and How They Are Integrated</th>
+      <th style="width:14%;" rowspan="3">{% if language == "rw" %}Ibice by'isomo + igihe{% elif language == "sw" %}Muda na hatua{% elif language == "fr" %}Etapes de la leçon et durée{% else %}Timing / Step{% endif %}</th>
+      <th colspan="2">{% if language == "rw" %}Gusobanura muri make igikorwa umwarimu n'umunyeshuri basabwa gukora{% elif language == "sw" %}Mbinu za kufundishia na kujifunzia{% elif language == "fr" %}Activités d'enseignement et d'apprentissage{% else %}Description of Teaching and Learning Activity{% endif %}</th>
+      <th style="width:28%;" rowspan="3">{% if language == "rw" %}Ubushobozi n'ingingo nsanganyamasomo{% elif language == "sw" %}Tafakuri tunduizi na maswala mtambuka{% elif language == "fr" %}Compétences génériques et thèmes transversaux{% else %}Generic Competences and Cross Cutting Issues to be addressed + a short explanation{% endif %}</th>
     </tr>
-
-    <!-- Lesson description as sub-header inside the activity table -->
     <tr class="desc-row">
-      <td colspan="2">
-        <strong>Lesson Description:</strong>&nbsp;{{ lesson_description|default_if_none:''|escape }}
-      </td>
+      <td colspan="2"><strong>{% if language == "rw" %}Ibisobanuro by'isomo{% elif language == "sw" %}Maelezo ya somo{% elif language == "fr" %}Description de la leçon{% else %}Lesson Description{% endif %}:</strong>&nbsp;{{ lesson_description|default_if_none:''|escape }}</td>
     </tr>
-
     <tr>
-      <th style="width:29%;">Teacher Activities</th>
-      <th style="width:29%;">Learner Activities</th>
+      <th style="width:29%;">{% if language == "rw" %}Ibikorwa by'umwarimu{% elif language == "sw" %}Wajibu wa mwalimu{% elif language == "fr" %}Activités de l'enseignant{% else %}Teacher Activities{% endif %}</th>
+      <th style="width:29%;">{% if language == "rw" %}Ibikorwa by'umunyeshuri{% elif language == "sw" %}Wajibu wa mwanafunzi{% elif language == "fr" %}Activités des apprenants{% else %}Learner Activities{% endif %}</th>
     </tr>
 
     {% for step in steps %}
     <tr>
-      <td class="label">
-        {{ step.title }}<br/>
-        <span style="font-weight:normal;">{{ step.duration_minutes }} min</span>
-      </td>
+      <td class="label">{{ step.title }}<br/><span style="font-weight:normal;">{{ step.duration_minutes }} min</span></td>
       <td>{{ step.teacher_activity|escape }}</td>
       <td>{{ step.learner_activity|escape }}</td>
       <td>
         <strong>{{ step.competence|default_if_none:''|escape }}</strong>
         {% if step.competence_integration %}
-          <div class="competence-integration">
-            <strong>Integration:</strong> {{ step.competence_integration|escape }}
-          </div>
+          <div class="competence-integration"><strong>{% if language == "rw" %}Uburyo buzagerwaho{% elif language == "sw" %}Ujumuishaji{% elif language == "fr" %}Intégration{% else %}Integration{% endif %}:</strong> {{ step.competence_integration|escape }}</div>
         {% endif %}
       </td>
     </tr>
     {% endfor %}
 
-    <!-- ══ TEACHER SELF-EVALUATION — tick-box options ══ -->
     <tr>
-      <td class="label">Teacher Self-Evaluation</td>
+      <td class="label">{% if language == "rw" %}Kwisuzuma (umurezi){% elif language == "sw" %}Tathmini ya mwalimu{% elif language == "fr" %}Auto évaluation{% else %}Teacher Self-Evaluation{% endif %}</td>
       <td colspan="3">
         <ul class="eval-options">
-          {% for option in self_evaluation_options %}
-            <li>{{ option|escape }}</li>
-          {% endfor %}
+          {% for option in self_evaluation_options %}<li>{{ option|escape }}</li>{% endfor %}
         </ul>
-        {% if lesson_info.self_evaluation %}
-          <div style="margin-top:4px; font-style:italic; font-size:7.8pt;">
-            <strong>Additional notes:</strong> {{ lesson_info.self_evaluation|escape }}
-          </div>
-        {% endif %}
+        {% if lesson_info.self_evaluation %}<div style="margin-top:4px;font-style:italic;font-size:7.8pt;">{{ lesson_info.self_evaluation|escape }}</div>{% endif %}
       </td>
     </tr>
-
   </table>
 
-</div>{# end .lp-wrap #}
+</div>

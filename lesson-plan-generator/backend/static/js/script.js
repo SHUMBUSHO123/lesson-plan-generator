@@ -12,11 +12,12 @@ const lessonForm        = document.getElementById('lessonForm');
 const lessonPlanContent = document.getElementById('lessonPlanContent');
 const resultContainer   = document.getElementById('resultContainer');
 
-const levelSelect   = document.getElementById('level');
-const classSelect   = document.getElementById('className');
-const subjectSelect = document.getElementById('subject');
-const unitSelect    = document.getElementById('unitNo');
-const lessonSelect  = document.getElementById('lessonTitle');
+const levelSelect    = document.getElementById('level');
+const classSelect    = document.getElementById('className');
+const subjectSelect  = document.getElementById('subject');
+const unitSelect     = document.getElementById('unitNo');
+const lessonSelect   = document.getElementById('lessonTitle');
+const languageSelect = document.getElementById('language');   // ← NEW
 
 // ===============================
 // STATE & CACHE
@@ -25,10 +26,20 @@ let accessCache              = null;
 let generateListenerAttached = false;
 
 // ===============================
+// LANGUAGE HELPER
+// Returns the currently selected language code ('en', 'rw', 'sw', 'fr').
+// Defaults to 'en' if the selector is missing.
+// ===============================
+function getLanguage() {                                       // ← NEW
+    return languageSelect?.value || 'en';
+}
+
+// ===============================
 // INIT
 // ===============================
 document.addEventListener("DOMContentLoaded", async () => {
     if (levelSelect) loadLevels();
+    attachLanguageSelector();                                  // ← NEW
     attachGenerateButton();
     attachPayButton();
     attachDownloadButtons();
@@ -49,6 +60,20 @@ document.addEventListener("DOMContentLoaded", async () => {
         updateGenerateButtonStatus(),
     ]);
 });
+
+// ===============================
+// LANGUAGE SELECTOR
+// When teacher changes language:
+//   1. Reset all dependent dropdowns
+//   2. Reload levels filtered by the new language
+// ===============================
+function attachLanguageSelector() {                            // ← NEW
+    if (!languageSelect) return;
+    languageSelect.addEventListener('change', () => {
+        resetBelow('level');
+        loadLevels();
+    });
+}
 
 // ===============================
 // FETCH HELPERS
@@ -94,6 +119,7 @@ async function postData(endpoint, payload = {}) {
 // ===============================
 function buildDownloadPayload() {
     return {
+        language:      getLanguage(),                          // ← NEW — sent to backend
         device_id:     getDeviceId(),
         level:         levelSelect.options[levelSelect.selectedIndex].text,
         class:         classSelect.options[classSelect.selectedIndex].text,
@@ -131,7 +157,8 @@ function resetBelow(level) {
 }
 
 async function loadLevels() {
-    const levels = await fetchData('levels') || [];
+    const lang = getLanguage();                                // ← NEW — pass lang
+    const levels = await fetchData('levels', { lang }) || [];
     levelSelect.innerHTML = `<option value="">Select Level</option>`;
     levels.forEach(l => levelSelect.innerHTML +=
         `<option value="${l.id}">${l.name}</option>`);
@@ -139,6 +166,7 @@ async function loadLevels() {
 
 async function loadClasses(levelId) {
     classSelect.innerHTML = `<option value="">Loading...</option>`;
+    // Class has no language field — level_id filter is enough
     const classes = await fetchData('classes', { level_id: levelId }) || [];
     classSelect.innerHTML = `<option value="">Select Class</option>`;
     classes.forEach(c => classSelect.innerHTML +=
@@ -147,7 +175,8 @@ async function loadClasses(levelId) {
 
 async function loadSubjects(classId) {
     subjectSelect.innerHTML = `<option value="">Loading...</option>`;
-    const subjects = await fetchData('subjects', { class_id: classId }) || [];
+    const lang     = getLanguage();                        // ← ADD THIS
+    const subjects = await fetchData('subjects', { class_id: classId, lang }) || [];
     subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
     subjects.forEach(s => subjectSelect.innerHTML +=
         `<option value="${s.id}">${s.name}</option>`);
@@ -155,7 +184,8 @@ async function loadSubjects(classId) {
 
 async function loadUnits(subjectId) {
     unitSelect.innerHTML = `<option value="">Loading...</option>`;
-    const units = await fetchData('units', { subject_id: subjectId }) || [];
+    const lang  = getLanguage();                               // ← NEW — pass lang
+    const units = await fetchData('units', { subject_id: subjectId, lang }) || [];
     unitSelect.innerHTML = `<option value="">Select Unit</option>`;
     units.forEach(u => unitSelect.innerHTML +=
         `<option value="${u.id}" data-title="${u.title}" data-total="${u.total_lessons}">Unit ${u.number} - ${u.title}</option>`);
@@ -163,7 +193,8 @@ async function loadUnits(subjectId) {
 
 async function loadLessons(unitId) {
     lessonSelect.innerHTML = `<option value="">Loading...</option>`;
-    const lessons = await fetchData('lessons', { unit_id: unitId }) || [];
+    const lang    = getLanguage();                             // ← NEW — pass lang
+    const lessons = await fetchData('lessons', { unit_id: unitId, lang }) || [];
     lessonSelect.innerHTML = `<option value="">Select Lesson</option>`;
     lessons.forEach(l => lessonSelect.innerHTML +=
         `<option value="${l.id}">${l.title}</option>`);
@@ -358,12 +389,17 @@ async function generateLessonPlanFromForm() {
 
             const { ok, data } = await postData('generate_lesson_plan', buildDownloadPayload());
 
-            if (!ok) {
-                if (data.redirect || data.error) {
-                    showPaywallModal();
-                    lessonPlanContent.textContent = '';
-                    return;
-                }
+           if (!ok) {
+               if (data.redirect) {
+                   showPaywallModal();
+                   lessonPlanContent.textContent = '';
+                   return;
+           }
+           if (data.error) {
+                   alert("Server error: " + data.error);
+                   lessonPlanContent.textContent = '';
+                   return;
+               }
             }
 
             lessonPlanContent.innerHTML = data.html;
@@ -425,9 +461,9 @@ function attachDownloadButtons() {
                 const accessData = await checkAccess(true);
 
                 if (accessData.is_premium) {
-                    if (action === 'copy')  copyToWord();
-                    else if (action === 'pdf')  await downloadPDF();
-                    else if (action === 'word') await downloadWord();
+                    if (action === 'copy')       copyToWord();
+                    else if (action === 'pdf')   await downloadPDF();
+                    else if (action === 'word')  await downloadWord();
                 } else {
                     showPaywallModal();
                 }
@@ -460,10 +496,6 @@ function subscribe(plan) {
 
 // ===============================
 // DOWNLOAD — PDF (backend ReportLab)
-// ─────────────────────────────────
-// Posts form data to /api/download_pdf/
-// Server builds a pixel-perfect A4 PDF with ReportLab (pure Python).
-// No html2pdf.js, no browser screenshot, real selectable text.
 // ===============================
 async function downloadPDF() {
     console.log('📑 Requesting PDF from server...');
@@ -501,10 +533,6 @@ async function downloadPDF() {
 
 // ===============================
 // DOWNLOAD — Word (backend python-docx)
-// ──────────────────────────────────────
-// Posts form data to /api/download_word/
-// Server builds a real .docx with python-docx (pure Python, zero system deps).
-// Fully editable in Microsoft Word, LibreOffice, and Google Docs.
 // ===============================
 async function downloadWord() {
     console.log('📝 Requesting Word document from server...');
@@ -542,10 +570,6 @@ async function downloadWord() {
 
 // ===============================
 // DOWNLOAD — Copy to Word (JS clipboard)
-// ────────────────────────────────────────
-// Copies the rendered HTML to clipboard as rich text.
-// User pastes into Word with Ctrl+V — formatting is preserved.
-// Stays JS because clipboard API needs user gesture context.
 // ===============================
 function copyToWord() {
     console.log('📄 Copying to clipboard...');
@@ -585,7 +609,6 @@ function fallbackCopyPlainText(text) {
 
 // ===============================
 // SHARED BLOB DOWNLOAD HELPER
-// Triggers a file download from a Blob — used by PDF and Word.
 // ===============================
 async function triggerBlobDownload(blob, filename) {
     const url = URL.createObjectURL(blob);

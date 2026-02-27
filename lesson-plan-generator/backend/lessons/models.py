@@ -11,18 +11,38 @@ from django.db.models import F
 # Core Models for Lesson Plans
 # -----------------------------
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Language support
+# Added to support Kinyarwanda, Kiswahili, French alongside existing English.
+# Each language has its own seeder that creates rows tagged with its code.
+# Filtering by language at query time returns only that language's curriculum.
+# ─────────────────────────────────────────────────────────────────────────────
+LANGUAGE_CHOICES = [
+    ('en', 'English'),
+    ('rw', 'Kinyarwanda'),
+    ('sw', 'Kiswahili'),
+    ('fr', 'French'),
+]
+
+
 class Level(models.Model):
-    name = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)  # ✅ Soft delete
+    name      = models.CharField(max_length=50)
+    language  = models.CharField(                        # ← NEW
+        max_length=5,
+        choices=LANGUAGE_CHOICES,
+        default='en',
+        help_text="Curriculum language this level belongs to"
+    )
+    is_active = models.BooleanField(default=True)        # ✅ Soft delete
 
     def __str__(self):
-        return self.name
+        return f"[{self.language.upper()}] {self.name}"
 
 
 class Class(models.Model):
-    level = models.ForeignKey(Level, related_name='classes', on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)  # ✅ Soft delete
+    level     = models.ForeignKey(Level, related_name='classes', on_delete=models.CASCADE)
+    name      = models.CharField(max_length=50)
+    is_active = models.BooleanField(default=True)        # ✅ Soft delete
 
     def __str__(self):
         return f"{self.level.name} - {self.name}"
@@ -30,35 +50,47 @@ class Class(models.Model):
 
 class Subject(models.Model):
     class_field = models.ForeignKey(Class, related_name='subjects', on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)  # ✅ Soft delete
+    name        = models.CharField(max_length=50)
+    is_active   = models.BooleanField(default=True)      # ✅ Soft delete
 
     def __str__(self):
         return f"{self.class_field.name} - {self.name}"
 
 
 class Unit(models.Model):
-    subject = models.ForeignKey(Subject, related_name='units', on_delete=models.CASCADE)
-    number = models.PositiveIntegerField()
-    title = models.CharField(max_length=100)
+    subject             = models.ForeignKey(Subject, related_name='units', on_delete=models.CASCADE)
+    number              = models.PositiveIntegerField()
+    title               = models.CharField(max_length=100)
     key_unit_competence = models.TextField()
-    total_lessons = models.PositiveIntegerField(default=0)
-    is_active = models.BooleanField(default=True)  # ✅ Soft delete
+    total_lessons       = models.PositiveIntegerField(default=0)
+    language            = models.CharField(             # ← NEW
+        max_length=5,
+        choices=LANGUAGE_CHOICES,
+        default='en',
+        help_text="Language this unit is written in"
+    )
+    is_active           = models.BooleanField(default=True)  # ✅ Soft delete
 
     def __str__(self):
-        return f"{self.subject.name} - Unit {self.number}: {self.title}"
+        return f"[{self.language.upper()}] {self.subject.name} - Unit {self.number}: {self.title}"
 
 
 class Lesson(models.Model):
-    unit = models.ForeignKey(Unit, related_name='lessons', on_delete=models.CASCADE)
-    number = models.PositiveIntegerField()
-    title = models.TextField()
+    unit       = models.ForeignKey(Unit, related_name='lessons', on_delete=models.CASCADE)
+    number     = models.PositiveIntegerField()
+    title      = models.TextField()
     references = models.TextField(blank=True, null=True)
+    language   = models.CharField(                      # ← NEW
+        max_length=5,
+        choices=LANGUAGE_CHOICES,
+        default='en',
+        help_text="Language this lesson is written in"
+    )
     is_premium = models.BooleanField(default=True)
-    is_active = models.BooleanField(default=True)  # ✅ Soft delete
+    is_active  = models.BooleanField(default=True)      # ✅ Soft delete
 
     def __str__(self):
-        return f"Lesson {self.number}: {self.title}"
+        return f"[{self.language.upper()}] Lesson {self.number}: {self.title}"
 
 
 # -----------------------------
@@ -102,17 +134,17 @@ class UserProfile(models.Model):
     device_id = models.CharField(max_length=255, unique=True, null=True, blank=True)
 
     # Status & Access
-    is_active = models.BooleanField(default=True)
-    is_premium = models.BooleanField(default=False)
+    is_active         = models.BooleanField(default=True)
+    is_premium        = models.BooleanField(default=False)
 
-    can_generate = models.BooleanField(default=True)
-    can_download_pdf = models.BooleanField(default=False)
+    can_generate      = models.BooleanField(default=True)
+    can_download_pdf  = models.BooleanField(default=False)
     can_download_docx = models.BooleanField(default=False)
-    can_copy_word = models.BooleanField(default=False)
+    can_copy_word     = models.BooleanField(default=False)
 
     # Subscription
-    subscription_plan = models.CharField(max_length=20, null=True, blank=True, choices=PLAN_CHOICES)
-    subscription_start = models.DateTimeField(null=True, blank=True)
+    subscription_plan   = models.CharField(max_length=20, null=True, blank=True, choices=PLAN_CHOICES)
+    subscription_start  = models.DateTimeField(null=True, blank=True)
     subscription_expiry = models.DateTimeField(null=True, blank=True)
 
     # Usage Limits
@@ -124,11 +156,11 @@ class UserProfile(models.Model):
     lessons_used = models.PositiveIntegerField(default=0)
 
     # Prefill Data
-    school_name = models.CharField(max_length=255, blank=True, null=True)
+    school_name  = models.CharField(max_length=255, blank=True, null=True)
     teacher_name = models.CharField(max_length=255, blank=True, null=True)
     default_term = models.CharField(max_length=5, blank=True, null=True)
-    class_size = models.PositiveIntegerField(blank=True, null=True)
-    references = models.TextField(blank=True, null=True)
+    class_size   = models.PositiveIntegerField(blank=True, null=True)
+    references   = models.TextField(blank=True, null=True)
 
     # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
@@ -181,29 +213,29 @@ class UserProfile(models.Model):
 
     def expire_subscription_if_needed(self):
         if self.subscription_expiry and timezone.now() > self.subscription_expiry:
-            self.is_premium = False
+            self.is_premium        = False
             self.subscription_plan = None
-            self.lesson_limit = FREE_LESSON_LIMIT
-            self.lessons_used = 0
+            self.lesson_limit      = FREE_LESSON_LIMIT
+            self.lessons_used      = 0
             self.save(update_fields=['is_premium', 'subscription_plan', 'lesson_limit', 'lessons_used'])
 
     def activate_premium(self, plan='weekly', reset_usage=True):
-        self.is_premium = True
-        self.subscription_plan = plan
+        self.is_premium         = True
+        self.subscription_plan  = plan
         self.subscription_start = timezone.now()
         self.subscription_expiry = timezone.now() + timedelta(days=PLAN_DURATIONS.get(plan, 5))
-        self.lesson_limit = SUBSCRIPTION_LIMITS.get(plan)
+        self.lesson_limit       = SUBSCRIPTION_LIMITS.get(plan)
         if reset_usage:
             self.lessons_used = 0
         self.save()
 
     def deactivate_premium(self):
-        self.is_premium = False
-        self.subscription_plan = None
-        self.subscription_start = None
+        self.is_premium          = False
+        self.subscription_plan   = None
+        self.subscription_start  = None
         self.subscription_expiry = None
-        self.lesson_limit = FREE_LESSON_LIMIT
-        self.lessons_used = 0
+        self.lesson_limit        = FREE_LESSON_LIMIT
+        self.lessons_used        = 0
         self.save()
 
     def block_user(self):
@@ -236,10 +268,10 @@ class UserProfile(models.Model):
 # -----------------------------
 class Subscription(models.Model):
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='subscriptions')
-    plan = models.CharField(max_length=20, choices=PLAN_CHOICES)
-    start_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField()
-    active = models.BooleanField(default=True)
+    plan         = models.CharField(max_length=20, choices=PLAN_CHOICES)
+    start_date   = models.DateTimeField(auto_now_add=True)
+    end_date     = models.DateTimeField()
+    active       = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.user_profile} - {self.plan}"
@@ -249,10 +281,10 @@ class Subscription(models.Model):
 # Teaching Strategy Model
 # -----------------------------
 class TeachingStrategy(models.Model):
-    name = models.CharField(max_length=100)
-    description = models.TextField(blank=True, null=True)
+    name            = models.CharField(max_length=100)
+    description     = models.TextField(blank=True, null=True)
     is_premium_only = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
+    is_active       = models.BooleanField(default=True)
 
     def __str__(self):
         return self.name
@@ -262,39 +294,39 @@ class TeachingStrategy(models.Model):
 # Strategy-Based Lesson Steps
 # -----------------------------
 class LessonStrategyStep(models.Model):
-    lesson = models.ForeignKey(
+    lesson   = models.ForeignKey(
         Lesson, on_delete=models.CASCADE, related_name="strategy_steps"
     )
     strategy = models.ForeignKey(
         TeachingStrategy, on_delete=models.CASCADE, related_name="lesson_steps"
     )
 
-    step_order = models.PositiveIntegerField()
-    step_title = models.CharField(max_length=100)
-    duration_minutes = models.PositiveIntegerField(default=10)
+    step_order               = models.PositiveIntegerField()
+    step_title               = models.CharField(max_length=100)
+    duration_minutes         = models.PositiveIntegerField(default=10)
 
-    teacher_activity = models.TextField()
-    learner_activity = models.TextField()
-    generic_competence = models.TextField(blank=True, null=True)
-    competence_integration = models.TextField(
+    teacher_activity         = models.TextField()
+    learner_activity         = models.TextField()
+    generic_competence       = models.TextField(blank=True, null=True)
+    competence_integration   = models.TextField(
         blank=True, null=True,
         help_text="Explains HOW the competence is developed in this specific step"
     )
-    lesson_description = models.TextField(
+    lesson_description       = models.TextField(
         blank=True, null=True,
         help_text="1-2 sentence summary of lesson (only in step 1)"
     )
-    instructional_objective = models.TextField(
+    instructional_objective  = models.TextField(
         blank=True, null=True,
         help_text="Professional ABCD format objective (only in step 1)"
     )
-    cross_cutting_issues = models.TextField(
+    cross_cutting_issues     = models.TextField(
         blank=True, null=True,
         help_text="CBC cross-cutting issues integration (only in step 1)"
     )
 
     class Meta:
-        ordering = ["step_order"]
+        ordering      = ["step_order"]
         unique_together = ["lesson", "strategy", "step_order"]
 
     def __str__(self):
@@ -310,7 +342,7 @@ class GeneratedLessonPlan(models.Model):
     Guests are skipped (no profile.user → no row saved).
     Used by the dashboard panel for history + bulk ZIP download.
     """
-    profile = models.ForeignKey(
+    profile       = models.ForeignKey(
         UserProfile, on_delete=models.CASCADE, related_name='generated_plans'
     )
     subject       = models.CharField(max_length=100, blank=True)
@@ -322,8 +354,8 @@ class GeneratedLessonPlan(models.Model):
     created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ['-created_at']
-        verbose_name = 'Generated Lesson Plan'
+        ordering         = ['-created_at']
+        verbose_name     = 'Generated Lesson Plan'
         verbose_name_plural = 'Generated Lesson Plans'
 
     def __str__(self):
@@ -363,9 +395,9 @@ class ManualPaymentProof(models.Model):
     reviewed_at  = models.DateTimeField(null=True, blank=True)
 
     class Meta:
-        ordering = ['-submitted_at']
-        verbose_name = 'Manual Payment Proof'
-        verbose_name_plural = 'Manual Payment Proofs'
+        ordering             = ['-submitted_at']
+        verbose_name         = 'Manual Payment Proof'
+        verbose_name_plural  = 'Manual Payment Proofs'
 
     def __str__(self):
         return f"{self.full_name} | {self.plan} | {self.status}"
@@ -385,4 +417,21 @@ class ManualPaymentProof(models.Model):
 # To deactivate (soft delete) any record from Django Admin:
 #   → Open the record → Uncheck "Is active" → Save
 #   → Data is preserved; it simply won't appear in filtered queries.
+#
+# =============================================================================
+# ✅ LANGUAGE FILTER — QUERY REFERENCE
+# =============================================================================
+# When fetching curriculum data, always filter by language:
+#
+#   Level.objects.filter(language='en', is_active=True)   # English
+#   Level.objects.filter(language='rw', is_active=True)   # Kinyarwanda
+#   Level.objects.filter(language='sw', is_active=True)   # Kiswahili
+#   Level.objects.filter(language='fr', is_active=True)   # French
+#
+# Unit and Lesson also carry language so you can query either way:
+#   Unit.objects.filter(language='rw', is_active=True)
+#   Lesson.objects.filter(unit=unit, language='rw', is_active=True)
+#
+# Existing English data is safe — default='en' on all new fields means
+# every existing row automatically gets language='en' after migration.
 # =============================================================================

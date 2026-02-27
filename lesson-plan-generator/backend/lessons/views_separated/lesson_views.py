@@ -186,17 +186,20 @@ def generate_lesson_plan(request):
     except PermissionError as e:
         return Response({"error": str(e), "redirect": "/pricing/"}, status=403)
     except Exception as e:
+        import traceback; traceback.print_exc()
         return Response({"error": f"Failed to build context: {str(e)}"}, status=500)
 
     try:
         use_lesson_atomic(profile)
         context['lesson_info']['lessons_used'] = profile.lessons_used
     except Exception as e:
+        import traceback; traceback.print_exc()
         return Response({"error": f"Failed to record lesson usage: {str(e)}"}, status=500)
 
     try:
         html_content = render_to_string("partials/lesson_plan_table.html", context)
     except Exception as e:
+        import traceback; traceback.print_exc()
         return Response({"error": f"Failed to render lesson plan: {str(e)}"}, status=500)
 
     if request.user.is_authenticated:

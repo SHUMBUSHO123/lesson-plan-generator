@@ -8,6 +8,12 @@ One call → one lesson × one strategy × exactly 3 steps = one printable page.
 Exported functions:
   prepare_lesson_plan_context()   – legacy helper (unchanged)
   build_lesson_plan_context()     – SINGLE-PAGE builder (updated)
+
+Language support:
+  Pass 'language' in request_data to get fully translated fallback text.
+  Supported: 'en' (default), 'rw' (Kinyarwanda), 'sw' (Kiswahili), 'fr' (French)
+  DB content (from seeders) is already in the correct language — these
+  fallbacks only fire when no seeded steps exist for a lesson yet.
 """
 
 import random
@@ -16,66 +22,331 @@ from .models import Lesson, Unit, UserProfile, TeachingStrategy, LessonStrategyS
 from datetime import date
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# DYNAMIC INSTRUCTIONAL OBJECTIVE TEMPLATES (5 professional CBC formats)
-# ─────────────────────────────────────────────────────────────────────────────
-#
-# Each template uses {title} as the only placeholder.
-# They rotate randomly so every plan feels freshly written.
-#
-# Format styles:
-#   1 — Concrete/semi-concrete materials (hands-on, STEM-friendly)
-#   2 — Bloom's taxonomy (action verb + condition + measurable criterion)
-#   3 — Full ABCD (Audience · Behaviour · Condition · Degree) — audit-ready
-#   4 — Collaborative / inquiry-based (21st-century skills focus)
-#   5 — Differentiated / inclusive (SEN-aware, strong CBC compliance)
+VALID_LANGUAGES = {'en', 'rw', 'sw', 'fr'}
 
-OBJECTIVE_TEMPLATES = [
-    # 1 — Concrete / semi-concrete
-    (
-        "By using concrete and semi-concrete materials, learners will be able to "
-        "demonstrate understanding of {title}, achieving a minimum accuracy of 80% "
-        "in both practical and written tasks."
-    ),
-    # 2 — Bloom's taxonomy
-    (
-        "Given guided practice and peer discussion, learners will accurately "
-        "explain, apply, and evaluate key concepts of {title}, "
-        "scoring at least 4 out of 5 on formative assessment tasks."
-    ),
-    # 3 — Full ABCD format
-    (
-        "Learners (A) will be able to analyse and solve problems related to {title} (B), "
-        "using classroom resources and teacher-guided worked examples (C), "
-        "with a minimum success rate of 80% on assessed tasks (D)."
-    ),
-    # 4 — Collaborative / inquiry-based
-    (
-        "Through collaborative inquiry and teacher-facilitated activities, "
-        "learners will construct, communicate, and justify their understanding of {title}, "
-        "demonstrating mastery in both written responses and oral presentations."
-    ),
-    # 5 — Differentiated / inclusive
-    (
-        "By the end of this lesson, all learners — including those with special "
-        "educational needs — will be able to identify, describe, and apply "
-        "the core concepts of {title} using appropriately differentiated "
-        "support materials and strategies."
-    ),
-]
+
+def _get_lang(request_data):
+    """Read language from request_data. Defaults to 'en' if missing or invalid."""
+    lang = request_data.get('language', 'en')
+    return lang if lang in VALID_LANGUAGES else 'en'
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DYNAMIC INSTRUCTIONAL OBJECTIVE TEMPLATES
+# One set per language — used ONLY when no seeded step exists.
+# ─────────────────────────────────────────────────────────────────────────────
+
+OBJECTIVE_TEMPLATES = {
+
+    'en': [
+        (
+            "By using concrete and semi-concrete materials, learners will be able to "
+            "demonstrate understanding of {title}, achieving a minimum accuracy of 80% "
+            "in both practical and written tasks."
+        ),
+        (
+            "Given guided practice and peer discussion, learners will accurately "
+            "explain, apply, and evaluate key concepts of {title}, "
+            "scoring at least 4 out of 5 on formative assessment tasks."
+        ),
+        (
+            "Learners (A) will be able to analyse and solve problems related to {title} (B), "
+            "using classroom resources and teacher-guided worked examples (C), "
+            "with a minimum success rate of 80% on assessed tasks (D)."
+        ),
+        (
+            "Through collaborative inquiry and teacher-facilitated activities, "
+            "learners will construct, communicate, and justify their understanding of {title}, "
+            "demonstrating mastery in both written responses and oral presentations."
+        ),
+        (
+            "By the end of this lesson, all learners — including those with special "
+            "educational needs — will be able to identify, describe, and apply "
+            "the core concepts of {title} using appropriately differentiated "
+            "support materials and strategies."
+        ),
+    ],
+
+    'rw': [
+        (
+            "Hakoreshejwe ibikoresho biteye amanga, abanyeshuri bazashobora "
+            "kwerekana ko basobanukiwe {title}, bagera ku kwinshi kwa 80% "
+            "mu bikorwa byose by'amategeko no gukorora."
+        ),
+        (
+            "Binyuze mu gukorana no guterana ibitekerezo, abanyeshuri bazashobora "
+            "gusobanura, gukoresha no gusuzuma ibintu by'ingenzi bya {title}, "
+            "bagera nibura ku manota 4 kuri 5 mu isuzuma."
+        ),
+        (
+            "Abanyeshuri (A) bazashobora gusesengura no gukemura ibibazo bijyanye na {title} (B), "
+            "bakoresheje ibikoresho byo mu ishuri n'ingero ziherekejwe n'umwarimu (C), "
+            "bagera ku kwinshi kwa 80% mu bikorwa byasuzumwe (D)."
+        ),
+        (
+            "Binyuze mu bushakashatsi bwo gukorana n'ibikorwa biherekejwe n'umwarimu, "
+            "abanyeshuri bazubaka, gutangaza no gusobanura ibyumvikana bya {title}, "
+            "berekana ubunararibonye mu gisubizo cyanditse no gutanga ikiganiro."
+        ),
+        (
+            "Parigihembwe cy'isomo, abanyeshuri bose — harimo n'abafite ubumuga bw'icyumweru — "
+            "bazashobora kumenya, gusobanura no gukoresha ibintu by'ingenzi bya {title} "
+            "bakoresheje ibikoresho bihuye n'ubushobozi bwabo."
+        ),
+    ],
+
+    'sw': [
+        (
+            "Kwa kutumia vifaa vya kugusika na nusu-kugusika, wanafunzi wataweza "
+            "kuonyesha uelewa wa {title}, wakifikia usahihi wa chini ya 80% "
+            "katika kazi za vitendo na maandishi."
+        ),
+        (
+            "Kupitia mazoezi ya kuelekeza na majadiliano ya wenzao, wanafunzi wataweza "
+            "kueleza kwa usahihi, kutumia na kutathmini dhana kuu za {title}, "
+            "wakipata angalau alama 4 kati ya 5 katika tathmini."
+        ),
+        (
+            "Wanafunzi (A) wataweza kuchambua na kutatua matatizo yanayohusiana na {title} (B), "
+            "wakitumia rasilimali za darasa na mifano iliyoongozwa na mwalimu (C), "
+            "wakifikia kiwango cha chini cha mafanikio cha 80% (D)."
+        ),
+        (
+            "Kupitia uchunguzi wa ushirikiano na shughuli zinazoongozwa na mwalimu, "
+            "wanafunzi wataunda, kuwasiliana na kuhalalisha uelewa wao wa {title}, "
+            "wakionyesha ustadi katika majibu ya maandishi na uwasilishaji wa mdomo."
+        ),
+        (
+            "Mwishoni mwa somo hili, wanafunzi wote — wakiwemo wenye mahitaji maalum — "
+            "wataweza kutambua, kuelezea na kutumia dhana kuu za {title} "
+            "wakitumia vifaa na mikakati inayofaa."
+        ),
+    ],
+
+    'fr': [
+        (
+            "En utilisant des matériaux concrets et semi-concrets, les apprenants seront "
+            "capables de démontrer leur compréhension de {title}, atteignant une précision "
+            "minimale de 80% dans les tâches pratiques et écrites."
+        ),
+        (
+            "Grâce à la pratique guidée et à la discussion entre pairs, les apprenants "
+            "pourront expliquer, appliquer et évaluer avec précision les concepts clés de {title}, "
+            "obtenant au moins 4 sur 5 aux évaluations formatives."
+        ),
+        (
+            "Les apprenants (A) seront capables d'analyser et de résoudre des problèmes "
+            "liés à {title} (B), en utilisant les ressources de la classe et des exemples "
+            "guidés par l'enseignant (C), avec un taux de réussite minimum de 80% (D)."
+        ),
+        (
+            "À travers une enquête collaborative et des activités facilitées par l'enseignant, "
+            "les apprenants construiront, communiqueront et justifieront leur compréhension "
+            "de {title}, démontrant leur maîtrise dans les réponses écrites et orales."
+        ),
+        (
+            "À la fin de cette leçon, tous les apprenants — y compris ceux ayant des besoins "
+            "éducatifs spéciaux — seront capables d'identifier, de décrire et d'appliquer "
+            "les concepts fondamentaux de {title} à l'aide de supports différenciés."
+        ),
+    ],
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # TEACHER SELF-EVALUATION OPTIONS
-# Rendered as tick-box choices in the template.
+# One set per language.
 # ─────────────────────────────────────────────────────────────────────────────
 
-SELF_EVALUATION_OPTIONS = [
-    "Lesson objective fully achieved — learners demonstrated mastery.",
-    "Lesson objective partially achieved — some learners need follow-up support.",
-    "Lesson needs to be repeated — majority of learners did not meet the objective.",
-    "Lesson pace adjusted — content will continue in the next lesson.",
-]
+SELF_EVALUATION_OPTIONS = {
+
+    'en': [
+        "Lesson objective fully achieved — learners demonstrated mastery.",
+        "Lesson objective partially achieved — some learners need follow-up support.",
+        "Lesson needs to be repeated — majority of learners did not meet the objective.",
+        "Lesson pace adjusted — content will continue in the next lesson.",
+    ],
+
+    'rw': [
+        "Intego y'isomo yagezweho rwose — abanyeshuri berekeje ubunararibonye.",
+        "Intego y'isomo yagezweho agace — abanyeshuri bamwe bakeneye inkunga yongeyeho.",
+        "Isomo rigomba gusubirwamo — abanyeshuri benshi ntibageze ku ntego.",
+        "Igihe cy'isomo cyahinditswe — ibizomara mu isomo rikurikira.",
+    ],
+
+    'sw': [
+        "Lengo la somo limetimizwa kikamilifu — wanafunzi wameonyesha ustadi.",
+        "Lengo la somo limetimizwa kwa sehemu — wanafunzi wengine wanahitaji msaada zaidi.",
+        "Somo linahitaji kurudiwa — wengi wa wanafunzi hawakufikia lengo.",
+        "Kasi ya somo ilirekebishwa — maudhui yataendelea katika somo lijalo.",
+    ],
+
+    'fr': [
+        "Objectif de la leçon pleinement atteint — les apprenants ont démontré leur maîtrise.",
+        "Objectif partiellement atteint — certains apprenants nécessitent un soutien supplémentaire.",
+        "La leçon doit être répétée — la majorité des apprenants n'a pas atteint l'objectif.",
+        "Le rythme de la leçon a été ajusté — le contenu se poursuivra lors de la prochaine leçon.",
+    ],
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FALLBACK STEPS TEXT
+# Used ONLY when no seeded LessonStrategyStep rows exist for a lesson.
+# Organised by language so the entire plan stays in one language.
+# ─────────────────────────────────────────────────────────────────────────────
+
+FALLBACK_STEPS = {
+
+    'en': {
+        'lesson_description': "This lesson explores {title} through guided practice and collaborative learning.",
+        'steps': [
+            {
+                'step_title':             "Introduction",
+                'teacher_activity':       "Introduce the lesson objectives for {title} and activate prior knowledge through structured questioning.",
+                'learner_activity':       "Listen attentively, respond to questions, and share prior knowledge.",
+                'competence':             "Communication and Critical Thinking",
+                'competence_integration': (
+                    "Communication is developed as learners articulate prior knowledge "
+                    "through teacher-led questioning. Critical thinking is activated as "
+                    "learners connect new topics to existing knowledge."
+                ),
+            },
+            {
+                'step_title':             "Development",
+                'teacher_activity':       "Guide learners through key concepts and activities on {title}. Facilitate peer discussion and provide formative feedback.",
+                'learner_activity':       "Participate in guided activities, discuss with peers, and apply concepts to practice tasks.",
+                'competence':             "Critical Thinking, Problem-Solving, and Collaboration",
+                'competence_integration': (
+                    "Critical thinking deepens as learners analyse and break down concepts. "
+                    "Problem-solving is practised through structured application exercises. "
+                    "Collaboration is fostered as learners work in pairs or groups."
+                ),
+            },
+            {
+                'step_title':             "Conclusion",
+                'teacher_activity':       "Summarise key points about {title}, reinforce the unit competence, and assign a brief reflection or homework task.",
+                'learner_activity':       "Reflect on learning, ask remaining questions, and record homework in exercise books.",
+                'competence':             "Self-Regulation and Communication",
+                'competence_integration': (
+                    "Self-regulation is practised as learners reflect on what they have understood. "
+                    "Communication is reinforced as learners articulate key takeaways in their own words."
+                ),
+            },
+        ],
+    },
+
+    'rw': {
+        'lesson_description': "Iri somo risesengura {title} binyuze mu gukorana n'imyitozo yoborwa.",
+        'steps': [
+            {
+                'step_title':             "Intangiriro",
+                'teacher_activity':       "Tangaza intego z'isomo rya {title} kandi ushire imbere ubumenyi bw'ibanze binyuze mu bibazo bifatika.",
+                'learner_activity':       "Umviriza neza, subiza ibibazo, usangire ubumenyi bw'ibanze.",
+                'competence':             "Gutumanahana no Gutekereza neza",
+                'competence_integration': (
+                    "Gutumanahana gushyirwaho ubushobozi bwo kuvuga ibitekerezo binyuze mu bibazo by'umwarimu. "
+                    "Gutekereza neza biragaragazwa iyo abanyeshuri bashamikiye ibintu bishya ku bumenyi bafite."
+                ),
+            },
+            {
+                'step_title':             "Iterambere",
+                'teacher_activity':       "Popoza abanyeshuri mu nzira z'ingenzi n'ibikorwa bya {title}. Shyiraho ibiganiro hagati y'abanyeshuri utange ibitekerezo.",
+                'learner_activity':       "Fata uruhare mu bikorwa byoborwa, ganira n'inshuti, ukore imirimo y'inyigisho.",
+                'competence':             "Gutekereza neza, Gukemura Ibibazo no Gukorana",
+                'competence_integration': (
+                    "Gutekereza neza birashamira iyo abanyeshuri basesengura ibitekerezo. "
+                    "Gukemura ibibazo bikorwa binyuze mu bikorwa bifatika. "
+                    "Gukorana bikomezwa iyo abanyeshuri bakorana mu matsinda."
+                ),
+            },
+            {
+                'step_title':             "Isoza",
+                'teacher_activity':       "Sobanura ingingo z'ingenzi za {title}, komeza ubushobozi bw'inturuka kandi usabe akazi gato k'isubiramwo cyangwa akazi k'imuhira.",
+                'learner_activity':       "Subiramo inyigisho, baza ibibazo bisigaye, andika akazi k'imuhira mu ibitabo by'imyitozo.",
+                'competence':             "Kwigenzura no Gutumanahana",
+                'competence_integration': (
+                    "Kwigenzura bikorwa iyo abanyeshuri basuzumanya ibyo bashoboye gusobanukirwa. "
+                    "Gutumanahana bikomezwa iyo abanyeshuri bavuga ibyo bize mu magambo yabo bwite."
+                ),
+            },
+        ],
+    },
+
+    'sw': {
+        'lesson_description': "Somo hili linachunguza {title} kupitia mazoezi ya kuelekeza na kujifunza kwa ushirikiano.",
+        'steps': [
+            {
+                'step_title':             "Utangulizi",
+                'teacher_activity':       "Wasilisha malengo ya somo la {title} na uamsha maarifa ya awali kupitia maswali yaliyopangwa.",
+                'learner_activity':       "Sikiliza kwa makini, jibu maswali, na shiriki maarifa ya awali.",
+                'competence':             "Mawasiliano na Fikira Makini",
+                'competence_integration': (
+                    "Mawasiliano yanakuzwa wanafunzi wanapoeleza maarifa ya awali kupitia maswali ya mwalimu. "
+                    "Fikira makini inaamshwa wanafunzi wanaounganisha mada mpya na maarifa waliyonayo."
+                ),
+            },
+            {
+                'step_title':             "Maendeleo",
+                'teacher_activity':       "Ongoza wanafunzi kupitia dhana kuu na shughuli za {title}. Wezesha majadiliano ya wenzao na toa maoni ya tathmini.",
+                'learner_activity':       "Shiriki katika shughuli zinazoongozwa, jadili na wenzako, na tumia dhana katika kazi za mazoezi.",
+                'competence':             "Fikira Makini, Kutatua Matatizo na Ushirikiano",
+                'competence_integration': (
+                    "Fikira makini inakua wanafunzi wanapochanganua dhana. "
+                    "Kutatua matatizo kunafanyiwa mazoezi kupitia mazoezi ya vitendo. "
+                    "Ushirikiano unakuzwa wanafunzi wanafanya kazi kwa jozi au makundi."
+                ),
+            },
+            {
+                'step_title':             "Hitimisho",
+                'teacher_activity':       "Fupisha pointi kuu za {title}, imarisha uwezo wa kitengo, na upe kazi fupi ya kutafakari au kazi ya nyumbani.",
+                'learner_activity':       "Tafakari juu ya kujifunza, uliza maswali yaliyobaki, na andika kazi ya nyumbani katika vitabu vya mazoezi.",
+                'competence':             "Kujidhibiti na Mawasiliano",
+                'competence_integration': (
+                    "Kujidhibiti kunafanyiwa mazoezi wanafunzi wanapotafakari wanachokielewa. "
+                    "Mawasiliano yanaimarishwa wanafunzi wanapoeleza mambo waliyojifunza kwa maneno yao wenyewe."
+                ),
+            },
+        ],
+    },
+
+    'fr': {
+        'lesson_description': "Cette leçon explore {title} à travers une pratique guidée et un apprentissage collaboratif.",
+        'steps': [
+            {
+                'step_title':             "Introduction",
+                'teacher_activity':       "Présenter les objectifs de la leçon sur {title} et activer les connaissances antérieures par des questions structurées.",
+                'learner_activity':       "Écouter attentivement, répondre aux questions et partager les connaissances antérieures.",
+                'competence':             "Communication et Pensée Critique",
+                'competence_integration': (
+                    "La communication est développée lorsque les apprenants articulent leurs connaissances antérieures. "
+                    "La pensée critique est activée lorsque les apprenants relient les nouveaux sujets aux connaissances existantes."
+                ),
+            },
+            {
+                'step_title':             "Développement",
+                'teacher_activity':       "Guider les apprenants à travers les concepts clés et les activités sur {title}. Faciliter la discussion entre pairs et fournir des retours formatifs.",
+                'learner_activity':       "Participer aux activités guidées, discuter avec les pairs et appliquer les concepts aux tâches pratiques.",
+                'competence':             "Pensée Critique, Résolution de Problèmes et Collaboration",
+                'competence_integration': (
+                    "La pensée critique s'approfondit lorsque les apprenants analysent les concepts. "
+                    "La résolution de problèmes est pratiquée à travers des exercices d'application structurés. "
+                    "La collaboration est encouragée lorsque les apprenants travaillent en binômes ou en groupes."
+                ),
+            },
+            {
+                'step_title':             "Conclusion",
+                'teacher_activity':       "Résumer les points clés de {title}, renforcer la compétence de l'unité et assigner une brève tâche de réflexion ou des devoirs.",
+                'learner_activity':       "Réfléchir sur les apprentissages, poser les questions restantes et noter les devoirs dans les cahiers d'exercices.",
+                'competence':             "Auto-Régulation et Communication",
+                'competence_integration': (
+                    "L'auto-régulation est pratiquée lorsque les apprenants réfléchissent à ce qu'ils ont compris. "
+                    "La communication est renforcée lorsque les apprenants articulent les points clés avec leurs propres mots."
+                ),
+            },
+        ],
+    },
+}
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -166,32 +437,18 @@ def build_lesson_plan_context(request_data, profile):
     """
     Build a SINGLE-PAGE lesson plan context for one lesson × one strategy.
 
-    One page = one lesson, one strategy, exactly 3 steps:
-        1: Introduction  (≈20 % of duration)
-        2: Development   (≈60 % of duration)
-        3: Conclusion    (≈20 % of duration)
-
-    CBC-complete fields (lesson_description, instructional_objective,
-    cross_cutting_issues) are always populated — from the DB when seeded,
-    or from deterministic fallbacks otherwise.
-
-    Args:
-        request_data  – dict-like (QueryDict or plain dict) from the request
-        profile       – UserProfile instance for the current user/guest
-
-    Returns a flat dict:
-        lesson_info              – school/teacher/class/subject/date/term/refs/etc.
-        unit_info                – unit number, title, key_unit_competence, total_lessons
-        lesson_number            – int
-        lesson_duration          – int (total minutes for the lesson)
-        special_needs            – str
-        lesson_description       – str  (1-2 sentences, from seeded step 1)
-        instructional_objective  – str  (dynamic CBC format, randomly selected)
-        #cross_cutting_issues     – str  (CBC-required, from seeded step 1)
-        steps                    – list of exactly 3 step dicts
-        self_evaluation_options  – list of 4 tick-box strings for teacher evaluation
-        is_single_page           – True  (template flag)
+    Language is read from request_data['language'] (default 'en').
+    All fallback text (objectives, self-evaluation, step activities)
+    is returned in the selected language.
+    DB content from seeders is already in the correct language — fallbacks
+    only fire when no seeded steps exist for a lesson yet.
     """
+
+    # ── 0. Language ───────────────────────────────────────────────────────────
+    lang      = _get_lang(request_data)
+    fallback  = FALLBACK_STEPS[lang]
+    obj_tmpl  = OBJECTIVE_TEMPLATES[lang]
+    eval_opts = SELF_EVALUATION_OPTIONS[lang]
 
     # ── 1. Resolve Lesson & Unit ──────────────────────────────────────────────
     lesson_id = request_data.get("lesson_id")
@@ -200,7 +457,7 @@ def build_lesson_plan_context(request_data, profile):
         raise ValueError("lesson_id is required to build a single-page lesson plan.")
 
     lesson = get_object_or_404(Lesson, id=lesson_id)
-    unit   = lesson.unit          # always follow the FK — never a separate unit_id lookup
+    unit   = lesson.unit
 
     # ── 2. Resolve Teaching Strategy ─────────────────────────────────────────
     strategy_input    = request_data.get("strategy")
@@ -216,7 +473,6 @@ def build_lesson_plan_context(request_data, profile):
                 name__iexact=strategy_input, is_active=True
             ).first()
 
-    # Fallback → first free active strategy (safe for guest/free users)
     if not selected_strategy:
         selected_strategy = (
             TeachingStrategy.objects
@@ -228,7 +484,6 @@ def build_lesson_plan_context(request_data, profile):
     if not selected_strategy:
         raise ValueError("No active teaching strategy found in the database.")
 
-    # Premium gate
     if selected_strategy.is_premium_only and not profile.is_subscription_active():
         raise PermissionError(
             "The selected strategy is available to premium subscribers only."
@@ -260,9 +515,8 @@ def build_lesson_plan_context(request_data, profile):
         "strategy":        selected_strategy.name,
         "location_plan":   request_data.get("location_plan") or "Inside classroom",
         "materials":       request_data.get("materials")     or "Textbook, Chalkboard",
-        # self_evaluation is now handled via self_evaluation_options tick-boxes
-        # kept here for legacy / any custom text the teacher adds after
         "self_evaluation": request_data.get("self_evaluation") or "",
+        "language":        lang,                              # ← stored for template use
     }
 
     # ── 4. unit_info ──────────────────────────────────────────────────────────
@@ -277,28 +531,27 @@ def build_lesson_plan_context(request_data, profile):
     steps                   = []
     lesson_description      = None
     instructional_objective = None
+    title                   = lesson.title
 
     db_steps = (
         LessonStrategyStep.objects
         .filter(lesson=lesson, strategy=selected_strategy)
-        .order_by("step_order")[:3]   # hard-cap at 3 — one page only
+        .order_by("step_order")[:3]
     )
 
     if db_steps.exists():
-        # ── DB path: use seeded content ───────────────────────────────────────
+        # ── DB path: use seeded content (already in correct language) ─────────
         for step in db_steps:
             if step.step_order == 1:
-                # Pull CBC-complete fields from step 1
                 lesson_description = (
                     step.lesson_description
-                    or f"This lesson explores {lesson.title} through structured learning activities."
+                    or fallback['lesson_description'].format(title=title)
                 )
-                # Use seeded objective if available, otherwise pick a dynamic template
                 instructional_objective = (
                     step.instructional_objective
-                    or random.choice(OBJECTIVE_TEMPLATES).format(title=lesson.title)
+                    or random.choice(obj_tmpl).format(title=title)
                 )
-                
+
             steps.append({
                 "title":                  f"{step.step_order}: {step.step_title}",
                 "duration_minutes":       step.duration_minutes,
@@ -312,77 +565,25 @@ def build_lesson_plan_context(request_data, profile):
             })
 
     else:
-        # ── Fallback path: no seeded steps yet ───────────────────────────────
-        title   = lesson.title
+        # ── Fallback path: no seeded steps — use translated fallback text ──────
         dur     = int(request_data.get("duration", 40))
         intro_d = round(dur * 0.20)
         dev_d   = round(dur * 0.60)
         conc_d  = dur - intro_d - dev_d
+        durations = [intro_d, dev_d, conc_d]
 
-        lesson_description = (
-            f"This lesson explores {title} through guided practice and collaborative learning."
-        )
+        lesson_description      = fallback['lesson_description'].format(title=title)
+        instructional_objective = random.choice(obj_tmpl).format(title=title)
 
-        # ── Dynamic instructional objective — randomly pick one of 5 formats ──
-        instructional_objective = random.choice(OBJECTIVE_TEMPLATES).format(title=title)
-        steps = [
-            {
-                "title":                  "1: Introduction",
-                "duration_minutes":       intro_d,
-                "teacher_activity":       (
-                    f"Introduce the lesson objectives for {title} and "
-                    "activate prior knowledge through structured questioning."
-                ),
-                "learner_activity":       (
-                    "Listen attentively, respond to questions, and share prior knowledge."
-                ),
-                "competence":             "Communication and Critical Thinking",
-                "competence_integration": (
-                    "Communication is developed as learners articulate prior knowledge "
-                    "through teacher-led questioning. "
-                    "Critical thinking is activated as learners connect new topics "
-                    "to existing knowledge."
-                ),
-            },
-            {
-                "title":                  "2: Development",
-                "duration_minutes":       dev_d,
-                "teacher_activity":       (
-                    f"Guide learners through key concepts and activities on {title}. "
-                    "Facilitate peer discussion and provide formative feedback."
-                ),
-                "learner_activity":       (
-                    "Participate in guided activities, discuss with peers, "
-                    "and apply concepts to practice tasks."
-                ),
-                "competence":             "Critical Thinking, Problem-Solving, and Collaboration",
-                "competence_integration": (
-                    "Critical thinking deepens as learners analyse and break down concepts. "
-                    "Problem-solving is practised through structured application exercises. "
-                    "Collaboration is fostered as learners work in pairs or groups "
-                    "to complete tasks and share findings."
-                ),
-            },
-            {
-                "title":                  "3: Conclusion",
-                "duration_minutes":       conc_d,
-                "teacher_activity":       (
-                    f"Summarise key points about {title}, reinforce the unit competence, "
-                    "and assign a brief reflection or homework task."
-                ),
-                "learner_activity":       (
-                    "Reflect on learning, ask remaining questions, "
-                    "and record homework in exercise books."
-                ),
-                "competence":             "Self-Regulation and Communication",
-                "competence_integration": (
-                    "Self-regulation is practised as learners reflect on what they have "
-                    "understood and identify areas needing further review. "
-                    "Communication is reinforced as learners articulate key takeaways "
-                    "from the lesson in their own words."
-                ),
-            },
-        ]
+        for i, step_tmpl in enumerate(fallback['steps']):
+            steps.append({
+                "title":                  f"{i + 1}: {step_tmpl['step_title']}",
+                "duration_minutes":       durations[i],
+                "teacher_activity":       step_tmpl['teacher_activity'].format(title=title),
+                "learner_activity":       step_tmpl['learner_activity'],
+                "competence":             step_tmpl['competence'],
+                "competence_integration": step_tmpl['competence_integration'],
+            })
 
     # ── 6. Page-level meta ────────────────────────────────────────────────────
     lesson_number   = request_data.get("lesson_no", lesson.number)
@@ -394,20 +595,15 @@ def build_lesson_plan_context(request_data, profile):
 
     # ── 7. Return single-page context ─────────────────────────────────────────
     return {
-        # Identity / header rows
         "lesson_info":             lesson_info,
         "unit_info":               unit_info,
-        # Page-level scalars
         "lesson_number":           lesson_number,
         "lesson_duration":         lesson_duration,
         "special_needs":           special_needs,
-        # CBC-complete lesson-level fields (always populated)
         "lesson_description":      lesson_description,
         "instructional_objective": instructional_objective,
-        # Exactly 3 step rows → renders as one page
         "steps":                   steps,
-        # 4 tick-box options for teacher self-evaluation
-        "self_evaluation_options": SELF_EVALUATION_OPTIONS,
-        # Convenience flag for template conditionals
+        "self_evaluation_options": eval_opts,
         "is_single_page":          True,
+        "language":                lang,           # ← available to template & PDF/DOCX builders
     }
