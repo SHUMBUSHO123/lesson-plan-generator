@@ -7,7 +7,6 @@
 
     <!-- ═══════════════════════════════════════════════════════════
          PRIMARY SEO META TAGS
-         These are read by Google and as fallback by social platforms
     ════════════════════════════════════════════════════════════════ -->
     <title>CBC Lesson Plan Generator – Save 3+ Hours Per Week</title>
     <meta name="description" content="Create professional CBC lesson plans in seconds. Curriculum-aligned, structured, and ready to download. Trusted by Kenyan teachers." />
@@ -15,7 +14,7 @@
     <meta name="author" content="IsomoPlus" />
 
     <!-- ═══════════════════════════════════════════════════════════
-         OPEN GRAPH TAGS — WhatsApp, Facebook, LinkedIn, Telegram
+         OPEN GRAPH TAGS
     ════════════════════════════════════════════════════════════════ -->
     <meta property="og:type"        content="website" />
     <meta property="og:site_name"   content="CBC Lesson Generator" />
@@ -55,12 +54,101 @@
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
     <!-- ═══════════════════════════════════════════════════════════
-         SCRIPTS (deferred so they don't block page render)
+         SCRIPTS
     ════════════════════════════════════════════════════════════════ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" defer></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.2/docx.min.js" defer></script>
     <script src="{% static 'js/script.js' %}" defer></script>
     <script src="{% static 'js/installPrompt.js' %}" defer></script>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ENHANCED FIELD STYLES — combo widgets, edit toggles
+    ════════════════════════════════════════════════════════════════ -->
+    <style>
+        /* ── Editable override fields (Class, Unit No) ── */
+        .editable-override {
+            width: 100%;
+            padding: 8px 10px;
+            border: 2px dashed #4CAF50;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: #f9fff9;
+            box-sizing: border-box;
+        }
+        .edit-toggle-label {
+            display: inline-block;
+            margin-top: 4px;
+            font-size: 0.78rem;
+            color: #4CAF50;
+            cursor: pointer;
+            user-select: none;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        .edit-toggle-label:hover { text-decoration: underline; }
+        .field-editable-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: #4CAF50;
+            background: #e8f5e9;
+            border-radius: 4px;
+            padding: 1px 6px;
+            margin-left: 6px;
+            vertical-align: middle;
+            letter-spacing: 0.02em;
+        }
+        /* ── Combo select + count row ── */
+        .combo-field-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 6px;
+        }
+        .combo-select {
+            flex: 1 1 260px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: #fff;
+        }
+        .combo-count-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+        .count-label {
+            font-size: 0.82rem;
+            color: #555;
+            white-space: nowrap;
+        }
+        .combo-count {
+            width: 64px;
+            padding: 7px 8px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .combo-text {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            background: #fafafa;
+            box-sizing: border-box;
+        }
+        .combo-text:focus, .combo-select:focus, .combo-count:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 2px rgba(76,175,80,0.15);
+        }
+        /* ── Ref select sits above its text input ── */
+        #refGroup .combo-select { width: 100%; flex: none; margin-bottom: 6px; }
+    </style>
 </head>
 
 <body data-device-id="{{ request.user.userprofile.device_id|default:'' }}">
@@ -69,13 +157,781 @@
     window.userDeviceId = document.body.dataset.deviceId || null;
 </script>
 
+<!-- ═══════════════════════════════════════════════════════════
+     UI TRANSLATION STRINGS
+     All hardcoded UI text lives here — keyed by language code.
+     Add new strings here; reference them via uiT('key') in JS.
+════════════════════════════════════════════════════════════════ -->
+<script>
+window.UI_STRINGS = {
+    en: {
+        // Navbar
+        nav_brand:          "CBC Lesson Plan Generator",
+        nav_hello:          "Hello",
+        nav_logout:         "Logout",
+        nav_login:          "Login",
+        nav_register:       "Register",
+        // Dashboard
+        dash_title:         "📊 My Dashboard",
+        dash_plans_generated:"Plans Generated",
+        dash_of_total:      "of {n} total",
+        dash_remaining:     "Remaining",
+        dash_lessons_left:  "lessons left",
+        dash_subscription:  "Subscription",
+        dash_download_access:"Download Access",
+        dash_upgrade_hint:  "",
+        dash_recent_title:  "📋 Recent Lesson Plans",
+        dash_select_all:    "☑ Select All",
+        dash_download_zip:  "🗜 Download ZIP",
+        dash_empty:         "No lesson plans generated yet.",
+        dash_empty_sub:     "Fill in the form below and click Generate Lesson Plan to get started!",
+        dash_loading:       "Loading your plans…",
+        dash_th_subject:    "Subject",
+        dash_th_title:      "Lesson Title",
+        dash_th_class:      "Class",
+        dash_th_term:       "Term",
+        dash_th_generated:  "Generated",
+        dash_guest_checking:"Checking usage…",
+        dash_upgrade_link:  "Upgrade for unlimited →",
+        // Form
+        form_heading:       "🎯 CBC Lesson Plan Generator – Teach Smarter, Not Harder! 📝🚀",
+        form_subheading:    "Fill in the mandatory fields below to generate a complete lesson plan.",
+        lbl_school:         "School Name",
+        lbl_teacher:        "Teacher's Name",
+        lbl_term:           "Term",
+        lbl_date:           "Date",
+        lbl_language:       "Language / Langue / Lugha / Ururimi",
+        lbl_level:          "Level",
+        lbl_class:          "Class",
+        lbl_subject:        "Subject",
+        lbl_unit_no:        "Unit No",
+        lbl_lesson_no:      "Lesson No",
+        lbl_total_lessons:  "Total Lessons",
+        lbl_duration:       "Duration (minutes)",
+        lbl_class_size:     "Class Size",
+        lbl_unit_title:     "Unit Title",
+        lbl_lesson_title:   "Lesson Title",
+        lbl_special_needs:  "Type of Special Educational Needs to be catered for in this lesson and number of learners in each category",
+        lbl_references:     "References",
+        lbl_location:       "Plan for this Class (Location)",
+        lbl_materials:      "Learning Materials (Select all that apply)",
+        lbl_strategy:       "Teaching Strategy",
+        // Editable class / unit fields
+        ph_class_edit:      "Type or edit class name…",
+        ph_unit_no_edit:    "Type or edit unit number…",
+        ph_unit_title_edit: "Type or edit unit title…",
+        lbl_edit_hint:      "✏ editable",
+        // Special Needs dropdown
+        sen_select:         "-- Select SEN category (optional) --",
+        sen_none:           "None identified",
+        sen_visual:         "Visual impairment",
+        sen_hearing:        "Hearing impairment",
+        sen_physical:       "Physical disability",
+        sen_learning:       "Learning difficulties",
+        sen_speech:         "Speech / language disorder",
+        sen_gifted:         "Gifted & talented",
+        sen_custom:         "Other (type below)…",
+        ph_sen_edit:        "Describe SEN or edit selected…",
+        lbl_learners_count: "No. of learners:",
+        // References dropdown
+        ref_select:         "-- Select reference type (optional) --",
+        ref_student_book:   "Student Book",
+        ref_teacher_guide:  "Teacher's Guide",
+        ref_curriculum:     "REB Curriculum Framework",
+        ref_internet:       "Internet resources",
+        ref_newspaper:      "Newspapers / magazines",
+        ref_library:        "Library books",
+        ref_custom:         "Other (type below)…",
+        ph_ref_edit:        "Type or edit reference details…",
+        // Location options
+        loc_inside:         "Inside classroom",
+        loc_outside:        "Outside classroom",
+        loc_computer_lab:   "Computer laboratory",
+        loc_field:          "Field work",
+        loc_library:        "Library",
+        loc_select:         "-- Select Location --",
+        // Materials
+        mat_textbook:       "Textbook",
+        mat_chalkboard:     "Chalkboard",
+        mat_projector:      "Projector",
+        mat_computer:       "Computer",
+        mat_charts:         "Charts",
+        mat_lab_eq:         "Laboratory equipment",
+        // Strategy options
+        str_select:         "Select Strategy",
+        str_discussion:     "Discussion",
+        str_group:          "Group Work",
+        str_demo:           "Demonstration",
+        str_hands_on:       "Hands-on Activity",
+        str_role:           "Role Play",
+        str_project:        "Project-Based",
+        str_peer:           "Peer Teaching",
+        str_quiz:           "Quiz/Test",
+        str_lecture:        "Lecture",
+        str_flipped:        "Flipped Classroom",
+        // Term options
+        term_select:        "Select Term",
+        term_i:             "Term I",
+        term_ii:            "Term II",
+        term_iii:           "Term III",
+        // Buttons
+        btn_generate:       "✨ Generate Lesson Plan",
+        btn_copy:           "📄 Copy to Word",
+        btn_pdf:            "📑 Download PDF",
+        btn_docx:           "📝 Download DOCX",
+        btn_install:        "Install App",
+        // Modal
+        modal_upgrade:      "🔒 Upgrade to Continue",
+        modal_choose_sub:   "Choose Your Subscription",
+        modal_unlock:       "Unlock premium lesson plan features",
+        modal_weekly:       "Weekly",
+        modal_monthly:      "Monthly",
+        modal_term:         "Term",
+        modal_per_week:     "per week",
+        modal_per_month:    "per month",
+        modal_per_term:     "per term",
+        modal_weekly_btn:   "Choose Weekly",
+        modal_monthly_btn:  "Choose Monthly",
+        modal_term_btn:     "Choose Term",
+        modal_support:      "24/7 Support",
+        // Footer
+        footer:             "© IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.",
+    },
+
+    rw: {
+        // Navbar
+        nav_brand:          "Inzira y'Igishushanyo cy'Isomo (CBC)",
+        nav_hello:          "Muraho",
+        nav_logout:         "Sohoka",
+        nav_login:          "Injira",
+        nav_register:       "Iyandikishe",
+        // Dashboard
+        dash_title:         "📊 Imbonerahamwe yanjye",
+        dash_plans_generated:"Gahunda Zikozwe",
+        dash_of_total:      "kuri {n} byose",
+        dash_remaining:     "Bisigaye",
+        dash_lessons_left:  "amasomo asigaye",
+        dash_subscription:  "Kwiyandikisha",
+        dash_download_access:"Uburenganzira bwo Gukurura",
+        dash_upgrade_hint:  "",
+        dash_recent_title:  "📋 Gahunda z'Amasomo za Vuba",
+        dash_select_all:    "☑ Hitamo Byose",
+        dash_download_zip:  "🗜 Kurura ZIP",
+        dash_empty:         "Nta gahunda y'isomo yakozwe.",
+        dash_empty_sub:     "Uzuza ifishi hasi uhite ukanda Kora Gahunda y'Isomo kugira ngo utangire!",
+        dash_loading:       "Turimo gushakisha gahunda zawe…",
+        dash_th_subject:    "Isomo",
+        dash_th_title:      "Umutwe w'Isomo",
+        dash_th_class:      "Ishuri",
+        dash_th_term:       "Igihembwe",
+        dash_th_generated:  "Yakozwe",
+        dash_guest_checking:"Turimo kugenzura ikoreshwa…",
+        dash_upgrade_link:  "Ungura kugira ngo ubone byinshi →",
+        // Form
+        form_heading:       "🎯 Inzira y'Igishushanyo cy'Isomo – Igisha Neza! 📝🚀",
+        form_subheading:    "Uzuza ibibazo ngombwa hasi kugira ngo ubone igishushanyo cy'isomo guzuye.",
+        lbl_school:         "Izina ry'Ishuri",
+        lbl_teacher:        "Izina ry'Umwarimu",
+        lbl_term:           "Igihembwe",
+        lbl_date:           "Itariki",
+        lbl_language:       "Ururimi / Language / Langue / Lugha",
+        lbl_level:          "Urwego",
+        lbl_class:          "Ishuri",
+        lbl_subject:        "Isomo",
+        lbl_unit_no:        "Inomero y'Umutwe",
+        lbl_lesson_no:      "Inomero y'Isomo",
+        lbl_total_lessons:  "Amasomo Yose",
+        lbl_duration:       "Igihe (iminota)",
+        lbl_class_size:     "Umubare w'Abanyeshuri",
+        lbl_unit_title:     "Umutwe",
+        lbl_lesson_title:   "Isomo",
+        lbl_special_needs:  "Ubwoko bw'ibyo abafite ubumuga bakeneye mu isomo n'umubare wabo",
+        lbl_references:     "Imyandiko yifashishijwe",
+        lbl_location:       "Aho Isomo Ribera (Ahantu)",
+        lbl_materials:      "Imfashanyigisho (Hitamo byose bisobanuye)",
+        lbl_strategy:       "Uburyo bw'Inyigisho",
+        // Editable class / unit fields
+        ph_class_edit:      "Andika cyangwa hindura izina ry'ishuri…",
+        ph_unit_no_edit:    "Andika cyangwa hindura inomero y'umutwe…",
+        ph_unit_title_edit: "Andika cyangwa hindura umutwe…",
+        lbl_edit_hint:      "✏ hindura",
+        // Special Needs dropdown
+        sen_select:         "-- Hitamo ubwoko bw'ubumuga (ntabazo) --",
+        sen_none:           "Nta bwoko bw'ubumuga bwashinzwe",
+        sen_visual:         "Ubumuga bw'amaso",
+        sen_hearing:        "Ubumuga bw'ugutunga",
+        sen_physical:       "Ubumuga bw'umubiri",
+        sen_learning:       "Ingorane zo kwiga",
+        sen_speech:         "Ingorane zo kuvuga",
+        sen_gifted:         "Abanyeshuri bafite ingufu zirengeye",
+        sen_custom:         "Ibindi (andika hepfo)…",
+        ph_sen_edit:        "Sobanura ubwoko bw'ubumuga cyangwa hindura…",
+        lbl_learners_count: "Umubare w'abanyeshuri:",
+        // References dropdown
+        ref_select:         "-- Hitamo ubwoko bw'imyandiko (ntabazo) --",
+        ref_student_book:   "Igitabo cy'umunyeshuri",
+        ref_teacher_guide:  "Inyongeramanota y'Umwarimu",
+        ref_curriculum:     "Gahunda ya REB",
+        ref_internet:       "Inyigisho zo kuri interineti",
+        ref_newspaper:      "Inyandiko / Ibitangazamakuru",
+        ref_library:        "Ibitabo bya bibliotheque",
+        ref_custom:         "Ibindi (andika hepfo)…",
+        ph_ref_edit:        "Andika cyangwa hindura imyandiko yifashishijwe…",
+        // Location options
+        loc_select:         "-- Hitamo Ahantu --",
+        loc_inside:         "Mu ishuri",
+        loc_outside:        "Hanze y'ishuri",
+        loc_computer_lab:   "Labo ya mudasobwa",
+        loc_field:          "Gukorera hanze",
+        loc_library:        "Bibliotheque",
+        // Materials
+        mat_textbook:       "Igitabo cy'umunyeshuri",
+        mat_chalkboard:     "Ikirahuri",
+        mat_projector:      "Projector",
+        mat_computer:       "Mudasobwa",
+        mat_charts:         "Amashusho",
+        mat_lab_eq:         "Ibikoresho bya labo",
+        // Strategy options
+        str_select:         "Hitamo Uburyo",
+        str_discussion:     "Ibiganiro",
+        str_group:          "Akazi k'Itsinda",
+        str_demo:           "Gusobanura ukoresheje ingero",
+        str_hands_on:       "Ibikorwa bifatika",
+        str_role:           "Gukina Imikino",
+        str_project:        "Gushingiye ku Mushinga",
+        str_peer:           "Kwigishanya",
+        str_quiz:           "Ikizamini",
+        str_lecture:        "Gutanga Inyigisho",
+        str_flipped:        "Ishuri rihinduye urutonde",
+        // Term options
+        term_select:        "Hitamo Igihembwe",
+        term_i:             "Igihembwe I",
+        term_ii:            "Igihembwe II",
+        term_iii:           "Igihembwe III",
+        // Buttons
+        btn_generate:       "✨ Kora Gahunda y'Isomo",
+        btn_copy:           "📄 Kopi kuri Word",
+        btn_pdf:            "📑 Kurura PDF",
+        btn_docx:           "📝 Kurura DOCX",
+        btn_install:        "Shyira Porogaramu",
+        // Modal
+        modal_upgrade:      "🔒 Ungura kugira ngo ukomeze",
+        modal_choose_sub:   "Hitamo Kwiyandikisha Kwawe",
+        modal_unlock:       "Fungura ibikorwa by'imisoro by'igishushanyo cy'isomo",
+        modal_weekly:       "Buri Cyumweru",
+        modal_monthly:      "Buri Kwezi",
+        modal_term:         "Igihembwe",
+        modal_per_week:     "buri cyumweru",
+        modal_per_month:    "buri kwezi",
+        modal_per_term:     "buri gihembwe",
+        modal_weekly_btn:   "Hitamo Buri Cyumweru",
+        modal_monthly_btn:  "Hitamo Buri Kwezi",
+        modal_term_btn:     "Hitamo Igihembwe",
+        modal_support:      "Inkunga 24/7",
+        // Footer
+        footer:             "© IsomoPlus 2026 Inzira y'Igishushanyo cy'Isomo (CBC). Uburenganzira bwose burabitswe.",
+    },
+
+    sw: {
+        // Navbar
+        nav_brand:          "Kizalishi cha Mpango wa Somo CBC",
+        nav_hello:          "Habari",
+        nav_logout:         "Toka",
+        nav_login:          "Ingia",
+        nav_register:       "Jisajili",
+        // Dashboard
+        dash_title:         "📊 Dashibodi Yangu",
+        dash_plans_generated:"Mipango Iliyoundwa",
+        dash_of_total:      "kati ya {n} yote",
+        dash_remaining:     "Iliyobaki",
+        dash_lessons_left:  "masomo yaliyobaki",
+        dash_subscription:  "Usajili",
+        dash_download_access:"Ufikiaji wa Kupakua",
+        dash_upgrade_hint:  "",
+        dash_recent_title:  "📋 Mipango ya Hivi Karibuni",
+        dash_select_all:    "☑ Chagua Zote",
+        dash_download_zip:  "🗜 Pakua ZIP",
+        dash_empty:         "Hakuna mipango ya somo iliyoundwa bado.",
+        dash_empty_sub:     "Jaza fomu hapa chini na ubofye Tengeneza Mpango wa Somo kuanza!",
+        dash_loading:       "Inapakia mipango yako…",
+        dash_th_subject:    "Somo",
+        dash_th_title:      "Kichwa cha Somo",
+        dash_th_class:      "Darasa",
+        dash_th_term:       "Muhula",
+        dash_th_generated:  "Iliundwa",
+        dash_guest_checking:"Inakagua matumizi…",
+        dash_upgrade_link:  "Boresha kwa bila kikomo →",
+        // Form
+        form_heading:       "🎯 Kizalishi cha Mpango wa Somo CBC – Fundisha Vizuri! 📝🚀",
+        form_subheading:    "Jaza sehemu za lazima hapa chini kuzalisha mpango kamili wa somo.",
+        lbl_school:         "Jina la Shule",
+        lbl_teacher:        "Jina la Mwalimu",
+        lbl_term:           "Muhula",
+        lbl_date:           "Tarehe",
+        lbl_language:       "Lugha / Language / Langue / Ururimi",
+        lbl_level:          "Kiwango",
+        lbl_class:          "Darasa",
+        lbl_subject:        "Somo",
+        lbl_unit_no:        "Nambari ya Kitengo",
+        lbl_lesson_no:      "Nambari ya Somo",
+        lbl_total_lessons:  "Masomo Yote",
+        lbl_duration:       "Muda (dakika)",
+        lbl_class_size:     "Idadi ya Wanafunzi",
+        lbl_unit_title:     "Kichwa cha Kitengo",
+        lbl_lesson_title:   "Kichwa cha Somo",
+        lbl_special_needs:  "Aina ya Mahitaji Maalum ya Elimu na idadi ya wanafunzi katika kila kategoria",
+        lbl_references:     "Marejeo",
+        lbl_location:       "Mpango wa Darasa (Mahali)",
+        lbl_materials:      "Vifaa vya Kujifunza (Chagua vyote vinavyotumika)",
+        lbl_strategy:       "Mkakati wa Ufundishaji",
+        // Editable class / unit fields
+        ph_class_edit:      "Andika au hariri jina la darasa…",
+        ph_unit_no_edit:    "Andika au hariri nambari ya kitengo…",
+        ph_unit_title_edit: "Andika au hariri kichwa cha kitengo…",
+        lbl_edit_hint:      "✏ hariri",
+        // Special Needs dropdown
+        sen_select:         "-- Chagua aina ya mahitaji (si lazima) --",
+        sen_none:           "Hakuna mahitaji yaliyotambuliwa",
+        sen_visual:         "Ulemavu wa macho",
+        sen_hearing:        "Ulemavu wa kusikia",
+        sen_physical:       "Ulemavu wa mwili",
+        sen_learning:       "Ugumu wa kujifunza",
+        sen_speech:         "Tatizo la usemi",
+        sen_gifted:         "Wenye vipawa na talanta",
+        sen_custom:         "Nyingine (andika hapa chini)…",
+        ph_sen_edit:        "Elezea mahitaji au hariri…",
+        lbl_learners_count: "Idadi ya wanafunzi:",
+        // References dropdown
+        ref_select:         "-- Chagua aina ya marejeo (si lazima) --",
+        ref_student_book:   "Kitabu cha mwanafunzi",
+        ref_teacher_guide:  "Mwongozo wa Mwalimu",
+        ref_curriculum:     "Mtaala wa REB",
+        ref_internet:       "Rasilimali za mtandao",
+        ref_newspaper:      "Magazeti / majarida",
+        ref_library:        "Vitabu vya maktaba",
+        ref_custom:         "Nyingine (andika hapa chini)…",
+        ph_ref_edit:        "Andika au hariri maelezo ya marejeo…",
+        // Location options
+        loc_select:         "-- Chagua Mahali --",
+        loc_inside:         "Ndani ya darasa",
+        loc_outside:        "Nje ya darasa",
+        loc_computer_lab:   "Maabara ya kompyuta",
+        loc_field:          "Kazi ya shambani",
+        loc_library:        "Maktaba",
+        // Materials
+        mat_textbook:       "Kitabu cha kiada",
+        mat_chalkboard:     "Ubao wa chaki",
+        mat_projector:      "Projekta",
+        mat_computer:       "Kompyuta",
+        mat_charts:         "Chati",
+        mat_lab_eq:         "Vifaa vya maabara",
+        // Strategy options
+        str_select:         "Chagua Mkakati",
+        str_discussion:     "Majadiliano",
+        str_group:          "Kazi ya Kikundi",
+        str_demo:           "Maonyesho",
+        str_hands_on:       "Shughuli za Vitendo",
+        str_role:           "Mchezo wa Majukumu",
+        str_project:        "Msingi wa Mradi",
+        str_peer:           "Kufundishana",
+        str_quiz:           "Maswali/Mtihani",
+        str_lecture:        "Mihadhara",
+        str_flipped:        "Darasa Lililogeuzwa",
+        // Term options
+        term_select:        "Chagua Muhula",
+        term_i:             "Muhula I",
+        term_ii:            "Muhula II",
+        term_iii:           "Muhula III",
+        // Buttons
+        btn_generate:       "✨ Tengeneza Mpango wa Somo",
+        btn_copy:           "📄 Nakili kwa Word",
+        btn_pdf:            "📑 Pakua PDF",
+        btn_docx:           "📝 Pakua DOCX",
+        btn_install:        "Sakinisha Programu",
+        // Modal
+        modal_upgrade:      "🔒 Boresha Kuendelea",
+        modal_choose_sub:   "Chagua Usajili Wako",
+        modal_unlock:       "Fungua vipengele vya mpango wa somo wa premium",
+        modal_weekly:       "Kila Wiki",
+        modal_monthly:      "Kila Mwezi",
+        modal_term:         "Muhula",
+        modal_per_week:     "kwa wiki",
+        modal_per_month:    "kwa mwezi",
+        modal_per_term:     "kwa muhula",
+        modal_weekly_btn:   "Chagua Kila Wiki",
+        modal_monthly_btn:  "Chagua Kila Mwezi",
+        modal_term_btn:     "Chagua Muhula",
+        modal_support:      "Msaada 24/7",
+        // Footer
+        footer:             "© IsomoPlus 2026 Kizalishi cha Mpango wa Somo CBC. Haki zote zimehifadhiwa.",
+    },
+
+    fr: {
+        // Navbar
+        nav_brand:          "Générateur de Plans de Cours CBC",
+        nav_hello:          "Bonjour",
+        nav_logout:         "Déconnexion",
+        nav_login:          "Connexion",
+        nav_register:       "S'inscrire",
+        // Dashboard
+        dash_title:         "📊 Mon Tableau de Bord",
+        dash_plans_generated:"Plans Générés",
+        dash_of_total:      "sur {n} au total",
+        dash_remaining:     "Restants",
+        dash_lessons_left:  "leçons restantes",
+        dash_subscription:  "Abonnement",
+        dash_download_access:"Accès au Téléchargement",
+        dash_upgrade_hint:  "",
+        dash_recent_title:  "📋 Plans de Cours Récents",
+        dash_select_all:    "☑ Tout Sélectionner",
+        dash_download_zip:  "🗜 Télécharger ZIP",
+        dash_empty:         "Aucun plan de cours généré pour l'instant.",
+        dash_empty_sub:     "Remplissez le formulaire ci-dessous et cliquez sur Générer un Plan de Cours pour commencer !",
+        dash_loading:       "Chargement de vos plans…",
+        dash_th_subject:    "Matière",
+        dash_th_title:      "Titre de la Leçon",
+        dash_th_class:      "Classe",
+        dash_th_term:       "Trimestre",
+        dash_th_generated:  "Généré le",
+        dash_guest_checking:"Vérification de l'utilisation…",
+        dash_upgrade_link:  "Passer à illimité →",
+        // Form
+        form_heading:       "🎯 Générateur de Plans de Cours CBC – Enseignez Mieux ! 📝🚀",
+        form_subheading:    "Remplissez les champs obligatoires ci-dessous pour générer un plan de cours complet.",
+        lbl_school:         "Nom de l'École",
+        lbl_teacher:        "Nom de l'Enseignant",
+        lbl_term:           "Trimestre",
+        lbl_date:           "Date",
+        lbl_language:       "Langue / Language / Lugha / Ururimi",
+        lbl_level:          "Niveau",
+        lbl_class:          "Classe",
+        lbl_subject:        "Matière",
+        lbl_unit_no:        "N° de l'Unité",
+        lbl_lesson_no:      "N° de la Leçon",
+        lbl_total_lessons:  "Total des Leçons",
+        lbl_duration:       "Durée (minutes)",
+        lbl_class_size:     "Effectif de la Classe",
+        lbl_unit_title:     "Titre de l'Unité",
+        lbl_lesson_title:   "Titre de la Leçon",
+        lbl_special_needs:  "Type de Besoins Éducatifs Spéciaux à prendre en compte dans cette leçon et nombre d'apprenants dans chaque catégorie",
+        lbl_references:     "Références",
+        lbl_location:       "Plan pour cette Classe (Lieu)",
+        lbl_materials:      "Matériel Pédagogique (Sélectionnez tout ce qui s'applique)",
+        lbl_strategy:       "Stratégie d'Enseignement",
+        // Editable class / unit fields
+        ph_class_edit:      "Saisir ou modifier le nom de la classe…",
+        ph_unit_no_edit:    "Saisir ou modifier le numéro de l'unité…",
+        ph_unit_title_edit: "Saisir ou modifier le titre de l'unité…",
+        lbl_edit_hint:      "✏ modifiable",
+        // Special Needs dropdown
+        sen_select:         "-- Sélectionner la catégorie BEP (optionnel) --",
+        sen_none:           "Aucun besoin identifié",
+        sen_visual:         "Déficience visuelle",
+        sen_hearing:        "Déficience auditive",
+        sen_physical:       "Handicap physique",
+        sen_learning:       "Difficultés d'apprentissage",
+        sen_speech:         "Trouble du langage",
+        sen_gifted:         "Surdoués & talentueux",
+        sen_custom:         "Autre (saisir ci-dessous)…",
+        ph_sen_edit:        "Décrire les BEP ou modifier la sélection…",
+        lbl_learners_count: "Nombre d'apprenants :",
+        // References dropdown
+        ref_select:         "-- Sélectionner le type de référence (optionnel) --",
+        ref_student_book:   "Manuel de l'élève",
+        ref_teacher_guide:  "Guide du professeur",
+        ref_curriculum:     "Programme REB",
+        ref_internet:       "Ressources internet",
+        ref_newspaper:      "Journaux / magazines",
+        ref_library:        "Livres de bibliothèque",
+        ref_custom:         "Autre (saisir ci-dessous)…",
+        ph_ref_edit:        "Saisir ou modifier les références…",
+        // Location options
+        loc_select:         "-- Sélectionner le Lieu --",
+        loc_inside:         "Dans la salle de classe",
+        loc_outside:        "En dehors de la salle de classe",
+        loc_computer_lab:   "Laboratoire informatique",
+        loc_field:          "Travail sur le terrain",
+        loc_library:        "Bibliothèque",
+        // Materials
+        mat_textbook:       "Manuel scolaire",
+        mat_chalkboard:     "Tableau noir",
+        mat_projector:      "Projecteur",
+        mat_computer:       "Ordinateur",
+        mat_charts:         "Tableaux/Graphiques",
+        mat_lab_eq:         "Équipement de laboratoire",
+        // Strategy options
+        str_select:         "Sélectionner une Stratégie",
+        str_discussion:     "Discussion",
+        str_group:          "Travail en Groupe",
+        str_demo:           "Démonstration",
+        str_hands_on:       "Activité Pratique",
+        str_role:           "Jeu de Rôle",
+        str_project:        "Basé sur un Projet",
+        str_peer:           "Enseignement par les Pairs",
+        str_quiz:           "Quiz/Test",
+        str_lecture:        "Cours Magistral",
+        str_flipped:        "Classe Inversée",
+        // Term options
+        term_select:        "Sélectionner le Trimestre",
+        term_i:             "Trimestre I",
+        term_ii:            "Trimestre II",
+        term_iii:           "Trimestre III",
+        // Buttons
+        btn_generate:       "✨ Générer le Plan de Cours",
+        btn_copy:           "📄 Copier vers Word",
+        btn_pdf:            "📑 Télécharger PDF",
+        btn_docx:           "📝 Télécharger DOCX",
+        btn_install:        "Installer l'Application",
+        // Modal
+        modal_upgrade:      "🔒 Passer à la Version Supérieure",
+        modal_choose_sub:   "Choisissez Votre Abonnement",
+        modal_unlock:       "Débloquez les fonctionnalités premium des plans de cours",
+        modal_weekly:       "Hebdomadaire",
+        modal_monthly:      "Mensuel",
+        modal_term:         "Trimestriel",
+        modal_per_week:     "par semaine",
+        modal_per_month:    "par mois",
+        modal_per_term:     "par trimestre",
+        modal_weekly_btn:   "Choisir Hebdomadaire",
+        modal_monthly_btn:  "Choisir Mensuel",
+        modal_term_btn:     "Choisir Trimestriel",
+        modal_support:      "Support 24/7",
+        // Footer
+        footer:             "© IsomoPlus 2026 Générateur de Plans de Cours CBC. Tous droits réservés.",
+    },
+};
+
+// ── Helper: get translation string for current language ──────────────────────
+window.currentLang = 'en';
+window.uiT = function(key) {
+    const strings = window.UI_STRINGS[window.currentLang] || window.UI_STRINGS['en'];
+    return strings[key] || window.UI_STRINGS['en'][key] || key;
+};
+
+// ── Apply all translations to the DOM ────────────────────────────────────────
+window.applyUITranslations = function(lang) {
+    window.currentLang = lang;
+    const T = (k) => window.uiT(k);
+
+    // ── Navbar ──
+    const brand = document.querySelector('.brand');
+    if (brand) brand.textContent = T('nav_brand');
+
+    const navUser = document.querySelector('.nav-user');
+    if (navUser) {
+        const username = navUser.dataset.username || navUser.textContent.replace(/^.*,\s*/, '').trim();
+        navUser.textContent = `${T('nav_hello')}, ${username}`;
+    }
+    const logoutLink = document.querySelector('a[href*="logout"]');
+    if (logoutLink) logoutLink.textContent = T('nav_logout');
+    const loginLink = document.querySelector('a[href*="login"]');
+    if (loginLink) loginLink.textContent = T('nav_login');
+    const registerLink = document.querySelector('a[href*="register"].btn-primary');
+    if (registerLink) registerLink.textContent = T('nav_register');
+
+    // ── Dashboard ──
+    const dashTitle = document.querySelector('.dash-title');
+    if (dashTitle) dashTitle.textContent = T('dash_title');
+
+    const dashCollapseBtn = document.getElementById('dashCollapseBtn');
+    // (keep arrow as-is)
+
+    // Stat card labels
+    const labelEls = document.querySelectorAll('.dash-card-label');
+    const labelKeys = ['dash_plans_generated', 'dash_remaining', 'dash_subscription', 'dash_download_access'];
+    labelEls.forEach((el, i) => { if (labelKeys[i]) el.textContent = T(labelKeys[i]); });
+
+    const dashRemainingLabel = document.getElementById('dashRemainingLabel');
+    if (dashRemainingLabel) dashRemainingLabel.textContent = T('dash_lessons_left');
+
+    const dashRecentTitle = document.querySelector('.dash-recent-title');
+    if (dashRecentTitle) dashRecentTitle.textContent = T('dash_recent_title');
+
+    const selectAllBtn = document.getElementById('dashSelectAll');
+    if (selectAllBtn) selectAllBtn.textContent = T('dash_select_all');
+
+    const zipBtn = document.getElementById('dashZipBtn');
+    if (zipBtn) zipBtn.textContent = T('dash_download_zip');
+
+    const dashEmpty = document.getElementById('dashEmpty');
+    if (dashEmpty) {
+        dashEmpty.innerHTML = `<span>${T('dash_empty')}</span><br><small>${T('dash_empty_sub')}</small>`;
+    }
+
+    const dashLoading = document.querySelector('.dash-loading');
+    if (dashLoading) {
+        dashLoading.innerHTML = `<span class="dash-spinner"></span> ${T('dash_loading')}`;
+    }
+
+    // Table headers
+    const thKeys = ['dash_th_subject', 'dash_th_title', 'dash_th_class', 'dash_th_term', 'dash_th_generated'];
+    const ths = document.querySelectorAll('.dash-table thead th');
+    ths.forEach((th, i) => { if (i > 0 && thKeys[i-1]) th.textContent = T(thKeys[i-1]); });
+
+    const guestBannerText = document.getElementById('guestBannerText');
+    if (guestBannerText && guestBannerText.textContent.includes('…')) {
+        guestBannerText.textContent = T('dash_guest_checking');
+    }
+    const upgradeLink = document.querySelector('.dash-upgrade-link');
+    if (upgradeLink) upgradeLink.textContent = T('dash_upgrade_link');
+
+    // ── Form heading ──
+    const formHeading = document.querySelector('.header h1');
+    if (formHeading) formHeading.textContent = T('form_heading');
+    const formSubheading = document.querySelector('.header p');
+    if (formSubheading) formSubheading.textContent = T('form_subheading');
+
+    // ── Form labels ──
+    const labelMap = {
+        'schoolName':    'lbl_school',
+        'teacherName':   'lbl_teacher',
+        'term':          'lbl_term',
+        'date':          'lbl_date',
+        'language':      'lbl_language',
+        'level':         'lbl_level',
+        'className':     'lbl_class',
+        'subject':       'lbl_subject',
+        'unitNo':        'lbl_unit_no',
+        'lessonNo':      'lbl_lesson_no',
+        'totalLessons':  'lbl_total_lessons',
+        'duration':      'lbl_duration',
+        'classSize':     'lbl_class_size',
+        'unitTitle':     'lbl_unit_title',
+        'lessonTitle':   'lbl_lesson_title',
+        'specialNeeds':  'lbl_special_needs',
+        'references':    'lbl_references',
+        'locationPlan':  'lbl_location',
+        'materials':     'lbl_materials',
+        'strategy':      'lbl_strategy',
+    };
+    Object.entries(labelMap).forEach(([id, key]) => {
+        const el = document.getElementById(id);
+        if (el) {
+            const lbl = el.closest('.form-group')?.querySelector('label');
+            if (lbl) lbl.textContent = T(key);
+        }
+    });
+
+    // ── Term select options ──
+    const termSel = document.getElementById('term');
+    if (termSel) {
+        const termOpts = termSel.querySelectorAll('option');
+        const termKeys = ['term_select', 'term_i', 'term_ii', 'term_iii'];
+        termOpts.forEach((opt, i) => { if (termKeys[i]) opt.textContent = T(termKeys[i]); });
+    }
+
+    // ── Location select options ──
+    const locSel = document.getElementById('locationPlan');
+    if (locSel) {
+        const locMap = {
+            '':                    'loc_select',
+            'Inside classroom':    'loc_inside',
+            'Outside classroom':   'loc_outside',
+            'Computer laboratory': 'loc_computer_lab',
+            'Field work':          'loc_field',
+            'Library':             'loc_library',
+        };
+        locSel.querySelectorAll('option').forEach(opt => {
+            const key = locMap[opt.value];
+            if (key) opt.textContent = T(key);
+        });
+    }
+
+    // ── Materials select options ──
+    const matSel = document.getElementById('materials');
+    if (matSel) {
+        const matMap = {
+            'Textbook':              'mat_textbook',
+            'Chalkboard':            'mat_chalkboard',
+            'Projector':             'mat_projector',
+            'Computer':              'mat_computer',
+            'Charts':                'mat_charts',
+            'Laboratory equipment':  'mat_lab_eq',
+        };
+        matSel.querySelectorAll('option').forEach(opt => {
+            const key = matMap[opt.value];
+            if (key) opt.textContent = T(key);
+        });
+    }
+
+    // ── Strategy select options ──
+    const strSel = document.getElementById('strategy');
+    if (strSel) {
+        const strMap = {
+            '':                  'str_select',
+            'Discussion':        'str_discussion',
+            'Group Work':        'str_group',
+            'Demonstration':     'str_demo',
+            'Hands-on Activity': 'str_hands_on',
+            'Role Play':         'str_role',
+            'Project-Based':     'str_project',
+            'Peer Teaching':     'str_peer',
+            'Quiz/Test':         'str_quiz',
+            'Lecture':           'str_lecture',
+            'Flipped Classroom': 'str_flipped',
+        };
+        strSel.querySelectorAll('option').forEach(opt => {
+            const key = strMap[opt.value];
+            if (key) opt.textContent = T(key);
+        });
+    }
+
+    // ── Generate button ──
+    const generateBtn = document.getElementById('generateButton');
+    if (generateBtn) generateBtn.textContent = T('btn_generate');
+
+    // ── Download buttons ──
+    const dlBtns = document.querySelectorAll('.download-btn');
+    dlBtns.forEach(btn => {
+        const action = btn.dataset.action;
+        if (action === 'copy') btn.textContent = T('btn_copy');
+        else if (action === 'pdf') btn.textContent = T('btn_pdf');
+        else if (action === 'word') btn.textContent = T('btn_docx');
+    });
+
+    // ── Install button ──
+    const installBtn = document.getElementById('installBtn');
+    if (installBtn) installBtn.textContent = T('btn_install');
+
+    // ── Modal ──
+    const modalH1 = document.querySelector('.pricing-header h1');
+    if (modalH1) modalH1.textContent = T('modal_upgrade');
+    const modalH2 = document.querySelector('.pricing-header h2');
+    if (modalH2) modalH2.textContent = T('modal_choose_sub');
+    const modalP = document.querySelector('.pricing-header p');
+    if (modalP) modalP.textContent = T('modal_unlock');
+
+    const cards = document.querySelectorAll('.pricing-card');
+    if (cards.length >= 3) {
+        // Weekly card
+        cards[0].querySelector('h3').textContent = T('modal_weekly');
+        cards[0].querySelector('.duration').textContent = T('modal_per_week');
+        cards[0].querySelector('.choose-btn').textContent = T('modal_weekly_btn');
+        // Monthly card
+        cards[1].querySelector('h3').textContent = T('modal_monthly');
+        cards[1].querySelector('.duration').textContent = T('modal_per_month');
+        cards[1].querySelector('.choose-btn').textContent = T('modal_monthly_btn');
+        // Term card
+        cards[2].querySelector('h3').textContent = T('modal_term');
+        cards[2].querySelector('.duration').textContent = T('modal_per_term');
+        cards[2].querySelector('.choose-btn').textContent = T('modal_term_btn');
+        const supportLi = cards[2].querySelector('ul li:last-child');
+        if (supportLi) supportLi.textContent = `✔ ${T('modal_support')}`;
+    }
+
+    // ── Footer ──
+    const footer = document.querySelector('footer');
+    if (footer) footer.textContent = T('footer');
+};
+</script>
+
 <nav class="navbar">
     <div class="nav-left">
         <a href="{% url 'landing' %}" class="brand">CBC Lesson Plan Generator</a>
     </div>
     <div class="nav-right">
         {% if user.is_authenticated %}
-            <span class="nav-user">Hello, {{ user.username }}</span>
+            <span class="nav-user" data-username="{{ user.username }}">Hello, {{ user.username }}</span>
             <a href="{% url 'logout' %}" class="nav-link">Logout</a>
         {% else %}
             <a href="{% url 'login' %}" class="nav-link">Login</a>
@@ -87,14 +943,12 @@
 <!-- Dashboard Panel -->
 <div id="dashboardPanel" class="dashboard-panel" style="display:none;">
 
-    <!-- ── GUEST VIEW: slim usage banner ── -->
     <div id="guestBanner" class="dash-guest-banner" style="display:none;">
         <span class="dash-guest-icon">🎓</span>
         <span id="guestBannerText">Checking usage…</span>
         <a href="{% url 'pricing' %}" class="dash-upgrade-link">Upgrade for unlimited →</a>
     </div>
 
-    <!-- ── LOGGED-IN VIEW: full dashboard ── -->
     <div id="fullDashboard" style="display:none;">
         <div class="dash-header">
             <h2 class="dash-title">📊 My Dashboard</h2>
@@ -103,7 +957,6 @@
 
         <div class="dash-body" id="dashBody">
 
-            <!-- Row 1: Stats Cards -->
             <div class="dash-stats-row">
 
                 <div class="dash-card dash-card--usage">
@@ -139,7 +992,6 @@
 
             </div>
 
-            <!-- Row 2: Recent Plans Table -->
             <div class="dash-recent-section">
                 <div class="dash-recent-header">
                     <h3 class="dash-recent-title">📋 Recent Lesson Plans</h3>
@@ -175,7 +1027,6 @@
                                 </tr>
                             </thead>
                             <tbody id="dashPlansBody">
-                                <!-- Rows injected by loadDashboard() in script.js -->
                             </tbody>
                         </table>
                     </div>
@@ -185,12 +1036,12 @@
                     </div>
 
                 </div>
-            </div><!-- /.dash-recent-section -->
+            </div>
 
-        </div><!-- /#dashBody -->
-    </div><!-- /#fullDashboard -->
+        </div>
+    </div>
 
-</div><!-- /#dashboardPanel -->
+</div>
 
 <div class="container">
     <div class="header">
@@ -203,7 +1054,6 @@
             {% csrf_token %}
             <div class="form-grid">
 
-                <!-- School & Teacher -->
                 <div class="form-group">
                     <label class="required">School Name</label>
                     <input type="text" id="schoolName" required>
@@ -213,7 +1063,6 @@
                     <input type="text" id="teacherName" required>
                 </div>
 
-                <!-- Term & Date -->
                 <div class="form-group">
                     <label class="required">Term</label>
                     <select id="term" required>
@@ -228,12 +1077,6 @@
                     <input type="date" id="date" required>
                 </div>
 
-                <!-- ══════════════════════════════════════════════════
-                     LANGUAGE SELECTOR — added for multilingual support
-                     Placed before Level so it reloads the entire
-                     Level → Class → Subject → Unit → Lesson chain
-                     when the teacher switches language.
-                ═══════════════════════════════════════════════════ -->
                 <div class="form-group full-width">
                     <label class="required">Language / Langue / Lugha / Ururimi</label>
                     <select id="language" required>
@@ -244,7 +1087,6 @@
                     </select>
                 </div>
 
-                <!-- Level, Class, Subject, Unit -->
                 <div class="form-group">
                     <label class="required">Level</label>
                     <select id="level" required></select>
@@ -252,6 +1094,8 @@
                 <div class="form-group">
                     <label class="required">Class</label>
                     <select id="className" required></select>
+                    <input type="text" id="classNameEdit" class="editable-override" placeholder="Type or edit class name…" style="margin-top:4px; display:none;">
+                    <label class="edit-toggle-label" id="classNameEditToggle" onclick="toggleEditField('className','classNameEdit','classNameEditToggle')">✏ editable</label>
                 </div>
                 <div class="form-group">
                     <label class="required">Subject</label>
@@ -260,9 +1104,10 @@
                 <div class="form-group">
                     <label class="required">Unit No</label>
                     <select id="unitNo" required></select>
+                    <input type="text" id="unitNoEdit" class="editable-override" placeholder="Type or edit unit number…" style="margin-top:4px; display:none;">
+                    <label class="edit-toggle-label" id="unitNoEditToggle" onclick="toggleEditField('unitNo','unitNoEdit','unitNoEditToggle')">✏ editable</label>
                 </div>
 
-                <!-- Lesson Number & Total -->
                 <div class="form-group double-labels">
                     <div class="double-input">
                         <div class="input-group">
@@ -276,7 +1121,6 @@
                     </div>
                 </div>
 
-                <!-- Duration & Class Size -->
                 <div class="form-group">
                     <label class="required">Duration (minutes)</label>
                     <input type="number" id="duration" required>
@@ -286,27 +1130,51 @@
                     <input type="number" id="classSize" required>
                 </div>
 
-                <!-- Unit & Lesson Title -->
                 <div class="form-group full-width">
-                    <label class="required">Unit Title</label>
-                    <input type="text" id="unitTitle" required>
+                    <label class="required">Unit Title <span class="field-editable-badge" id="unitTitleBadge">✏ editable</span></label>
+                    <input type="text" id="unitTitle" required placeholder="Type or edit unit title…">
                 </div>
                 <div class="form-group full-width">
                     <label class="required">Lesson Title</label>
                     <select id="lessonTitle" required></select>
                 </div>
 
-                <!-- Optional Fields -->
-                <div class="form-group full-width">
-                    <label class="optional">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category</label>
-                    <input type="text" id="specialNeeds">
+                <div class="form-group full-width" id="senGroup">
+                    <label class="optional" id="senLabel">Type of Special Educational Needs to be catered for in this lesson and number of learners in each category</label>
+                    <div class="combo-field-row">
+                        <select id="senCategory" class="combo-select">
+                            <option value="">-- Select SEN category (optional) --</option>
+                            <option value="none">None identified</option>
+                            <option value="visual">Visual impairment</option>
+                            <option value="hearing">Hearing impairment</option>
+                            <option value="physical">Physical disability</option>
+                            <option value="learning">Learning difficulties</option>
+                            <option value="speech">Speech / language disorder</option>
+                            <option value="gifted">Gifted &amp; talented</option>
+                            <option value="custom">Other (type below)…</option>
+                        </select>
+                        <div class="combo-count-wrap" id="senCountWrap" style="display:none;">
+                            <label class="count-label" id="senCountLabel">No. of learners:</label>
+                            <input type="number" id="senCount" class="combo-count" min="1" placeholder="0">
+                        </div>
+                    </div>
+                    <input type="text" id="specialNeeds" class="combo-text" placeholder="Describe SEN or edit selected…">
                 </div>
-                <div class="form-group full-width">
-                    <label class="optional">References</label>
-                    <input type="text" id="references">
+                <div class="form-group full-width" id="refGroup">
+                    <label class="optional" id="refLabel">References</label>
+                    <select id="refCategory" class="combo-select" style="margin-bottom:4px;">
+                        <option value="">-- Select reference type (optional) --</option>
+                        <option value="student_book">Student Book</option>
+                        <option value="teacher_guide">Teacher's Guide</option>
+                        <option value="curriculum">REB Curriculum Framework</option>
+                        <option value="internet">Internet resources</option>
+                        <option value="newspaper">Newspapers / magazines</option>
+                        <option value="library">Library books</option>
+                        <option value="custom">Other (type below)…</option>
+                    </select>
+                    <input type="text" id="references" class="combo-text" placeholder="Type or edit reference details…">
                 </div>
 
-                <!-- Location Plan -->
                 <div class="form-group full-width">
                     <label class="optional">Plan for this Class (Location)</label>
                     <select id="locationPlan">
@@ -319,7 +1187,6 @@
                     </select>
                 </div>
 
-                <!-- Learning Materials -->
                 <div class="form-group full-width">
                     <label class="optional">Learning Materials (Select all that apply)</label>
                     <select id="materials" multiple>
@@ -332,7 +1199,6 @@
                     </select>
                 </div>
 
-                <!-- Teaching Strategy -->
                 <div class="form-group full-width">
                     <label class="optional">Teaching Strategy</label>
                     <select id="strategy">
@@ -431,17 +1297,11 @@
   window.__DASHBOARD__ = {{ dashboard_bootstrap|default:"null"|safe }};
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     CSRF TOKEN — exposed to JS for AJAX requests
-════════════════════════════════════════════════════════════════ -->
 <script>
     const csrfInput = document.querySelector('#lessonForm input[name=csrfmiddlewaretoken]');
     window.CSRF_TOKEN = csrfInput ? csrfInput.value : '';
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SERVICE WORKER — enables offline/PWA support
-════════════════════════════════════════════════════════════════ -->
 <script>
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
@@ -452,9 +1312,6 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
-<!-- ═══════════════════════════════════════════════════════════
-     SUBSCRIPTION / MODAL LOGIC
-════════════════════════════════════════════════════════════════ -->
 <script>
     window.isAuthenticated = {% if user.is_authenticated %}true{% else %}false{% endif %};
 
@@ -462,17 +1319,14 @@ if ('serviceWorker' in navigator) {
         document.getElementById('subscribeModal').style.display = 'none';
     }
 
-    // Close modal on backdrop click
     window.addEventListener('click', function(e) {
         const modal = document.getElementById('subscribeModal');
         if (e.target === modal) closeModal();
     });
 
-    // Unified subscribe — preserves ?plan= through login/register flow
     function subscribe(plan) {
         closeModal();
         sessionStorage.setItem('selected_plan', plan);
-
         if (window.isAuthenticated) {
             window.location.href = "{% url 'payment' %}?plan=" + plan;
         } else {
@@ -480,16 +1334,210 @@ if ('serviceWorker' in navigator) {
         }
     }
 
-    // Attach click handlers via data-plan attribute (no inline onclick conflicts)
     document.addEventListener('DOMContentLoaded', () => {
+        // ── Attach plan buttons ──
         document.querySelectorAll('.choose-btn[data-plan]').forEach(btn => {
             btn.addEventListener('click', () => subscribe(btn.dataset.plan));
         });
+
+        // ── Language switcher: translate UI on every change ──
+        const langSel = document.getElementById('language');
+        if (langSel) {
+            // Apply on page load with the default selection
+            window.applyUITranslations(langSel.value);
+
+            langSel.addEventListener('change', () => {
+                window.applyUITranslations(langSel.value);
+            });
+        }
     });
 </script>
 
 <footer>
     &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
 </footer>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// ENHANCED FIELD LOGIC
+// 1. toggleEditField()   — show/hide editable override for Class & Unit No
+// 2. SEN category auto-fill + learner count
+// 3. References category auto-fill
+// 4. applyUITranslations extension for new widgets
+// ═══════════════════════════════════════════════════════════════════
+
+// ── 1. Toggle editable override field ────────────────────────────────────────
+window.toggleEditField = function(selectId, inputId, toggleId) {
+    const sel    = document.getElementById(selectId);
+    const inp    = document.getElementById(inputId);
+    const toggle = document.getElementById(toggleId);
+    if (!sel || !inp) return;
+
+    const isHidden = inp.style.display === 'none';
+    if (isHidden) {
+        // Show edit input, pre-fill with current select text
+        inp.style.display = 'block';
+        inp.value = sel.options[sel.selectedIndex]?.text || '';
+        sel.style.opacity = '0.4';
+        sel.style.pointerEvents = 'none';
+        inp.focus();
+        if (toggle) toggle.textContent = '✖ ' + (window.uiT ? window.uiT('lbl_edit_hint').replace('✏ ','') : 'cancel edit');
+    } else {
+        // Hide edit input, restore select
+        inp.style.display = 'none';
+        sel.style.opacity = '';
+        sel.style.pointerEvents = '';
+        if (toggle) toggle.textContent = window.uiT ? window.uiT('lbl_edit_hint') : '✏ editable';
+    }
+};
+
+// ── Helper: get the effective value of a field that may have an override ──────
+window.getFieldValue = function(selectId, inputId) {
+    const inp = document.getElementById(inputId);
+    if (inp && inp.style.display !== 'none' && inp.value.trim()) return inp.value.trim();
+    const sel = document.getElementById(selectId);
+    return sel ? sel.value : '';
+};
+
+// ── 2. SEN category → auto-fill text + show learner count ────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+
+    const senCat   = document.getElementById('senCategory');
+    const senInput = document.getElementById('specialNeeds');
+    const senWrap  = document.getElementById('senCountWrap');
+    const senCount = document.getElementById('senCount');
+
+    // Map option value → translation key suffix
+    const SEN_KEY_MAP = {
+        none:     'sen_none',
+        visual:   'sen_visual',
+        hearing:  'sen_hearing',
+        physical: 'sen_physical',
+        learning: 'sen_learning',
+        speech:   'sen_speech',
+        gifted:   'sen_gifted',
+    };
+
+    function buildSenText() {
+        const val = senCat ? senCat.value : '';
+        if (!val || val === 'custom') return;
+        if (val === 'none') {
+            if (senInput) senInput.value = window.uiT ? window.uiT('sen_none') : 'None identified';
+            if (senWrap) senWrap.style.display = 'none';
+            return;
+        }
+        if (senWrap) senWrap.style.display = 'flex';
+        const baseName = window.uiT ? window.uiT(SEN_KEY_MAP[val]) : val;
+        const n = (senCount && senCount.value) ? senCount.value : '?';
+        if (senInput) senInput.value = baseName + ' — ' + n + ' ' + (window.uiT ? window.uiT('lbl_learners_count').replace(':','').trim() : 'learner(s)');
+    }
+
+    if (senCat) {
+        senCat.addEventListener('change', function() {
+            const v = this.value;
+            if (v === 'custom' || v === '') {
+                if (senWrap) senWrap.style.display = 'none';
+                if (senInput) { senInput.value = ''; senInput.focus(); }
+            } else {
+                buildSenText();
+            }
+        });
+    }
+    if (senCount) {
+        senCount.addEventListener('input', buildSenText);
+    }
+
+    // ── 3. References category → auto-fill text ───────────────────────────────
+    const refCat   = document.getElementById('refCategory');
+    const refInput = document.getElementById('references');
+
+    const REF_KEY_MAP = {
+        student_book:  'ref_student_book',
+        teacher_guide: 'ref_teacher_guide',
+        curriculum:    'ref_curriculum',
+        internet:      'ref_internet',
+        newspaper:     'ref_newspaper',
+        library:       'ref_library',
+    };
+
+    if (refCat) {
+        refCat.addEventListener('change', function() {
+            const v = this.value;
+            if (v === 'custom' || v === '') {
+                if (refInput) { refInput.value = ''; refInput.focus(); }
+            } else {
+                const text = window.uiT ? window.uiT(REF_KEY_MAP[v]) : v;
+                if (refInput) refInput.value = text;
+            }
+        });
+    }
+
+    // ── 4. Re-translate new widget options & placeholders on lang change ───────
+    const origApply = window.applyUITranslations;
+    window.applyUITranslations = function(lang) {
+        origApply(lang);
+        const T = window.uiT;
+
+        // SEN dropdown options
+        if (senCat) {
+            const senOptMap = {
+                '':       'sen_select',
+                'none':   'sen_none',
+                'visual': 'sen_visual',
+                'hearing':'sen_hearing',
+                'physical':'sen_physical',
+                'learning':'sen_learning',
+                'speech': 'sen_speech',
+                'gifted': 'sen_gifted',
+                'custom': 'sen_custom',
+            };
+            senCat.querySelectorAll('option').forEach(opt => {
+                const k = senOptMap[opt.value];
+                if (k) opt.textContent = T(k);
+            });
+        }
+        if (senInput) senInput.placeholder = T('ph_sen_edit');
+        const senCountLbl = document.getElementById('senCountLabel');
+        if (senCountLbl) senCountLbl.textContent = T('lbl_learners_count');
+
+        // References dropdown options
+        if (refCat) {
+            const refOptMap = {
+                '':             'ref_select',
+                'student_book': 'ref_student_book',
+                'teacher_guide':'ref_teacher_guide',
+                'curriculum':   'ref_curriculum',
+                'internet':     'ref_internet',
+                'newspaper':    'ref_newspaper',
+                'library':      'ref_library',
+                'custom':       'ref_custom',
+            };
+            refCat.querySelectorAll('option').forEach(opt => {
+                const k = refOptMap[opt.value];
+                if (k) opt.textContent = T(k);
+            });
+        }
+        if (refInput) refInput.placeholder = T('ph_ref_edit');
+
+        // Editable override fields — placeholders & toggle labels
+        const classEdit = document.getElementById('classNameEdit');
+        if (classEdit) classEdit.placeholder = T('ph_class_edit');
+        const unitNoEdit = document.getElementById('unitNoEdit');
+        if (unitNoEdit) unitNoEdit.placeholder = T('ph_unit_no_edit');
+        const unitTitleEdit = document.getElementById('unitTitle');
+        if (unitTitleEdit) unitTitleEdit.placeholder = T('ph_unit_title_edit');
+
+        // Toggle labels (only update if they show the "✏" state, not the cancel state)
+        ['classNameEditToggle','unitNoEditToggle'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && !el.textContent.startsWith('✖')) el.textContent = T('lbl_edit_hint');
+        });
+        // Unit title badge
+        const utBadge = document.getElementById('unitTitleBadge');
+        if (utBadge) utBadge.textContent = T('lbl_edit_hint');
+    };
+});
+</script>
+
 </body>
 </html>

@@ -191,6 +191,194 @@ SELF_EVALUATION_OPTIONS = {
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# *** NEW *** SPECIAL NEEDS FALLBACK — language-aware
+# Used when the teacher leaves the Special Educational Needs field empty.
+# ─────────────────────────────────────────────────────────────────────────────
+
+SPECIAL_NEEDS_FALLBACK = {
+    'en': "No specific special educational needs identified in this class.",
+    'rw': "Nta makuru yihariye y'ubumenyi bwihariye y'inyigisho yavuzwe mu ishuri ryawe.",
+    'sw': "Hakuna mahitaji maalum ya elimu yaliyotambuliwa katika darasa hili.",
+    'fr': "Aucun besoin éducatif spécial spécifique identifié dans cette classe.",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOCATION FALLBACK — language-aware default classroom location label
+# ─────────────────────────────────────────────────────────────────────────────
+LOCATION_FALLBACK = {
+    'en': "Inside classroom",
+    'rw': "Mu ishuri",
+    'sw': "Ndani ya darasa",
+    'fr': "Dans la salle de classe",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MATERIALS FALLBACK — language-aware default materials label
+# ─────────────────────────────────────────────────────────────────────────────
+MATERIALS_FALLBACK = {
+    'en': "Textbook, Chalkboard",
+    'rw': "Igitabo cy'umunyeshuri, Ikirahuri",
+    'sw': "Kitabu cha kiada, Ubao wa chaki",
+    'fr': "Manuel scolaire, Tableau noir",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REFERENCES FALLBACK — language-aware default when no references given
+# ─────────────────────────────────────────────────────────────────────────────
+REFERENCES_FALLBACK = {
+    'en': "No references provided",
+    'rw': "Nta myandiko yifashishijwe yatanzwe",
+    'sw': "Hakuna marejeo yaliyotolewa",
+    'fr': "Aucune référence fournie",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MATERIALS LABEL — human-readable label for the "Learning Materials" heading
+# used in the printed lesson plan header row
+# ─────────────────────────────────────────────────────────────────────────────
+MATERIALS_LABEL = {
+    'en': "Learning Materials",
+    'rw': "Imfashanyigisho",
+    'sw': "Vifaa vya Kujifunza",
+    'fr': "Matériel Pédagogique",
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REFERENCES LABEL — human-readable label for the "References" heading
+# used in the printed lesson plan header row
+# ─────────────────────────────────────────────────────────────────────────────
+REFERENCES_LABEL = {
+    'en': "References",
+    'rw': "Imyandiko n'ibitabo byifashishijwe",
+    'sw': "Marejeo",
+    'fr': "Références",
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# LOCATION TRANSLATION — maps English option values → translated display text
+# The frontend always sends English option *values* (e.g. "Inside classroom")
+# regardless of UI language. This dict translates them for the printed plan.
+# ─────────────────────────────────────────────────────────────────────────────
+LOCATION_TRANSLATION = {
+    'en': {
+        'Inside classroom':    'Inside classroom',
+        'Outside classroom':   'Outside classroom',
+        'Computer laboratory': 'Computer laboratory',
+        'Field work':          'Field work',
+        'Library':             'Library',
+    },
+    'rw': {
+        'Inside classroom':    'Mu ishuri',
+        'Outside classroom':   "Hanze y'ishuri",
+        'Computer laboratory': 'Labo ya mudasobwa',
+        'Field work':          'Gukorera hanze',
+        'Library':             'Bibliotheque',
+    },
+    'sw': {
+        'Inside classroom':    'Ndani ya darasa',
+        'Outside classroom':   'Nje ya darasa',
+        'Computer laboratory': 'Maabara ya kompyuta',
+        'Field work':          'Kazi ya shambani',
+        'Library':             'Maktaba',
+    },
+    'fr': {
+        'Inside classroom':    'Dans la salle de classe',
+        'Outside classroom':   'En dehors de la salle de classe',
+        'Computer laboratory': 'Laboratoire informatique',
+        'Field work':          'Travail sur le terrain',
+        'Library':             'Bibliothèque',
+    },
+}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MATERIALS_ITEM_TRANSLATION — maps each English material value → translated
+# The frontend sends comma-joined English values: "Textbook, Chalkboard"
+# This dict translates each item individually then re-joins them.
+# ─────────────────────────────────────────────────────────────────────────────
+MATERIALS_ITEM_TRANSLATION = {
+    'en': {
+        'Textbook':             'Textbook',
+        'Chalkboard':           'Chalkboard',
+        'Projector':            'Projector',
+        'Computer':             'Computer',
+        'Charts':               'Charts',
+        'Laboratory equipment': 'Laboratory equipment',
+        'IDE software':         'IDE software',
+        'Microscope':           'Microscope',
+        'Specimens':            'Specimens',
+        'Chemicals':            'Chemicals',
+        'Safety equipment':     'Safety equipment',
+        'Measuring instruments':'Measuring instruments',
+    },
+    'rw': {
+        'Textbook':             "Igitabo cy'umunyeshuri",
+        'Chalkboard':           'Ikirahuri',
+        'Projector':            'Projekiteri',
+        'Computer':             'Mudasobwa',
+        'Charts':               'Amashusho',
+        'Laboratory equipment': 'Ibikoresho bya labo',
+        'IDE software':         'Porogaramu ya IDE',
+        'Microscope':           'Microscope',
+        'Specimens':            'Ingero',
+        'Chemicals':            'Ibintu bya chimie',
+        'Safety equipment':     "Ibikoresho by'umutekano",
+        'Measuring instruments':'Ibikoresho byo gupima',
+    },
+    'sw': {
+        'Textbook':             'Kitabu cha kiada',
+        'Chalkboard':           'Ubao wa chaki',
+        'Projector':            'Projekta',
+        'Computer':             'Kompyuta',
+        'Charts':               'Chati',
+        'Laboratory equipment': 'Vifaa vya maabara',
+        'IDE software':         'Programu ya IDE',
+        'Microscope':           'Darubini',
+        'Specimens':            'Sampuli',
+        'Chemicals':            'Kemikali',
+        'Safety equipment':     'Vifaa vya usalama',
+        'Measuring instruments':'Vifaa vya kupimia',
+    },
+    'fr': {
+        'Textbook':             'Manuel scolaire',
+        'Chalkboard':           'Tableau noir',
+        'Projector':            'Projecteur',
+        'Computer':             'Ordinateur',
+        'Charts':               'Tableaux/Graphiques',
+        'Laboratory equipment': 'Équipement de laboratoire',
+        'IDE software':         'Logiciel IDE',
+        'Microscope':           'Microscope',
+        'Specimens':            'Échantillons',
+        'Chemicals':            'Produits chimiques',
+        'Safety equipment':     'Équipement de sécurité',
+        'Measuring instruments':'Instruments de mesure',
+    },
+}
+
+
+def _translate_location(value, lang):
+    """Translate an English location value to the target language."""
+    if not value:
+        return LOCATION_FALLBACK.get(lang, LOCATION_FALLBACK['en'])
+    table = LOCATION_TRANSLATION.get(lang, LOCATION_TRANSLATION['en'])
+    return table.get(value.strip(), value)   # unknown value passes through as-is
+
+
+def _translate_materials(value, lang):
+    """
+    Translate a comma-separated English materials string to the target language.
+    e.g. "Textbook, Chalkboard" → "Igitabo cy'umunyeshuri, Ikirahuri"
+    """
+    if not value:
+        return MATERIALS_FALLBACK.get(lang, MATERIALS_FALLBACK['en'])
+    table  = MATERIALS_ITEM_TRANSLATION.get(lang, MATERIALS_ITEM_TRANSLATION['en'])
+    items  = [v.strip() for v in value.split(',') if v.strip()]
+    result = [table.get(item, item) for item in items]   # unknown items pass through
+    return ', '.join(result)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # FALLBACK STEPS TEXT
 # Used ONLY when no seeded LessonStrategyStep rows exist for a lesson.
 # Organised by language so the entire plan stays in one language.
@@ -400,7 +588,13 @@ def prepare_lesson_plan_context(lesson_id, form_data, user=None, device_id=None)
         elif not isinstance(materials_list, list):
             materials_list = []
 
-    materials = ", ".join(materials_list) if materials_list else ", ".join(default_materials)
+    # Translate materials list to the lesson language if available
+    lang_for_legacy = form_data.get('language', 'en') if hasattr(form_data, 'get') else 'en'
+    if not lang_for_legacy or lang_for_legacy not in VALID_LANGUAGES:
+        lang_for_legacy = 'en'
+    raw_materials   = ", ".join(materials_list) if materials_list else ", ".join(default_materials)
+    materials       = _translate_materials(raw_materials, lang_for_legacy)
+    location_plan   = _translate_location(location_plan, lang_for_legacy)
 
     context = {
         'lesson_info': {
@@ -491,10 +685,19 @@ def build_lesson_plan_context(request_data, profile):
 
     # ── 3. lesson_info ────────────────────────────────────────────────────────
     subject_name = unit.subject.name if unit and unit.subject else "N/A"
-    class_name   = (
+
+    # class_name: teacher may override via the editable field on the form.
+    # payload['class'] always reflects whatever the teacher typed/selected
+    # (script.js buildDownloadPayload handles the override logic on the frontend).
+    db_class_name = (
         unit.subject.class_field.name
         if unit and unit.subject and hasattr(unit.subject, "class_field")
-        else request_data.get("class", "N/A")
+        else None
+    )
+    class_name = (
+        request_data.get("class")    # teacher override or selected text (from JS)
+        or db_class_name             # DB value fallback
+        or "N/A"
     )
 
     lesson_info = {
@@ -505,7 +708,7 @@ def build_lesson_plan_context(request_data, profile):
         "references":      (
             request_data.get("references")
             or lesson.references
-            or (profile.references or "No references provided")
+            or (profile.references or REFERENCES_FALLBACK[lang])
         ),
         "lesson_title":    lesson.title,
         "class_name":      class_name,
@@ -513,18 +716,29 @@ def build_lesson_plan_context(request_data, profile):
         "subject":         subject_name,
         "date":            request_data.get("date") or str(date.today()),
         "strategy":        selected_strategy.name,
-        "location_plan":   request_data.get("location_plan") or "Inside classroom",
-        "materials":       request_data.get("materials")     or "Textbook, Chalkboard",
+        # Translate location and materials from English option values → active language
+        "location_plan":   _translate_location(
+                               request_data.get("location_plan"), lang
+                           ),
+        "materials":       _translate_materials(
+                               request_data.get("materials"), lang
+                           ),
         "self_evaluation": request_data.get("self_evaluation") or "",
-        "language":        lang,                              # ← stored for template use
+        "language":        lang,                              # stored for template use
     }
 
     # ── 4. unit_info ──────────────────────────────────────────────────────────
+    # unit_title: teacher may edit directly in the form (unitTitle input).
+    # unit_number_display: teacher may override via unitNoEdit field.
+    # Both are sent in the payload by script.js buildDownloadPayload().
     unit_info = {
         "unit_number":         unit.number,
-        "unit_title":          unit.title,
+        "unit_title":          request_data.get("unit_title") or unit.title,   # prefer override
         "key_unit_competence": getattr(unit, "key_unit_competence", f"Understand {lesson.title}"),
         "total_lessons":       unit.lessons.count() if hasattr(unit, "lessons") else 1,
+        "unit_number_display": (
+            request_data.get("unit_number_display") or f"Unit {unit.number}"
+        ),
     }
 
     # ── 5. Steps — exactly 3 for one page ────────────────────────────────────
@@ -588,9 +802,11 @@ def build_lesson_plan_context(request_data, profile):
     # ── 6. Page-level meta ────────────────────────────────────────────────────
     lesson_number   = request_data.get("lesson_no", lesson.number)
     lesson_duration = int(request_data.get("duration", 40))
-    special_needs   = (
+
+    # *** CHANGED: use language-aware fallback instead of hardcoded English ***
+    special_needs = (
         request_data.get("special_needs")
-        or "No specific special educational needs identified in this class."
+        or SPECIAL_NEEDS_FALLBACK[lang]
     )
 
     # ── 7. Return single-page context ─────────────────────────────────────────
@@ -606,4 +822,6 @@ def build_lesson_plan_context(request_data, profile):
         "self_evaluation_options": eval_opts,
         "is_single_page":          True,
         "language":                lang,           # ← available to template & PDF/DOCX builders
+        "materials_label":         MATERIALS_LABEL[lang],
+        "references_label":        REFERENCES_LABEL[lang],
     }
