@@ -17,7 +17,7 @@ const classSelect    = document.getElementById('className');
 const subjectSelect  = document.getElementById('subject');
 const unitSelect     = document.getElementById('unitNo');
 const lessonSelect   = document.getElementById('lessonTitle');
-const languageSelect = document.getElementById('language');   // ← NEW
+const languageSelect = document.getElementById('language');
 
 // ===============================
 // STATE & CACHE
@@ -27,10 +27,8 @@ let generateListenerAttached = false;
 
 // ===============================
 // LANGUAGE HELPER
-// Returns the currently selected language code ('en', 'rw', 'sw', 'fr').
-// Defaults to 'en' if the selector is missing.
 // ===============================
-function getLanguage() {                                       // ← NEW
+function getLanguage() {
     return languageSelect?.value || 'en';
 }
 
@@ -39,18 +37,16 @@ function getLanguage() {                                       // ← NEW
 // ===============================
 document.addEventListener("DOMContentLoaded", async () => {
     if (levelSelect) loadLevels();
-    attachLanguageSelector();                                  // ← NEW
+    attachLanguageSelector();
     attachGenerateButton();
     attachPayButton();
     attachDownloadButtons();
 
-    // Clear field errors as user types
     document.querySelectorAll('input, select').forEach(el => {
         el.addEventListener('change', () => el.classList.remove('field-error'));
         el.addEventListener('input',  () => el.classList.remove('field-error'));
     });
 
-    // Use server-injected dashboard data instantly
     if (window.__DASHBOARD__) {
         renderDashboard(window.__DASHBOARD__);
     }
@@ -63,11 +59,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // ===============================
 // LANGUAGE SELECTOR
-// When teacher changes language:
-//   1. Reset all dependent dropdowns
-//   2. Reload levels filtered by the new language
 // ===============================
-function attachLanguageSelector() {                            // ← NEW
+function attachLanguageSelector() {
     if (!languageSelect) return;
     languageSelect.addEventListener('change', () => {
         resetBelow('level');
@@ -113,29 +106,127 @@ async function postData(endpoint, payload = {}) {
 }
 
 // ===============================
+// SEN & REFERENCES — AGGREGATION
+// ── FIX BUG 1: aggregateSEN reads live checkboxes every call.
+//    window.getSENValue / window.getRefsValue are aliases for
+//    index.html inline scripts to call.
+// ===============================
+function aggregateSEN() {
+    const parts = [];
+    document.querySelectorAll('input[name="sen"]:checked').forEach(cb => {
+        if (cb.value === 'none') {
+            parts.push(window.uiT ? window.uiT('sen_none') : 'None identified');
+        } else if (cb.value !== 'custom') {
+            const keyMap = {
+                visual:   'sen_visual',
+                hearing:  'sen_hearing',
+                physical: 'sen_physical',
+                learning: 'sen_learning',
+                speech:   'sen_speech',
+                gifted:   'sen_gifted',
+            };
+            const label   = window.uiT ? window.uiT(keyMap[cb.value]) : cb.value;
+            const countEl = document.getElementById('sen_' + cb.value + '_count');
+            const n       = countEl?.value ? ' (' + countEl.value + ')' : '';
+            parts.push(label + n);
+        }
+    });
+    // Always append free-text SEN if filled
+    const senFree = document.getElementById('specialNeeds')?.value.trim();
+    if (senFree) parts.push(senFree);
+
+    const result = parts.join('; ');
+    const agg    = document.getElementById('specialNeedsAggregated');
+    if (agg) agg.value = result;
+    return result;
+}
+
+function aggregateRefs() {
+    const parts = [];
+    document.querySelectorAll('input[name="ref"]:checked').forEach(cb => {
+        if (cb.value !== 'custom') parts.push(cb.value);
+    });
+    const refFree = document.getElementById('references')?.value.trim();
+    if (refFree) parts.push(refFree);
+
+    const result = parts.join('; ');
+    const agg    = document.getElementById('referencesAggregated');
+    if (agg) agg.value = result;
+    return result;
+}
+
+// Expose globally for index.html inline event wiring
+window.getSENValue  = aggregateSEN;
+window.getRefsValue = aggregateRefs;
+
+// ===============================
 // SHARED DOWNLOAD PAYLOAD
-// Builds the same form payload used by generate, PDF, and Word endpoints.
-// Single source of truth — change field names here once, all 3 calls update.
+// ── FIX BUG 1: special_needs always fresh from live checkboxes
+// ── FIX BUG 2: unit_title reads .value directly (saveInlineEdit keeps it current)
+// ── FIX BUG 4: restored unit_number_display key for backend template
+// ── FIX BUG 5: prefillUserData restores references prefill
 // ===============================
 function buildDownloadPayload() {
+
+    // Helper: display override beats select visible text
+    // Used for class, subject, level display labels
+    function displayOf(el) {
+        return el?.dataset?.displayOverride
+            || el?.options?.[el?.selectedIndex]?.text
+            || el?.value
+            || '';
+    }
+
+    // Always aggregate fresh — never rely on hidden inputs alone
+    const specialNeedsValue = aggregateSEN();
+    const referencesValue   = aggregateRefs();
+
     return {
-        language:      getLanguage(),                          // ← NEW — sent to backend
+        language:      getLanguage(),
         device_id:     getDeviceId(),
-        level:         levelSelect.options[levelSelect.selectedIndex].text,
-        class:         classSelect.options[classSelect.selectedIndex].text,
-        subject:       subjectSelect.options[subjectSelect.selectedIndex].text,
-        unit_id:       unitSelect.value,
-        lesson_id:     lessonSelect.value,
-        lesson_no:     parseInt(document.getElementById('lessonNo')?.value    || '1'),
-        duration:      parseInt(document.getElementById('duration')?.value    || '40'),
-        class_size:    document.getElementById('classSize')?.value            || '',
-        school_name:   document.getElementById('schoolName')?.value           || '',
-        teacher_name:  document.getElementById('teacherName')?.value          || '',
-        term:          document.getElementById('term')?.value                 || '',
-        references:    document.getElementById('references')?.value           || '',
-        special_needs: document.getElementById('specialNeeds')?.value         || '',
-        strategy:      document.getElementById('strategy')?.value             || '',
-        location_plan: document.getElementById('locationPlan')?.value         || '',
+
+        // ── Curriculum DB ids (used by backend for lesson lookup) ─────────
+        unit_id:       unitSelect?.value   || '',
+        lesson_id:     lessonSelect?.value || '',
+
+        // ── Display values for the printed plan ───────────────────────────
+        level:         displayOf(levelSelect),
+        class:         displayOf(classSelect),
+        subject:       displayOf(subjectSelect),
+
+        // FIX BUG 4: unit_number_display was missing — backend needs this
+        // to print the unit number in the plan header row.
+        unit_number_display: displayOf(unitSelect),
+
+        // FIX BUG 2: read .value directly — saveInlineEdit() keeps it current.
+        // displayOverride is only set when teacher uses the edit badge, so
+        // reading it first would miss the default value set by loadUnits().
+        unit_title:    document.getElementById('unitTitle')?.value || '',
+
+        // lesson_title: prefer override (teacher renamed it), else visible option text
+        lesson_title:  document.getElementById('lessonTitle')?.dataset?.displayOverride
+                       || lessonSelect?.options?.[lessonSelect?.selectedIndex]?.text
+                       || '',
+
+        // ── Numeric & scalar fields ───────────────────────────────────────
+        lesson_no:     parseInt(document.getElementById('lessonNo')?.value     || '1'),
+        total_lessons: parseInt(document.getElementById('totalLessons')?.value || '1'),
+        duration:      parseInt(document.getElementById('duration')?.value     || '40'),
+        class_size:    document.getElementById('classSize')?.value             || '',
+        school_name:   document.getElementById('schoolName')?.value            || '',
+        teacher_name:  document.getElementById('teacherName')?.value           || '',
+        term:          document.getElementById('term')?.value                  || '',
+        date:          document.getElementById('date')?.value                  || '',
+
+        // ── FIX BUG 1: always-fresh SEN & References ─────────────────────
+        special_needs: specialNeedsValue,
+        references:    referencesValue,
+
+        // ── Optional fields ───────────────────────────────────────────────
+        strategy:      document.getElementById('strategy')?.value              || '',
+        location_plan: document.getElementById('locationPlan')?.value          || '',
+
+        // Multi-select: join all selected values with comma
         materials:     Array.from(
             document.getElementById('materials')?.selectedOptions || []
         ).map(o => o.value).join(', '),
@@ -157,7 +248,7 @@ function resetBelow(level) {
 }
 
 async function loadLevels() {
-    const lang = getLanguage();                                // ← NEW — pass lang
+    const lang = getLanguage();
     const levels = await fetchData('levels', { lang }) || [];
     levelSelect.innerHTML = `<option value="">Select Level</option>`;
     levels.forEach(l => levelSelect.innerHTML +=
@@ -166,7 +257,6 @@ async function loadLevels() {
 
 async function loadClasses(levelId) {
     classSelect.innerHTML = `<option value="">Loading...</option>`;
-    // Class has no language field — level_id filter is enough
     const classes = await fetchData('classes', { level_id: levelId }) || [];
     classSelect.innerHTML = `<option value="">Select Class</option>`;
     classes.forEach(c => classSelect.innerHTML +=
@@ -175,7 +265,7 @@ async function loadClasses(levelId) {
 
 async function loadSubjects(classId) {
     subjectSelect.innerHTML = `<option value="">Loading...</option>`;
-    const lang     = getLanguage();                        // ← ADD THIS
+    const lang     = getLanguage();
     const subjects = await fetchData('subjects', { class_id: classId, lang }) || [];
     subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
     subjects.forEach(s => subjectSelect.innerHTML +=
@@ -184,7 +274,7 @@ async function loadSubjects(classId) {
 
 async function loadUnits(subjectId) {
     unitSelect.innerHTML = `<option value="">Loading...</option>`;
-    const lang  = getLanguage();                               // ← NEW — pass lang
+    const lang  = getLanguage();
     const units = await fetchData('units', { subject_id: subjectId, lang }) || [];
     unitSelect.innerHTML = `<option value="">Select Unit</option>`;
     units.forEach(u => unitSelect.innerHTML +=
@@ -193,7 +283,7 @@ async function loadUnits(subjectId) {
 
 async function loadLessons(unitId) {
     lessonSelect.innerHTML = `<option value="">Loading...</option>`;
-    const lang    = getLanguage();                             // ← NEW — pass lang
+    const lang    = getLanguage();
     const lessons = await fetchData('lessons', { unit_id: unitId, lang }) || [];
     lessonSelect.innerHTML = `<option value="">Select Lesson</option>`;
     lessons.forEach(l => lessonSelect.innerHTML +=
@@ -203,11 +293,12 @@ async function loadLessons(unitId) {
 // ===============================
 // EVENT LISTENERS — DROPDOWNS
 // ===============================
-if (levelSelect)   levelSelect.addEventListener('change', () => {
+if (levelSelect) levelSelect.addEventListener('change', () => {
     resetBelow('level');
+    if (classSelect) delete classSelect.dataset.displayOverride;
     if (levelSelect.value) loadClasses(levelSelect.value);
 });
-if (classSelect)   classSelect.addEventListener('change', () => {
+if (classSelect) classSelect.addEventListener('change', () => {
     resetBelow('class');
     if (classSelect.value) loadSubjects(classSelect.value);
 });
@@ -217,6 +308,10 @@ if (subjectSelect) subjectSelect.addEventListener('change', () => {
 });
 if (unitSelect) unitSelect.addEventListener('change', () => {
     resetBelow('unit');
+    // Clear lesson title override when unit changes
+    const lt = document.getElementById('lessonTitle');
+    if (lt) delete lt.dataset.displayOverride;
+
     if (unitSelect.value) {
         const selected = unitSelect.selectedOptions[0];
         document.getElementById('unitTitle').value    = selected.dataset.title || '';
@@ -224,6 +319,147 @@ if (unitSelect) unitSelect.addEventListener('change', () => {
         loadLessons(unitSelect.value);
     }
 });
+
+// ===============================
+// EDITABLE FIELD HELPERS
+// ── Single source of truth — NOT redefined in index.html.
+//
+// toggleEditField / saveEditField  → <select> fields (className, unitNo)
+// toggleInlineEdit / saveInlineEdit → unitTitle <input> + lessonTitle <select>
+//
+// Contract: sel.value / main.value = DB id, NEVER changed.
+//           dataset.displayOverride = teacher's printed label.
+//           Visible option text is also renamed on save for immediate feedback.
+// ===============================
+
+window.toggleEditField = function(selectId, inputId, rowId, toggleId) {
+    const sel    = document.getElementById(selectId);
+    const row    = document.getElementById(rowId);
+    const inp    = document.getElementById(inputId);
+    const toggle = document.getElementById(toggleId);
+    if (!sel || !row || !inp) return;
+
+    const isHidden = row.style.display === 'none';
+    if (isHidden) {
+        row.style.display       = 'flex';
+        inp.value               = sel.dataset.displayOverride
+                                  || sel.options[sel.selectedIndex]?.text
+                                  || '';
+        sel.style.opacity       = '0.4';
+        sel.style.pointerEvents = 'none';
+        inp.focus();
+        if (toggle) toggle.textContent = window.uiT
+            ? '✖ ' + window.uiT('lbl_edit_hint').replace('✏ ', '')
+            : '✖ cancel edit';
+    } else {
+        row.style.display       = 'none';
+        sel.style.opacity       = '';
+        sel.style.pointerEvents = '';
+        if (toggle) toggle.textContent = window.uiT
+            ? window.uiT('lbl_edit_hint')
+            : '✏ editable';
+    }
+};
+
+window.saveEditField = function(selectId, inputId, rowId, toggleId) {
+    const sel    = document.getElementById(selectId);
+    const row    = document.getElementById(rowId);
+    const inp    = document.getElementById(inputId);
+    const toggle = document.getElementById(toggleId);
+    if (!sel || !inp) return;
+
+    const newVal = inp.value.trim();
+    if (newVal) {
+        sel.dataset.displayOverride = newVal;
+        // Visually rename the option so the dropdown shows the saved label
+        const selectedOpt = sel.options[sel.selectedIndex];
+        if (selectedOpt) {
+            if (!selectedOpt.dataset.originalText)
+                selectedOpt.dataset.originalText = selectedOpt.text;
+            selectedOpt.text = newVal;
+        }
+    }
+
+    if (row)  row.style.display  = 'none';
+    sel.style.opacity       = '';
+    sel.style.pointerEvents = '';
+    if (toggle) toggle.textContent = window.uiT
+        ? window.uiT('lbl_edit_hint')
+        : '✏ editable';
+};
+
+window.toggleInlineEdit = function(mainId, editId, rowId, badgeId) {
+    const main  = document.getElementById(mainId);
+    const row   = document.getElementById(rowId);
+    const edit  = document.getElementById(editId);
+    const badge = document.getElementById(badgeId);
+    if (!main || !row || !edit) return;
+
+    const isHidden = row.style.display === 'none';
+    if (isHidden) {
+        row.style.display       = 'flex';
+        edit.value = main.dataset.displayOverride
+            || (main.tagName === 'SELECT'
+                ? main.options[main.selectedIndex]?.text
+                : main.value)
+            || '';
+        main.style.opacity       = '0.4';
+        main.style.pointerEvents = 'none';
+        edit.focus();
+        if (badge) badge.textContent = window.uiT
+            ? '✖ ' + window.uiT('lbl_edit_hint').replace('✏ ', '')
+            : '✖ cancel';
+    } else {
+        row.style.display        = 'none';
+        main.style.opacity       = '';
+        main.style.pointerEvents = '';
+        if (badge) badge.textContent = window.uiT
+            ? window.uiT('lbl_edit_hint')
+            : '✏ editable';
+    }
+};
+
+window.saveInlineEdit = function(mainId, editId, rowId, badgeId) {
+    const main  = document.getElementById(mainId);
+    const row   = document.getElementById(rowId);
+    const edit  = document.getElementById(editId);
+    const badge = document.getElementById(badgeId);
+    if (!main || !edit) return;
+
+    const newVal = edit.value.trim();
+    if (newVal) {
+        main.dataset.displayOverride = newVal;
+
+        if (main.tagName === 'SELECT') {
+            const selectedOpt = main.options[main.selectedIndex];
+            if (selectedOpt) {
+                if (!selectedOpt.dataset.originalText)
+                    selectedOpt.dataset.originalText = selectedOpt.text;
+                selectedOpt.text = newVal;
+            }
+        } else {
+            // FIX BUG 2: for plain <input> (unitTitle), update .value directly.
+            // buildDownloadPayload() reads .value so this keeps it in sync.
+            main.value = newVal;
+        }
+    }
+
+    if (row)  row.style.display  = 'none';
+    main.style.opacity       = '';
+    main.style.pointerEvents = '';
+    if (badge) badge.textContent = window.uiT
+        ? window.uiT('lbl_edit_hint')
+        : '✏ editable';
+};
+
+window.getFieldValue = function(selectId, inputId) {
+    const sel = document.getElementById(selectId);
+    if (sel?.dataset?.displayOverride) return sel.dataset.displayOverride;
+    const inp = document.getElementById(inputId);
+    if (inp && inp.closest('.edit-input-row')?.style.display !== 'none' && inp.value.trim())
+        return inp.value.trim();
+    return sel ? sel.value : '';
+};
 
 // ===============================
 // FIELD VALIDATION
@@ -258,12 +494,14 @@ function highlightEmptyFields() {
 
 // ===============================
 // PREFILL USER DATA
+// ── FIX BUG 5: restored 'references' in prefill list (was dropped in dev)
 // ===============================
 async function prefillUserData() {
     try {
         const res = await fetch(`${API_BASE}/get_user_prefill/`, { credentials: 'include' });
         if (!res.ok) throw new Error(`Prefill failed: ${res.status}`);
         const data = await res.json();
+        // Restored 'references' — was accidentally removed from dev version
         ['schoolName', 'teacherName', 'term', 'classSize', 'references'].forEach(f => {
             const el = document.getElementById(f);
             if (el) el.value = data[f] || '';
@@ -379,6 +617,10 @@ async function generateLessonPlanFromForm() {
         return;
     }
 
+    // Force-aggregate before payload build — belt and braces
+    aggregateSEN();
+    aggregateRefs();
+
     const btn = document.getElementById('generateButton');
 
     await requirePremium(async () => {
@@ -389,17 +631,17 @@ async function generateLessonPlanFromForm() {
 
             const { ok, data } = await postData('generate_lesson_plan', buildDownloadPayload());
 
-           if (!ok) {
-               if (data.redirect) {
-                   showPaywallModal();
-                   lessonPlanContent.textContent = '';
-                   return;
-           }
-           if (data.error) {
-                   alert("Server error: " + data.error);
-                   lessonPlanContent.textContent = '';
-                   return;
-               }
+            if (!ok) {
+                if (data.redirect) {
+                    showPaywallModal();
+                    lessonPlanContent.textContent = '';
+                    return;
+                }
+                if (data.error) {
+                    alert("Server error: " + data.error);
+                    lessonPlanContent.textContent = '';
+                    return;
+                }
             }
 
             lessonPlanContent.innerHTML = data.html;
@@ -459,7 +701,6 @@ function attachDownloadButtons() {
 
             try {
                 const accessData = await checkAccess(true);
-
                 if (accessData.is_premium) {
                     if (action === 'copy')       copyToWord();
                     else if (action === 'pdf')   await downloadPDF();
@@ -495,102 +736,64 @@ function subscribe(plan) {
 }
 
 // ===============================
-// DOWNLOAD — PDF (backend ReportLab)
+// DOWNLOAD — PDF
 // ===============================
 async function downloadPDF() {
-    console.log('📑 Requesting PDF from server...');
-
     const element = document.getElementById("lessonPlanContent");
-    if (!element || !element.innerHTML.trim()) {
-        alert("Generate a lesson plan first.");
-        return;
-    }
-
+    if (!element || !element.innerHTML.trim()) { alert("Generate a lesson plan first."); return; }
     try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                          || window.CSRF_TOKEN;
-
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
         const res = await fetch(`${API_BASE}/download_pdf/`, {
-            method:      'POST',
-            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             credentials: 'include',
-            body:        JSON.stringify(buildDownloadPayload()),
+            body: JSON.stringify(buildDownloadPayload()),
         });
-
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || `Server error ${res.status}`);
-        }
-
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Server error ${res.status}`); }
         await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plan.pdf');
-        console.log('✅ PDF downloaded from server');
-
     } catch (err) {
         console.error('PDF download error:', err);
-        alert('Failed to download PDF. Please try again.\n\nError: ' + err.message);
+        alert('Failed to download PDF.\n\nError: ' + err.message);
     }
 }
 
 // ===============================
-// DOWNLOAD — Word (backend python-docx)
+// DOWNLOAD — Word
 // ===============================
 async function downloadWord() {
-    console.log('📝 Requesting Word document from server...');
-
     const element = document.getElementById("lessonPlanContent");
-    if (!element || !element.innerHTML.trim()) {
-        alert("Generate a lesson plan first.");
-        return;
-    }
-
+    if (!element || !element.innerHTML.trim()) { alert("Generate a lesson plan first."); return; }
     try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                          || window.CSRF_TOKEN;
-
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
         const res = await fetch(`${API_BASE}/download_word/`, {
-            method:      'POST',
-            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             credentials: 'include',
-            body:        JSON.stringify(buildDownloadPayload()),
+            body: JSON.stringify(buildDownloadPayload()),
         });
-
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || `Server error ${res.status}`);
-        }
-
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Server error ${res.status}`); }
         await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plan.docx');
-        console.log('✅ Word document downloaded from server');
-
     } catch (err) {
         console.error('Word download error:', err);
-        alert('Failed to download Word document. Please try again.\n\nError: ' + err.message);
+        alert('Failed to download Word document.\n\nError: ' + err.message);
     }
 }
 
 // ===============================
-// DOWNLOAD — Copy to Word (JS clipboard)
+// DOWNLOAD — Copy to Word
 // ===============================
 function copyToWord() {
-    console.log('📄 Copying to clipboard...');
     const element = document.getElementById("lessonPlanContent");
-    if (!element || !element.innerHTML.trim()) {
-        alert("Generate a lesson plan first.");
-        return;
-    }
-
+    if (!element || !element.innerHTML.trim()) { alert("Generate a lesson plan first."); return; }
     const htmlContent = element.innerHTML;
     const plainText   = element.innerText;
-
     if (window.ClipboardItem && navigator.clipboard.write) {
         const item = new ClipboardItem({
             'text/html':  new Blob([htmlContent], { type: 'text/html' }),
             'text/plain': new Blob([plainText],   { type: 'text/plain' }),
         });
         navigator.clipboard.write([item])
-            .then(() => {
-                alert("Lesson plan copied with formatting!\nOpen Microsoft Word and press Ctrl+V to paste.");
-            })
+            .then(() => alert("Lesson plan copied with formatting!\nOpen Microsoft Word and press Ctrl+V to paste."))
             .catch(() => fallbackCopyPlainText(plainText));
     } else {
         fallbackCopyPlainText(plainText);
@@ -599,12 +802,8 @@ function copyToWord() {
 
 function fallbackCopyPlainText(text) {
     navigator.clipboard.writeText(text)
-        .then(() => {
-            alert("Lesson plan copied (plain text).\nPaste into Microsoft Word — formatting may be limited.");
-        })
-        .catch(() => {
-            alert("Copy failed. Please select the lesson plan text manually and use Ctrl+C.");
-        });
+        .then(() => alert("Lesson plan copied (plain text).\nPaste into Microsoft Word — formatting may be limited."))
+        .catch(() => alert("Copy failed. Please select the lesson plan text manually and use Ctrl+C."));
 }
 
 // ===============================
@@ -646,12 +845,7 @@ function renderDashboard(data) {
     const panel = document.getElementById('dashboardPanel');
     if (!panel) return;
     panel.style.display = 'block';
-
-    if (!data.is_authenticated) {
-        renderGuestBanner(data);
-    } else {
-        renderFullDashboard(data);
-    }
+    if (!data.is_authenticated) { renderGuestBanner(data); } else { renderFullDashboard(data); }
     attachDashboardEvents();
 }
 
@@ -659,23 +853,14 @@ function renderGuestBanner(data) {
     const banner = document.getElementById('guestBanner');
     if (!banner) return;
     banner.style.display = 'flex';
-
     const remaining = data.remaining ?? (data.lesson_limit - data.lessons_used);
     const text      = document.getElementById('guestBannerText');
     if (text) {
         if (remaining <= 0) {
-            text.innerHTML = `
-                <strong style="color:#f44336">Free limit reached (3 of 3 used).</strong>
-                <a href="/register/"
-                   style="color:#4CAF50;font-weight:700;margin-left:6px;text-decoration:underline;">
-                    Create a free account
-                </a>
+            text.innerHTML = `<strong style="color:#f44336">Free limit reached (3 of 3 used).</strong>
+                <a href="/register/" style="color:#4CAF50;font-weight:700;margin-left:6px;text-decoration:underline;">Create a free account</a>
                 to get more lessons, or
-                <a href="/pricing/"
-                   style="color:#2D9CDB;font-weight:700;margin-left:2px;text-decoration:underline;">
-                    subscribe for unlimited access.
-                </a>
-            `;
+                <a href="/pricing/" style="color:#2D9CDB;font-weight:700;margin-left:2px;text-decoration:underline;">subscribe for unlimited access.</a>`;
         } else {
             text.innerHTML = `You have <strong style="color:#4CAF50">${remaining}</strong> free lesson${remaining === 1 ? '' : 's'} remaining (${data.lessons_used} of ${data.lesson_limit} used).`;
         }
@@ -691,58 +876,34 @@ function renderFullDashboard(data) {
     const limit = data.lesson_limit ?? 0;
 
     setInner('dashUsed', used);
-    setInner('dashLimit',
-        (data.remaining === null || data.remaining === undefined)
-            ? 'Unlimited plan'
-            : `of ${limit} total`
-    );
+    setInner('dashLimit', (data.remaining === null || data.remaining === undefined) ? 'Unlimited plan' : `of ${limit} total`);
 
     if (data.remaining === null || data.remaining === undefined) {
-        setInner('dashRemaining',      '∞');
-        setInner('dashRemainingLabel', 'unlimited');
+        setInner('dashRemaining', '∞'); setInner('dashRemainingLabel', 'unlimited');
     } else {
-        setInner('dashRemaining',      data.remaining);
+        setInner('dashRemaining', data.remaining);
         setInner('dashRemainingLabel', data.remaining === 1 ? 'lesson left' : 'lessons left');
     }
 
     const fill = document.getElementById('dashProgressFill');
     if (fill) {
-        const pct = data.is_premium
-            ? 100
-            : Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0);
+        const pct = data.is_premium ? 100 : Math.min(100, limit > 0 ? Math.round((used / limit) * 100) : 0);
         fill.style.width      = `${pct}%`;
-        fill.style.background = pct >= 90
-            ? 'linear-gradient(90deg,#f44336,#EF9A9A)'
-            : 'linear-gradient(90deg,#4CAF50,#81C784)';
+        fill.style.background = pct >= 90 ? 'linear-gradient(90deg,#f44336,#EF9A9A)' : 'linear-gradient(90deg,#4CAF50,#81C784)';
     }
 
     const planEl = document.getElementById('dashPlan');
     if (planEl) {
-        if (data.is_premium && data.subscription_plan) {
-            planEl.textContent = data.subscription_plan.charAt(0).toUpperCase()
-                               + data.subscription_plan.slice(1);
-            planEl.style.color = '#81C784';
-        } else if (data.is_premium) {
-            planEl.textContent = 'Premium';
-            planEl.style.color = '#81C784';
-        } else {
-            planEl.textContent = 'Free';
-            planEl.style.color = '#FF9800';
-        }
+        if (data.is_premium && data.subscription_plan) { planEl.textContent = data.subscription_plan.charAt(0).toUpperCase() + data.subscription_plan.slice(1); planEl.style.color = '#81C784'; }
+        else if (data.is_premium) { planEl.textContent = 'Premium'; planEl.style.color = '#81C784'; }
+        else { planEl.textContent = 'Free'; planEl.style.color = '#FF9800'; }
     }
 
     const expiryEl = document.getElementById('dashExpiry');
     if (expiryEl) {
-        if (data.subscription_expiry) {
-            const d = new Date(data.subscription_expiry);
-            expiryEl.textContent = `Expires: ${d.toLocaleDateString('en-GB', {
-                day: '2-digit', month: 'short', year: 'numeric'
-            })}`;
-        } else if (data.is_premium) {
-            expiryEl.textContent = 'No expiry set';
-        } else {
-            expiryEl.textContent = 'Upgrade for more';
-        }
+        if (data.subscription_expiry) { const d = new Date(data.subscription_expiry); expiryEl.textContent = `Expires: ${d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}`; }
+        else if (data.is_premium) { expiryEl.textContent = 'No expiry set'; }
+        else { expiryEl.textContent = 'Upgrade for more'; }
     }
 
     togglePerm('permPdf',  data.can_download_pdf);
@@ -750,9 +911,7 @@ function renderFullDashboard(data) {
     togglePerm('permCopy', data.can_copy_word);
 
     const hint = document.getElementById('dashUpgradeHint');
-    if (hint && !data.is_premium) {
-        hint.innerHTML = `<a href="/pricing/" style="color:#4CAF50;font-size:11px;">Upgrade to unlock all →</a>`;
-    }
+    if (hint && !data.is_premium) hint.innerHTML = `<a href="/pricing/" style="color:#4CAF50;font-size:11px;">Upgrade to unlock all →</a>`;
 
     renderPlansTable(data.recent_plans || []);
 }
@@ -764,23 +923,18 @@ function renderPlansTable(plans) {
     const tbody    = document.getElementById('dashPlansBody');
 
     if (loading) loading.style.display = 'none';
-
     if (!plans || plans.length === 0) {
         if (empty)    empty.style.display    = 'block';
         if (tableWrp) tableWrp.style.display = 'none';
         return;
     }
-
     if (empty)    empty.style.display    = 'none';
     if (tableWrp) tableWrp.style.display = 'block';
     if (!tbody) return;
 
     tbody.innerHTML = plans.map(p => `
         <tr data-plan-id="${p.id}">
-            <td>
-                <input type="checkbox" class="dash-plan-check" data-id="${p.id}"
-                       aria-label="Select ${escHtml(p.lesson_title)}">
-            </td>
+            <td><input type="checkbox" class="dash-plan-check" data-id="${p.id}" aria-label="Select ${escHtml(p.lesson_title)}"></td>
             <td><span class="dash-subject-badge">${escHtml(p.subject)}</span></td>
             <td class="dash-lesson-title-cell" title="${escHtml(p.lesson_title)}">${escHtml(p.lesson_title)}</td>
             <td>${escHtml(p.class_name)}</td>
@@ -789,9 +943,7 @@ function renderPlansTable(plans) {
         </tr>
     `).join('');
 
-    tbody.querySelectorAll('.dash-plan-check').forEach(cb => {
-        cb.addEventListener('change', handlePlanCheckChange);
-    });
+    tbody.querySelectorAll('.dash-plan-check').forEach(cb => cb.addEventListener('change', handlePlanCheckChange));
 }
 
 function attachDashboardEvents() {
@@ -814,9 +966,8 @@ function attachDashboardEvents() {
         document.getElementById('dashHeaderCheck').addEventListener('change', (e) => {
             document.querySelectorAll('.dash-plan-check').forEach(cb => {
                 cb.checked = e.target.checked;
-                const id   = parseInt(cb.dataset.id, 10);
-                if (e.target.checked) selectedPlanIds.add(id);
-                else selectedPlanIds.delete(id);
+                const id = parseInt(cb.dataset.id, 10);
+                if (e.target.checked) selectedPlanIds.add(id); else selectedPlanIds.delete(id);
             });
             updateZipButton();
         });
@@ -830,9 +981,8 @@ function attachDashboardEvents() {
             const allChecked = [...checks].every(cb => cb.checked);
             checks.forEach(cb => {
                 cb.checked = !allChecked;
-                const id   = parseInt(cb.dataset.id, 10);
-                if (!allChecked) selectedPlanIds.add(id);
-                else selectedPlanIds.delete(id);
+                const id = parseInt(cb.dataset.id, 10);
+                if (!allChecked) selectedPlanIds.add(id); else selectedPlanIds.delete(id);
             });
             const hc = document.getElementById('dashHeaderCheck');
             if (hc) hc.checked = !allChecked;
@@ -849,9 +999,7 @@ function attachDashboardEvents() {
 
 function handlePlanCheckChange(e) {
     const id = parseInt(e.target.dataset.id, 10);
-    if (e.target.checked) selectedPlanIds.add(id);
-    else selectedPlanIds.delete(id);
-
+    if (e.target.checked) selectedPlanIds.add(id); else selectedPlanIds.delete(id);
     const allChecks   = document.querySelectorAll('.dash-plan-check');
     const headerCheck = document.getElementById('dashHeaderCheck');
     if (headerCheck) {
@@ -864,7 +1012,7 @@ function handlePlanCheckChange(e) {
 function updateZipButton() {
     const btn = document.getElementById('dashZipBtn');
     if (!btn) return;
-    const count     = selectedPlanIds.size;
+    const count = selectedPlanIds.size;
     btn.disabled    = count === 0;
     btn.textContent = count > 0 ? `🗜 Download ZIP (${count})` : '🗜 Download ZIP';
 }
@@ -872,40 +1020,28 @@ function updateZipButton() {
 async function handleBulkZip() {
     const btn = document.getElementById('dashZipBtn');
     if (!btn || selectedPlanIds.size === 0) return;
-
     const originalText = btn.textContent;
-    btn.disabled       = true;
-    btn.textContent    = '⏳ Zipping…';
-
+    btn.disabled = true; btn.textContent = '⏳ Zipping…';
     try {
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value
-                          || window.CSRF_TOKEN;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || window.CSRF_TOKEN;
         const res = await fetch(`${API_BASE}/plans/zip/`, {
-            method:      'POST',
-            headers:     { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             credentials: 'include',
-            body:        JSON.stringify({ plan_ids: [...selectedPlanIds] }),
+            body: JSON.stringify({ plan_ids: [...selectedPlanIds] }),
         });
-
-        if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error || `Server error ${res.status}`);
-        }
-
+        if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.error || `Server error ${res.status}`); }
         await triggerBlobDownload(await res.blob(), 'CBC_Lesson_Plans.zip');
-
         selectedPlanIds.clear();
         document.querySelectorAll('.dash-plan-check').forEach(cb => cb.checked = false);
         const hc = document.getElementById('dashHeaderCheck');
         if (hc) { hc.checked = false; hc.indeterminate = false; }
         updateZipButton();
-
     } catch (err) {
         console.error('ZIP download failed:', err);
         alert(`ZIP download failed: ${err.message}`);
     } finally {
-        btn.disabled    = false;
-        btn.textContent = originalText;
+        btn.disabled = false; btn.textContent = originalText;
     }
 }
 
@@ -914,17 +1050,13 @@ function setInner(id, value) {
     const el = document.getElementById(id);
     if (el) el.textContent = value ?? '–';
 }
-
 function togglePerm(id, active) {
     const el = document.getElementById(id);
     if (el) el.classList.toggle('active', !!active);
 }
-
 function escHtml(str) {
     if (!str) return '';
     return String(str)
-        .replace(/&/g,  '&amp;')
-        .replace(/</g,  '&lt;')
-        .replace(/>/g,  '&gt;')
-        .replace(/"/g,  '&quot;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
