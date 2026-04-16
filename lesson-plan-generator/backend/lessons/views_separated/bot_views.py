@@ -355,10 +355,23 @@ def notify_admin_for_urgent_issues(intent, user_message, user):
             fail_silently=True,
         )        
 
-@login_required
+@csrf_exempt
+@require_http_methods(["GET"])
 def user_status_api(request):
-    """Get current user's status for the chat bot"""
-    user = request.user
+    """Get current user's status for the chat bot - works for all users"""
+    user = request.user if request.user.is_authenticated else None
+    
+    # For unauthenticated users
+    if not user:
+        return JsonResponse({
+            'is_authenticated': False,
+            'username': None,
+            'email': None,
+            'is_premium': False,
+            'lessons_remaining': 3,
+        })
+    
+    # For authenticated users
     data = {
         'is_authenticated': True,
         'username': user.username,
@@ -375,14 +388,14 @@ def user_status_api(request):
         data['lessons_used'] = getattr(sub, 'lessons_generated', 0)
         data['lessons_remaining'] = 'unlimited' if data['is_premium'] else max(0, 3 - data['lessons_used'])
     
-    return JsonResponse(data)    
+    return JsonResponse(data)
 
-from lessons.models import QuickReply
 
 @csrf_exempt
 @require_http_methods(["GET"])
 def get_quick_replies(request):
     """API endpoint to get quick reply buttons"""
+    from lessons.models import QuickReply  # Move import here
     replies = QuickReply.objects.filter(is_active=True).order_by('row', 'order')
     data = []
     for reply in replies:
@@ -392,4 +405,4 @@ def get_quick_replies(request):
             'icon': reply.icon,
             'row': reply.row,
         })
-    return JsonResponse({'quick_replies': data})    
+    return JsonResponse({'quick_replies': data})
