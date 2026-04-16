@@ -6,6 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views_separated import payment_views
 from .views_separated.auth_views import register, login_user, logout_user
 from lessons.views_separated.lesson_views import download_lesson_pdf,  download_lesson_word
+from lessons.views_separated.bot_views import chat_bot_api, user_status_api
 from .views_separated.crud_views import (
     LevelViewSet, ClassViewSet, SubjectViewSet, UnitViewSet, LessonViewSet
 )
@@ -17,6 +18,7 @@ from .views_separated.lesson_views import (
     bulk_zip_download,
 )
 from .views import landing, pricing, get_logged_in_user_device_id, index
+from lessons.views_separated.bot_views import get_quick_replies
 
 # ── Router ──
 router = DefaultRouter()
@@ -51,6 +53,9 @@ urlpatterns = [
 
     path('download_pdf/', download_lesson_pdf),
     path('download_word/', download_lesson_word),
+    path('chatbot/', chat_bot_api, name='chatbot_api'),
+    path('user/status/', user_status_api, name='user_status_api'),
+    path('quick-replies/', get_quick_replies, name='quick_replies'),
 
     # ── Payment API ──
     # ✅ FIXED: name was 'process_mtn_payment', template uses 'initiate_mtn_payment'

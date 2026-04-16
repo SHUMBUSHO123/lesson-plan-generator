@@ -522,3 +522,186 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'❌ {updated} proof(s) rejected.')
     reject_selected.short_description = '❌ Reject selected proofs'
+
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.contrib.auth.models import User
+from .models import ChatHistory, Interaction, BotConfig, BotResponse
+
+# ============================================
+# ChatHistory Admin
+# ============================================
+@admin.register(ChatHistory)
+class ChatHistoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'intent', 'message_preview', 'direction', 'created_at']
+    list_filter = ['intent', 'direction', 'created_at']
+    search_fields = ['message', 'user__username', 'user__email']
+    readonly_fields = ['created_at']
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('User Info', {
+            'fields': ('user', 'conversation_id', 'direction')
+        }),
+        ('Message', {
+            'fields': ('message', 'intent'),
+            'classes': ('wide',)
+        }),
+        ('Metadata', {
+            'fields': ('created_at',),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def message_preview(self, obj):
+        return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
+    message_preview.short_description = 'Message'
+
+
+# ============================================
+# Interaction Admin (for analytics)
+# ============================================
+@admin.register(Interaction)
+class InteractionAdmin(admin.ModelAdmin):
+    list_display = ['id', 'user', 'intent', 'user_message_preview', 'satisfied', 'timestamp']
+    list_filter = ['intent', 'satisfied', 'timestamp']
+    search_fields = ['user_message', 'bot_response', 'user__username', 'user__email']
+    readonly_fields = ['timestamp']
+    date_hierarchy = 'timestamp'
+    
+    fieldsets = (
+        ('User Info', {
+            'fields': ('user',)
+        }),
+        ('Conversation', {
+            'fields': ('intent', 'user_message', 'bot_response', 'satisfied'),
+            'classes': ('wide',)
+        }),
+        ('Metadata', {
+            'fields': ('timestamp',),
+            'classes': ('collapse',)
+        })
+    )
+    
+    def user_message_preview(self, obj):
+        return obj.user_message[:50] + '...' if len(obj.user_message) > 50 else obj.user_message
+    user_message_preview.short_description = 'User Message'
+
+
+# ============================================
+# BotConfig Admin
+# ============================================
+@admin.register(BotConfig)
+class BotConfigAdmin(admin.ModelAdmin):
+    list_display = ['key', 'value_preview', 'updated_at']
+    search_fields = ['key', 'value']
+    
+    fieldsets = (
+        ('Configuration', {
+            'fields': ('key', 'value'),
+            'classes': ('wide',)
+        }),
+    )
+    
+    def value_preview(self, obj):
+        return obj.value[:50] + '...' if len(obj.value) > 50 else obj.value
+    value_preview.short_description = 'Value'
+
+
+# ============================================
+# BotResponse Admin (Admin-editable responses)
+# ============================================
+@admin.register(BotResponse)
+class BotResponseAdmin(admin.ModelAdmin):
+    list_display = ['intent', 'is_active', 'priority', 'response_preview', 'updated_at']
+    list_editable = ['is_active', 'priority']
+    list_filter = ['is_active', 'priority']
+    search_fields = ['intent', 'response_template']
+    
+    fieldsets = (
+        ('Intent Settings', {
+            'fields': ('intent', 'is_active', 'priority')
+        }),
+        ('Response Content', {
+            'fields': ('response_template',),
+            'classes': ('wide',),
+            'description': 'Use variables: {username}, {remaining}, {email}, {plan}'
+        }),
+    )
+    
+    def response_preview(self, obj):
+        return obj.response_template[:50] + '...' if len(obj.response_template) > 50 else obj.response_template
+    response_preview.short_description = 'Response'
+
+
+# ============================================
+# Export Actions (for ChatHistory and Interaction)
+# ============================================
+import csv
+from django.http import HttpResponse
+
+def export_chat_history_csv(modeladmin, request, queryset):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="chat_history.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'User', 'Intent', 'Direction', 'Message'])
+    
+    for chat in queryset:
+        writer.writerow([
+            chat.created_at,
+            chat.user.username if chat.user else 'Anonymous',
+            chat.intent or 'N/A',
+            chat.direction,
+            chat.message
+        ])
+    
+    return response
+export_chat_history_csv.short_description = "Export selected chats to CSV"
+
+def export_interactions_csv(modeladmin, request, queryset):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="interactions.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Date', 'User', 'Intent', 'User Message', 'Bot Response', 'Satisfied'])
+    
+    for interaction in queryset:
+        writer.writerow([
+            interaction.timestamp,
+            interaction.user.username if interaction.user else 'Anonymous',
+            interaction.intent,
+            interaction.user_message,
+            interaction.bot_response,
+            interaction.satisfied or 'N/A'
+        ])
+    
+    return response
+export_interactions_csv.short_description = "Export selected interactions to CSV"
+
+# Add export actions to admins
+ChatHistoryAdmin.actions = [export_chat_history_csv]
+InteractionAdmin.actions = [export_interactions_csv]
+
+from .models import QuickReply
+
+@admin.register(QuickReply)
+class QuickReplyAdmin(admin.ModelAdmin):
+    list_display = ['icon', 'text', 'message_preview', 'row', 'order', 'is_active']
+    list_editable = ['row', 'order', 'is_active']
+    list_filter = ['row', 'is_active']
+    search_fields = ['text', 'message']
+    
+    fieldsets = (
+        ('Button Display', {
+            'fields': ('text', 'icon', 'row', 'order')
+        }),
+        ('Action', {
+            'fields': ('message', 'is_active'),
+            'description': 'This message will be sent to the bot when button is clicked'
+        }),
+    )
+    
+    def message_preview(self, obj):
+        return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
+    message_preview.short_description = 'Message sent'

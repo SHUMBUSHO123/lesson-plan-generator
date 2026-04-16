@@ -14,3 +14,4 @@ from lessons.views_separated.lesson_views import (
     bulk_zip_download,
 )
 from lessons.views_separated.payment_views import confirm_payment, check_subscription, initiate_mtn_payment, payment_page  # <- add this
+from lessons.views_separated.bot_views import chat_bot_api, user_status_api  

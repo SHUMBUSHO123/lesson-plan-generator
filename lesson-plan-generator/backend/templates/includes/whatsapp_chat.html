@@ -1,0 +1,60 @@
+{% load static %}
+
+<div id="whatsapp-chat-container">
+
+    <div id="whatsapp-chat-btn">
+        <div>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                <path d="M12.032 2.002c-5.512 0-9.98 4.468-9.98 9.98 0 1.752.457 3.472 1.326 4.984L2 22l5.302-1.308c1.448.79 3.095 1.206 4.73 1.206 5.512 0 9.98-4.468 9.98-9.98s-4.468-9.98-9.98-9.98z"/>
+                <path d="M16.688 14.144c-.26-.13-1.54-.76-1.778-.847-.238-.087-.41-.13-.584.13-.174.26-.674.847-.826 1.02-.152.174-.304.196-.564.065-.26-.13-1.098-.405-2.09-1.29-.773-.69-1.294-1.54-1.446-1.8-.152-.26-.016-.4.114-.53.117-.117.26-.304.39-.456.13-.152.174-.26.26-.434.087-.174.043-.326-.022-.456-.065-.13-.584-1.41-.8-1.93-.21-.506-.424-.437-.584-.445-.152-.008-.326-.008-.5-.008-.174 0-.456.065-.695.326-.238.26-.91.89-.91 2.17 0 1.28.93 2.516 1.06 2.69.13.174 1.83 2.794 4.432 3.92.62.267 1.104.427 1.482.547.623.198 1.19.17 1.64.103.5-.074 1.54-.63 1.757-1.238.217-.608.217-1.13.152-1.238-.065-.108-.238-.174-.498-.304z"/>
+            </svg>
+        </div>
+    </div>
+
+    <div id="whatsapp-chat-window">
+
+        <div id="whatsapp-chat-header">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="white">
+                <path d="M12.032 2.002c-5.512 0-9.98 4.468-9.98 9.98 0 1.752.457 3.472 1.326 4.984L2 22l5.302-1.308c1.448.79 3.095 1.206 4.73 1.206 5.512 0 9.98-4.468 9.98-9.98s-4.468-9.98-9.98-9.98z"/>
+            </svg>
+            <div>
+                <div> IsomoPlus AI Assistant</div>
+                <div id="bot-status-text">💬 Quick help • Account support</div>
+            </div>
+            <div>
+                <button id="whatsapp-reset-pos" title="Reset position">⟳</button>
+                <button id="whatsapp-close-temp" title="Hide for now">⏻</button>
+                <button id="whatsapp-close">✕</button>
+            </div>
+        </div>
+
+        <div id="account-status-bar">
+            <span id="account-status-text">🔍 Checking account...</span>
+            <a href="#" id="account-action-link">Login / Register</a>
+        </div>
+
+        <div id="whatsapp-messages"></div>
+
+        <!-- Dynamic Quick Reply Rows - Buttons will be loaded by JavaScript -->
+        <div class="quick-reply-row" id="quick-reply-row-1"></div>
+        <div class="quick-reply-row" id="quick-reply-row-2"></div>
+
+        <div class="input-area">
+            <input type="text" id="whatsapp-input" placeholder="Ask me anything about IsomoPlus...">
+            <button id="whatsapp-send">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="chat-footer">
+            💬 IsomoPlus Support | Fast responses
+        </div>
+
+    </div>
+
+</div>
+
+<link rel="stylesheet" href="{% static 'css/whatsapp-chat.css' %}">
+<script src="{% static 'js/whatsapp-chat.js' %}"></script>

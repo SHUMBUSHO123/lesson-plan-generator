@@ -5,6 +5,8 @@ from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
 from django.db.models import F
+from django.conf import settings
+from django.contrib.auth.models import User
 
 
 # -----------------------------
@@ -435,3 +437,64 @@ class ManualPaymentProof(models.Model):
 # Existing English data is safe — default='en' on all new fields means
 # every existing row automatically gets language='en' after migration.
 # =============================================================================
+
+
+class ChatHistory(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    conversation_id = models.CharField(max_length=100)
+    message = models.TextField()
+    direction = models.CharField(max_length=10)  # 'incoming' or 'outgoing'
+    intent = models.CharField(max_length=50, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+class Interaction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    intent = models.CharField(max_length=50)
+    user_message = models.TextField()
+    bot_response = models.TextField()
+    satisfied = models.BooleanField(null=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+class BotConfig(models.Model):
+    """Dynamic configuration - change bot behavior without redeploying"""
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    @classmethod
+    def get(cls, key, default=None):
+        try:
+            return cls.objects.get(key=key).value
+        except cls.DoesNotExist:
+            return default
+        
+class BotResponse(models.Model):
+    """Admin-editable bot responses"""
+    intent = models.CharField(max_length=50, unique=True)
+    response_template = models.TextField(help_text="Use {username}, {remaining}, etc.")
+    is_active = models.BooleanField(default=True)
+    priority = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    def __str__(self):
+        return f"{self.intent} - {'Active' if self.is_active else 'Inactive'}"
+       
+
+class QuickReply(models.Model):
+    """Quick reply buttons that appear in chat"""
+    text = models.CharField(max_length=100, help_text="Button text shown to user")
+    message = models.CharField(max_length=500, help_text="Message sent to bot when clicked")
+    icon = models.CharField(max_length=10, blank=True, help_text="Emoji icon (e.g., 📝, 💰)")
+    order = models.IntegerField(default=0, help_text="Display order")
+    row = models.IntegerField(default=1, help_text="Which row (1 or 2)")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['row', 'order']
+        verbose_name_plural = "Quick replies"
+    
+    def __str__(self):
+        return f"{self.icon} {self.text}"         

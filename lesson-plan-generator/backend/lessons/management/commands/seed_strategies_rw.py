@@ -33,7 +33,7 @@ STRATEGIES = [
     {
         "name": "Uburyo bw'Iganiro",
         "description": (
-            "Umwarimu ayobora iganiro ry'ishuri ryubahiriza amategeko, "
+            "Umwarimu ayobora ikiganiro ry'ishuri ryubahiriza amategeko, "
             "akangura ubumenyi bw'ibanze kandi agaragaza abanyeshuri inzira "
             "yo kubaka ubumenyi binyuze mu bibazo no gutumanahana n'inshuti."
         ),
@@ -44,8 +44,8 @@ STRATEGIES = [
         "name": "Akazi k'Amatsinda",
         "description": (
             "Abanyeshuri bakorana mu matsinda make bagenzura, bakemura ibibazo, "
-            "kandi bagaragaza ibyo basanze. Umwarimu azunguruka nk'umuyobozi, "
-            "ashyigikira akazi k'amatsinda no gutumanahana."
+            "kandi bagaragaza ibyo babonye. Umwarimu azenguruka nk'umuyobozi, "
+            "ashyigikira akazi k'amatsinda no gutumanaho."
         ),
         "is_premium_only": False,
         "is_active": True,
@@ -86,8 +86,8 @@ LESSON_DESCRIPTION_VARIANTS = [
 ]
 
 INSTRUCTIONAL_OBJ_VARIANTS = [
-    "Parigihembwe cy'isomo, abanyeshuri bazashobora gusesengura no gukoresha ibitekerezo bya {title} bagera nibura kuri 80% y'ibisobanuro binyuze mu bikorwa byoborwa.",
-    "Parigihembwe cy'isomo, abanyeshuri bazagerageza neza kwerekana ko basobanukiwe {title} bagikemura nibura ibibazo 3 neza.",
+    "Burigihe  cy'isomo, abanyeshuri bazashobora gusesengura no gukoresha ibitekerezo bya {title} bagera nibura kuri 80% y'ibisobanuro binyuze mu bikorwa byoborwa.",
+    "Buri gihe cy'isomo, abanyeshuri bazagerageza neza kwerekana ko basobanukiwe {title} bagikemura nibura ibibazo 3 neza.",
     "Nyuma y'iri somo, abanyeshuri bazasobanura neza {title} kandi babikoresha mu bihe bya none bashingiwe ku mpamvu zikwiye.",
     "Nyuma yo gusoza, abanyeshuri bazamenya neza {title} bigaragazwa no gusoza neza ibikorwa by'isuzuma.",
 ]
