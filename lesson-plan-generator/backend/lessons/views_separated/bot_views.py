@@ -138,32 +138,86 @@ def detect_intent(message):
     """
     message_lower = message.lower()
     
-    # Intent definitions - all keywords in lowercase
+    # Intent definitions - ORDER MATTERS! Put more specific intents FIRST
     intents = {
-        'greeting': ['hi', 'hello', 'hey', 'muraho', 'sasa', 'good morning', 'good afternoon', 'hola'],
-        'generate_lesson': ['generate', 'lesson plan', 'create lesson', 'make plan', 'new plan', 'how to generate'],
-        'pricing': ['price', 'cost', 'subscription', 'upgrade', 'premium', 'pay', 'payment', 'plan', 'subscribe', 'how much', 'rwf', 'fees'],
-        'download': ['download', 'export', 'pdf', 'docx', 'word', 'save', 'print', 'get my plan'],
-        'create_account': ['create account', 'register', 'sign up', 'new account', 'how to register'],
-        'login': ['login', 'sign in', 'log in', 'access account'],
-        'payment_issue': ['paid', 'activate', 'already paid', 'payment not', 'money deducted', 'charged but'],
-        'account_status': ['my status', 'account status', 'check my plan', 'remaining lessons', 'what plan', 'am i premium'],
-        'contact_admin': ['admin', 'support', 'help desk', 'talk to human', 'speak to manager', 'contact support'],
-        'troubleshoot': ['error', 'bug', 'not working', 'issue', 'problem', 'broken', 'failing'],
-        'forgot_password': ['forgot password', 'reset password', 'password reset'],
-        'help': ['help', 'assist', 'guide', 'tutorial', 'what can you do', 'capabilities'],
-        'thanks': ['thank', 'thanks', 'appreciate', 'grateful', 'awesome', 'great'],
-        'goodbye': ['bye', 'goodbye', 'see you', 'later', 'exit', 'quit'],
+        # Payment issues - most specific, check first
+        'payment_issue': [
+            'payment deducted', 'not activated', 'money deducted', 'paid but', 
+            'already paid', 'payment not', 'charged but', 'activation issue',
+            'payment problem', 'transaction failed', 'deducted but'
+        ],
+        # Contact admin - direct support request
+        'contact_admin': [
+            'admin', 'speak to admin', 'talk to admin', 'contact support',
+            'help desk', 'human support', 'speak to manager', 'talk to human'
+        ],
+        # Troubleshoot - technical issues
+        'troubleshoot': [
+            'error', 'bug', 'not working', 'technical issue', 'problem', 
+            'broken', 'failing', 'doesn\'t work', 'issue with'
+        ],
+        # Account status - check subscription
+        'account_status': [
+            'my status', 'account status', 'check my plan', 'remaining lessons',
+            'what plan', 'am i premium', 'subscription status', 'how many left'
+        ],
+        # Generate lesson - main feature
+        'generate_lesson': [
+            'generate', 'lesson plan', 'create lesson', 'make plan', 'new plan',
+            'how to generate', 'create plan', 'make lesson'
+        ],
+        # Pricing - subscription plans
+        'pricing': [
+            'price', 'cost', 'subscription', 'upgrade', 'premium', 'pay',
+            'payment', 'plan', 'subscribe', 'how much', 'rwf', 'fees', 'pricing'
+        ],
+        # Download - export options
+        'download': [
+            'download', 'export', 'pdf', 'docx', 'word', 'save', 'print',
+            'get my plan', 'copy to word'
+        ],
+        # Create account - registration
+        'create_account': [
+            'create account', 'register', 'sign up', 'new account',
+            'how to register', 'create free account'
+        ],
+        # Login - authentication
+        'login': [
+            'login', 'sign in', 'log in', 'access account', 'can\'t login'
+        ],
+        # Forgot password - reset
+        'forgot_password': [
+            'forgot password', 'reset password', 'password reset', 'change password'
+        ],
+        # Help - general assistance
+        'help': [
+            'help', 'assist', 'guide', 'tutorial', 'what can you do',
+            'capabilities', 'how to use'
+        ],
+        # Greeting - welcome messages
+        'greeting': [
+            'hi', 'hello', 'hey', 'muraho', 'sasa', 'good morning',
+            'good afternoon', 'hola', 'howdy'
+        ],
+        # Thanks - appreciation
+        'thanks': [
+            'thank', 'thanks', 'appreciate', 'grateful', 'awesome', 'great',
+            'perfect', 'amazing'
+        ],
+        # Goodbye - exit
+        'goodbye': [
+            'bye', 'goodbye', 'see you', 'later', 'exit', 'quit', 'cya'
+        ],
     }
     
     # Check for intent matches
     for intent, keywords in intents.items():
         for keyword in keywords:
             if keyword in message_lower:
-                print(f"Intent detected: {intent} (keyword: {keyword})")  # Debug log
+                print(f"Intent detected: {intent} (keyword: {keyword})")
                 return intent
     
-    print(f"No intent detected, returning default for: {message_lower}")  # Debug log
+    print(f"No intent detected, returning default for: {message_lower}")
     return 'default'
 
 def generate_bot_response(intent, user_message, user_data, subscription_data, language='en'):
