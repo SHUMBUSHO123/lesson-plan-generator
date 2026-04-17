@@ -135,93 +135,113 @@
         return false;
     }
 
-    function addMessage(type, content, isHtml = false) {
-        if (!messagesContainer) return;
-        
-        const message = {
-            id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-            type: type,
-            content: content,
-            timestamp: new Date().toISOString()
-        };
-        chatHistory.push(message);
-        if (chatHistory.length > 200) chatHistory = chatHistory.slice(-200);
-        saveChat();
-        
+// Helper: convert URLs to clickable links
+function urlify(text) {
+    var urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, function(url) {
+        return '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>';
+    });
+}
+
+function addMessage(type, content, isHtml = false) {
+    if (!messagesContainer) return;
+    
+    const message = {
+        id: Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+        type: type,
+        content: content,
+        timestamp: new Date().toISOString()
+    };
+    chatHistory.push(message);
+    if (chatHistory.length > 200) chatHistory = chatHistory.slice(-200);
+    saveChat();
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.style.marginBottom = '12px';
+    messageDiv.style.display = 'flex';
+    messageDiv.style.justifyContent = type === 'user' ? 'flex-end' : 'flex-start';
+    
+    const bubble = document.createElement('div');
+    bubble.style.maxWidth = '85%';
+    bubble.style.padding = '10px 14px';
+    bubble.style.borderRadius = '12px';
+    bubble.style.background = type === 'user' ? '#25D366' : 'white';
+    bubble.style.color = type === 'user' ? 'white' : '#111';
+    bubble.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
+    bubble.style.fontSize = '13px';
+    bubble.style.lineHeight = '1.5';
+    bubble.style.whiteSpace = 'pre-line';
+    
+    let displayContent = content;
+    if (type === 'bot' && !isHtml) {
+        // Convert URLs to clickable links
+        displayContent = urlify(content);
+    }
+    
+    if (isHtml) {
+        bubble.innerHTML = displayContent;
+    } else {
+        bubble.innerHTML = displayContent.replace(/\n/g, '<br>');
+    }
+    
+    const timeSpan = document.createElement('div');
+    timeSpan.style.fontSize = '10px';
+    timeSpan.style.marginTop = '4px';
+    timeSpan.style.opacity = '0.6';
+    timeSpan.style.textAlign = type === 'user' ? 'right' : 'left';
+    timeSpan.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    bubble.appendChild(timeSpan);
+    
+    messageDiv.appendChild(bubble);
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    return message;
+}
+    
+
+function renderMessages() {
+    if (!messagesContainer) return;
+    messagesContainer.innerHTML = '';
+    
+    chatHistory.forEach(msg => {
         const messageDiv = document.createElement('div');
         messageDiv.style.marginBottom = '12px';
         messageDiv.style.display = 'flex';
-        messageDiv.style.justifyContent = type === 'user' ? 'flex-end' : 'flex-start';
+        messageDiv.style.justifyContent = msg.type === 'user' ? 'flex-end' : 'flex-start';
         
         const bubble = document.createElement('div');
         bubble.style.maxWidth = '85%';
         bubble.style.padding = '10px 14px';
         bubble.style.borderRadius = '12px';
-        bubble.style.background = type === 'user' ? '#25D366' : 'white';
-        bubble.style.color = type === 'user' ? 'white' : '#111';
+        bubble.style.background = msg.type === 'user' ? '#25D366' : 'white';
+        bubble.style.color = msg.type === 'user' ? 'white' : '#111';
         bubble.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
         bubble.style.fontSize = '13px';
         bubble.style.lineHeight = '1.5';
         bubble.style.whiteSpace = 'pre-line';
         
-        if (isHtml) {
-            bubble.innerHTML = content;
-        } else {
-            bubble.innerHTML = content.replace(/\n/g, '<br>');
+        let displayContent = msg.content;
+        if (msg.type === 'bot') {
+            displayContent = urlify(msg.content);
         }
+        bubble.innerHTML = displayContent.replace(/\n/g, '<br>');
         
         const timeSpan = document.createElement('div');
         timeSpan.style.fontSize = '10px';
         timeSpan.style.marginTop = '4px';
         timeSpan.style.opacity = '0.6';
-        timeSpan.style.textAlign = type === 'user' ? 'right' : 'left';
-        timeSpan.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        timeSpan.style.textAlign = msg.type === 'user' ? 'right' : 'left';
+        timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         bubble.appendChild(timeSpan);
         
         messageDiv.appendChild(bubble);
         messagesContainer.appendChild(messageDiv);
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        
-        return message;
-    }
-
-    function renderMessages() {
-        if (!messagesContainer) return;
-        messagesContainer.innerHTML = '';
-        
-        chatHistory.forEach(msg => {
-            const messageDiv = document.createElement('div');
-            messageDiv.style.marginBottom = '12px';
-            messageDiv.style.display = 'flex';
-            messageDiv.style.justifyContent = msg.type === 'user' ? 'flex-end' : 'flex-start';
-            
-            const bubble = document.createElement('div');
-            bubble.style.maxWidth = '85%';
-            bubble.style.padding = '10px 14px';
-            bubble.style.borderRadius = '12px';
-            bubble.style.background = msg.type === 'user' ? '#25D366' : 'white';
-            bubble.style.color = msg.type === 'user' ? 'white' : '#111';
-            bubble.style.boxShadow = '0 1px 2px rgba(0,0,0,0.1)';
-            bubble.style.fontSize = '13px';
-            bubble.style.lineHeight = '1.5';
-            bubble.style.whiteSpace = 'pre-line';
-            bubble.innerHTML = msg.content.replace(/\n/g, '<br>');
-            
-            const timeSpan = document.createElement('div');
-            timeSpan.style.fontSize = '10px';
-            timeSpan.style.marginTop = '4px';
-            timeSpan.style.opacity = '0.6';
-            timeSpan.style.textAlign = msg.type === 'user' ? 'right' : 'left';
-            timeSpan.textContent = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            bubble.appendChild(timeSpan);
-            
-            messageDiv.appendChild(bubble);
-            messagesContainer.appendChild(messageDiv);
-        });
-        
-        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-    }
-
+    });
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+}
+    
     function showTyping() {
         const indicator = document.createElement('div');
         indicator.id = 'typing-indicator';
