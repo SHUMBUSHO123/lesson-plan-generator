@@ -222,7 +222,7 @@ def detect_intent(message):
 
 def generate_bot_response(intent, user_message, user_data, subscription_data, language='en'):
     """
-    Generate bot response
+    Generate bot response - PRIORITIZES DATABASE, falls back to hardcoded
     """
     
     is_authenticated = user_data['is_authenticated']
@@ -234,8 +234,34 @@ def generate_bot_response(intent, user_message, user_data, subscription_data, la
     print(f"Generating response for intent: {intent}")  # Debug log
     
     # ========================================
-    # INTENT-BASED RESPONSES
+    # FIRST: Try to get response from DATABASE
     # ========================================
+    try:
+        from lessons.models import BotResponse
+        bot_response = BotResponse.objects.filter(
+            intent=intent, 
+            is_active=True
+        ).order_by('priority').first()
+        
+        if bot_response:
+            print(f"✅ Using DATABASE response for intent: {intent}")
+            # Format the response with variables
+            response = bot_response.response_template.format(
+                username=username,
+                remaining=remaining,
+                email=email,
+                plan=subscription_data.get('plan', 'free'),
+                is_premium=is_premium,
+                is_authenticated=is_authenticated
+            )
+            return response
+    except Exception as e:
+        print(f"⚠️ Error loading bot response from DB: {e}")
+    
+    # ========================================
+    # SECOND: Fallback to hardcoded responses
+    # ========================================
+    print(f"📝 Using HARDCODED fallback for intent: {intent}")
     
     if intent == 'greeting':
         if is_authenticated:
@@ -268,25 +294,54 @@ def generate_bot_response(intent, user_message, user_data, subscription_data, la
             return "🔓 **You are not logged in.**\n\n🔗 Login: /login/\n🔗 Register: /register/\n\nCreate a free account to start generating lesson plans!"
     
     if intent == 'troubleshoot':
-        return "🐛 **Troubleshooting Tips:**\n\n1. Clear your browser cache (Ctrl+Shift+Del)\n2. Refresh the page (Ctrl+F5)\n3. Try a different browser\n\n**Still having issues?** Contact support@isomoplus.com"
+        return "🐛 **Troubleshooting Tips:**\n\n1. Clear your browser cache (Ctrl+Shift+Del)\n2. Refresh the page (Ctrl+F5)\n3. Try a different browser\n\n**Still having issues?**\n👉 **Chat with admin:** https://wa.me/250793599834"
     
     if intent == 'contact_admin':
-        return "👨‍💼 **Contact Support:**\n\n📧 Email: support@isomoplus.com\n💬 Response time: Within 24 hours\n\nPlease describe your issue and we'll help you ASAP!"
+        return "👨‍💼 **Contact Admin Directly:**\n\n📱 **WhatsApp:** 0793599834\n\n**Click to chat instantly:**\n👉 https://wa.me/250793599834\n\n📧 Email: support@isomoplus.com\n\nOur team will respond within 5-10 minutes!"
     
     if intent == 'payment_issue':
-        return "💰 **Payment Issue?**\n\nPlease try these steps:\n1. Check if money was deducted from your mobile money\n2. Wait 5-10 minutes for activation\n3. Contact support with your transaction ID\n\n📧 support@isomoplus.com"
+        return """💳 **Payment Issue Detected!**
+
+Don't worry, we'll help you resolve this quickly.
+
+**To help us activate your account faster, please have this information ready:**
+📝 Your **Email address** (used to create your account)
+📝 **Transaction ID** (check your MTN message)
+📝 **Full name** used while paying
+
+**👉 Click below to chat with admin on WhatsApp:**
+https://wa.me/250793599834
+
+📌 **Important:** Admin will respond within 5-10 minutes and activate your account after verification."""
     
     if intent == 'help':
-        return "🤖 **I can help you with:**\n\n📝 Generating lesson plans\n💰 Subscription plans and pricing\n📥 Downloading your plans\n🔐 Account creation and login\n🐛 Troubleshooting issues\n💳 Payment issues\n\nWhat would you like to know?"
+        return "🤖 **I can help you with:**\n\n📝 Generating lesson plans\n💰 Subscription plans and pricing\n📥 Downloading your plans\n🔐 Account creation and login\n🐛 Troubleshooting issues\n💳 Payment issues\n\n**Still need help?** 👉 https://wa.me/250793599834\n\nWhat would you like to know?"
     
     if intent == 'thanks':
-        return "🎉 **You're welcome!**\n\nI'm happy to help! Is there anything else you'd like to know about IsomoPlus?"
+        return "🎉 **You're welcome!**\n\nI'm happy to help! Is there anything else you'd like to know about IsomoPlus?\n\n**Need more help?** 👉 https://wa.me/250793599834"
     
     if intent == 'goodbye':
-        return "👋 **Goodbye!**\n\nCome back anytime if you need help with your lesson plans. Have a great day!"
+        return "👋 **Goodbye!**\n\nCome back anytime if you need help with your lesson plans. Have a great day!\n\n📱 **Admin WhatsApp:** https://wa.me/250793599834"
     
-    # Default response
-    return "🤔 I can help you with IsomoPlus!\n\n**Popular topics:**\n• 📝 How to generate lesson plans\n• 💰 Subscription plans and pricing\n• 📥 Downloading your plan\n• 📝 Creating an account\n• 🔧 Troubleshooting issues\n\nWhat would you like to know?"
+    # Default response - includes WhatsApp link to admin
+    return """🤔 **I'm not sure I understand. Let me help you better!**
+
+**Here's what I can help with:**
+• 📝 How to generate lesson plans
+• 💰 Subscription plans and pricing
+• 📥 Downloading your plan
+• 🔐 Creating an account
+• 🐛 Troubleshooting issues
+• 💳 Payment problems
+
+**Still need help?**
+👉 **Chat with admin on WhatsApp:** https://wa.me/250793599834
+
+Our team will respond within 5-10 minutes!
+
+Please rephrase your question or click the link above to speak with someone directly."""
+
+
 def get_suggestions(intent, is_premium):
     """Get follow-up suggestions based on intent"""
     
@@ -325,6 +380,11 @@ def get_suggestions(intent, is_premium):
             "Clear browser cache",
             "Update browser",
             "Contact support"
+        ],
+        'contact_admin': [
+            "WhatsApp admin now",
+            "Email support",
+            "Call support"
         ]
     }
     
@@ -341,7 +401,6 @@ def get_suggestions(intent, is_premium):
         "Check my subscription status",
         "Contact support"
     ])
-
 
 def get_quick_actions(intent, is_authenticated):
     """Get quick action buttons to show"""
