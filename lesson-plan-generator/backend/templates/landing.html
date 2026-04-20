@@ -14,6 +14,7 @@
             font-family: 'Inter', sans-serif;
             background: #f5f7fa;
             color: #333;
+            padding-bottom: 100px;
         }
 
         .container {
@@ -38,7 +39,8 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.07);
             position: sticky;
             top: 0;
-            z-index: 1000;
+            /* ✅ Must be HIGHER than ticker (900) so links are never covered */
+            z-index: 1100;
         }
 
         .nav-brand {
@@ -54,9 +56,10 @@
         }
 
         .nav-link {
-            color: #555;
+            /* ✅ Explicit dark colour so white navbar never hides the text */
+            color: #2c3e50;
             font-size: 0.95rem;
-            font-weight: 500;
+            font-weight: 600;
             padding: 6px 12px;
             border-radius: 6px;
         }
@@ -66,21 +69,51 @@
             color: #2D9CDB;
         }
 
+        /* Dashboard link — give it a subtle teal pill so it stands out */
+        .nav-link.btn-dashboard {
+            background: #e8f5ff;
+            color: #2D9CDB;
+            border: 1px solid #b3d9f5;
+            border-radius: 20px;
+            padding: 7px 18px;
+        }
+        .nav-link.btn-dashboard:hover {
+            background: #2D9CDB;
+            color: #fff;
+            border-color: #2D9CDB;
+        }
+
+        /* Logout link — muted red so it's clearly visible */
+        .nav-link.btn-logout {
+            color: #c0392b;
+            border: 1px solid #f5b7b1;
+            border-radius: 20px;
+            padding: 7px 16px;
+        }
+        .nav-link.btn-logout:hover {
+            background: #c0392b;
+            color: #fff;
+            border-color: #c0392b;
+        }
+
         .nav-link.btn-primary {
             background: #2D9CDB;
             color: #fff;
             border-radius: 20px;
             padding: 7px 18px;
         }
-
         .nav-link.btn-primary:hover {
             background: #1b7bb8;
             transform: scale(1.03);
         }
 
         .nav-user {
-            font-size: 0.9rem;
-            color: #555;
+            font-size: 0.88rem;
+            color: #27AE60;
+            font-weight: 600;
+            background: #e8f5ee;
+            padding: 5px 12px;
+            border-radius: 20px;
         }
 
         /* ---------- Hero Section ---------- */
@@ -265,13 +298,8 @@
                 gap: 20px;
             }
 
-            header.hero h1 {
-                font-size: 2rem;
-            }
-
-            header.hero p {
-                font-size: 1rem;
-            }
+            header.hero h1 { font-size: 2rem; }
+            header.hero p  { font-size: 1rem; }
 
             .btn-hero, .btn-subscribe {
                 padding: 12px 30px;
@@ -280,28 +308,45 @@
 
             .navbar {
                 padding: 12px 16px;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .nav-links { gap: 8px; flex-wrap: wrap; }
+
+            .nav-user {
+                font-size: 0.78rem;
+                padding: 4px 8px;
             }
         }
-body { padding-bottom: 100px; }        
     </style>
 </head>
 <body>
 
-    <!-- ── Navbar ── -->
+    <!-- ══════════════════════════════════════
+         NAVBAR  (z-index 1100 — always on top)
+    ══════════════════════════════════════════ -->
     <nav class="navbar">
         <a href="{% url 'landing' %}" class="nav-brand">CBC Lesson Plan Generator</a>
         <div class="nav-links">
             {% if user.is_authenticated %}
-                <span class="nav-user">Hello, {{ user.username }}</span>
-                <a href="{% url 'index' %}" class="nav-link">Dashboard</a>
-                <a href="{% url 'logout' %}" class="nav-link">Logout</a>
+                <span class="nav-user">👋 {{ user.username }}</span>
+                <a href="{% url 'index' %}"  class="nav-link btn-dashboard">Dashboard</a>
+                <a href="{% url 'logout' %}" class="nav-link btn-logout">Logout</a>
             {% else %}
-                <a href="{% url 'login' %}" class="nav-link">Login</a>
+                <a href="{% url 'login' %}"    class="nav-link">Login</a>
                 <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
             {% endif %}
         </div>
     </nav>
-{% include "includes/ads_banners.html" %}
+
+    <!-- ══════════════════════════════════════
+         ADS BANNERS
+         Placed AFTER navbar so ticker's
+         sticky top:0 doesn't fight the navbar
+    ══════════════════════════════════════════ -->
+    {% include "includes/ads_banners.html" %}
+
     <!-- Hero Section -->
     <header class="hero">
         <div class="container">
@@ -351,7 +396,7 @@ body { padding-bottom: 100px; }
                 </div>
                 <div class="step-card">
                     <h5>Step 4</h5>
-                    <p>Create your first professional CBC lesson plan in seconds—free, seamless, and reliable.</p>
+                    <p>Create your first professional CBC lesson plan in seconds — free, seamless, and reliable.</p>
                     <a href="{% url 'index' %}" class="btn-hero" style="margin-top:12px;">
                         Create Your Free Lesson
                     </a>
@@ -376,7 +421,7 @@ body { padding-bottom: 100px; }
     <footer>
         &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
     </footer>
-    
+
     {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>
