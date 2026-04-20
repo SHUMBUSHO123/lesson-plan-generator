@@ -18,30 +18,24 @@
     Index page    → show_on_index=True
     Pricing page  → show_on_pricing=True
 
-  MODELS NEEDED:
-  ─────────────
-  See banners_models_admin.py for full models + admin setup.
+  CONTROL:
+  ────────
+  To hide ALL ads on any zone → simply deactivate records in Django admin.
+  No code changes needed. Nothing renders if queryset is empty.
 
   TICKER SPEED:
   ─────────────
   Admin → Top Banners → each banner has a "scroll_speed" field (10-120s).
-  The JS reads the first banner's speed as the global ticker speed.
   Default = 44 seconds (medium pace).
 
   HERO CAROUSEL:
   ──────────────
   Admin → Hero Banners → Add
-    • headline    → big title text
-    • description → supporting text
-    • cta_text    → button label e.g. "Shop Now"
-    • cta_url     → affiliate/product link
-    • image       → product/brand image (shown right side)
-    • bg_color    → left gradient color  e.g. #1a3a6b
-    • bg_color2   → right gradient color e.g. #0d1f3d
-    • badge       → ribbon text e.g. SALE, NEW
-    • badge_color → ribbon bg color
-    • duration    → seconds this slide shows (5–30, default 8)
-    • show_on_*   → which pages to display on
+    • headline, description, cta_text, cta_url
+    • image, bg_color, bg_color2
+    • badge, badge_color
+    • duration (5–30s, default 8)
+    • show_on_* → which pages to display on
 
   BOTTOM ADS PHOTO CARDS:
   ────────────────────────
@@ -51,59 +45,38 @@
 =============================================================
 {% endcomment %}
 
+
 <!-- ═══════════════════════════════════════════════════
      1. STICKY TOP TICKER BANNER
-     Speed is controlled per-banner via scroll_speed field
+     Only renders if top_banners queryset is non-empty
 ════════════════════════════════════════════════════════ -->
+{% if top_banners %}
 <div id="isomoTickerWrap" class="isomo-ticker-wrap" role="marquee" aria-label="Announcements"
-     data-speed="{% if top_banners %}{{ top_banners.0.scroll_speed|default:44 }}{% else %}44{% endif %}">
+     data-speed="{{ top_banners.0.scroll_speed|default:44 }}">
 
   <div class="isomo-ticker-track" id="isomoTickerTrack">
-
-    {% if top_banners %}
-      {% for b in top_banners %}
-        <a href="{{ b.url|default:'#' }}"
-           class="isomo-ticker-item"
-           target="_blank"
-           rel="noopener noreferrer"
-           style="{% if b.color %}color:{{ b.color }};{% endif %}{% if b.bg %}background:{{ b.bg }};{% endif %}">
-          {% if b.icon %}<span class="ti-icon">{{ b.icon }}</span>{% endif %}
-          {% if b.badge %}<span class="ti-badge" style="{% if b.badge_color %}background:{{ b.badge_color }};{% endif %}">{{ b.badge }}</span>{% endif %}
-          <span class="ti-text">{{ b.text }}</span>
-          <span class="ti-sep" aria-hidden="true">✦</span>
-        </a>
-      {% endfor %}
-    {% else %}
-      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
-        <span class="ti-icon">🎓</span><span class="ti-badge">NEW</span>
-        <span class="ti-text">CBC Lesson Plans now available for Grades 1–9 — Generate yours in seconds!</span>
-        <span class="ti-sep">✦</span>
+    {% for b in top_banners %}
+      <a href="{{ b.url|default:'#' }}"
+         class="isomo-ticker-item"
+         target="_blank"
+         rel="noopener noreferrer"
+         style="{% if b.color %}color:{{ b.color }};{% endif %}{% if b.bg %}background:{{ b.bg }};{% endif %}">
+        {% if b.icon %}<span class="ti-icon">{{ b.icon }}</span>{% endif %}
+        {% if b.badge %}<span class="ti-badge" style="{% if b.badge_color %}background:{{ b.badge_color }};{% endif %}">{{ b.badge }}</span>{% endif %}
+        <span class="ti-text">{{ b.text }}</span>
+        <span class="ti-sep" aria-hidden="true">✦</span>
       </a>
-      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
-        <span class="ti-icon">📚</span>
-        <span class="ti-text">Download unlimited PDF &amp; DOCX lesson plans with a Term subscription</span>
-        <span class="ti-sep">✦</span>
-      </a>
-      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
-        <span class="ti-icon">🏫</span><span class="ti-badge" style="background:#27AE60;">HOT</span>
-        <span class="ti-text">School bulk licences available — contact us for group pricing</span>
-        <span class="ti-sep">✦</span>
-      </a>
-      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
-        <span class="ti-icon">🌍</span>
-        <span class="ti-text">Now supporting English · Kinyarwanda · Kiswahili · Français</span>
-        <span class="ti-sep">✦</span>
-      </a>
-    {% endif %}
-
+    {% endfor %}
   </div>
+
   <button class="isomo-ticker-toggle" id="isomoTickerToggle" aria-label="Pause" title="Pause/Resume">⏸</button>
 </div>
+{% endif %}
 
 
 <!-- ═══════════════════════════════════════════════════
      2. HERO BANNER CAROUSEL
-     Only renders if hero_banners context is passed
+     Only renders if hero_banners queryset is non-empty
 ════════════════════════════════════════════════════════ -->
 {% if hero_banners %}
 <div id="isomoHero" class="isomo-hero-wrap" aria-label="Featured promotions">
@@ -181,8 +154,10 @@
 
 
 <!-- ═══════════════════════════════════════════════════
-     3. FIXED BOTTOM PHOTO AD STRIP (30s rotation)
+     3. FIXED BOTTOM PHOTO AD STRIP
+     Only renders if bottom_ads queryset is non-empty
 ════════════════════════════════════════════════════════ -->
+{% if bottom_ads %}
 <div id="isomoAdStrip" class="isomo-ad-strip" aria-label="Sponsored resources">
 
   <button class="ias-close" id="iasClose" title="Close ads">✕</button>
@@ -200,63 +175,23 @@
 
   <!-- Scrollable cards -->
   <div class="ias-inner" id="isomoAdInner">
-
-    {% if bottom_ads %}
-      {% for ad in bottom_ads %}
-        <a href="{{ ad.url|default:'#' }}"
-           class="ias-card"
-           data-title="{{ ad.title }}"
-           data-sub="{{ ad.subtitle|default:'' }}"
-           target="_blank" rel="noopener noreferrer">
-          {% if ad.badge %}
-            <span class="ias-ribbon" style="{% if ad.badge_color %}background:{{ ad.badge_color }};{% endif %}">{{ ad.badge }}</span>
-          {% endif %}
-          <img src="{{ ad.image.url }}" alt="{{ ad.title }}" class="ias-img" loading="lazy">
-          <div class="ias-overlay">
-            <p class="ias-otitle">{{ ad.title }}</p>
-            {% if ad.subtitle %}<p class="ias-osub">{{ ad.subtitle }}</p>{% endif %}
-            <span class="ias-cta">View →</span>
-          </div>
-        </a>
-      {% endfor %}
-    {% else %}
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Mathematics Grade 5" data-sub="CBC-aligned workbook">
-        <span class="ias-ribbon" style="background:#e74c3c;">SALE</span>
-        <div class="ias-img ias-ph" style="--c1:#1a6b3a;--c2:#0d3d20;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Mathematics G5</p><p class="ias-osub">CBC workbook</p><span class="ias-cta">Shop →</span></div>
+    {% for ad in bottom_ads %}
+      <a href="{{ ad.url|default:'#' }}"
+         class="ias-card"
+         data-title="{{ ad.title }}"
+         data-sub="{{ ad.subtitle|default:'' }}"
+         target="_blank" rel="noopener noreferrer">
+        {% if ad.badge %}
+          <span class="ias-ribbon" style="{% if ad.badge_color %}background:{{ ad.badge_color }};{% endif %}">{{ ad.badge }}</span>
+        {% endif %}
+        <img src="{{ ad.image.url }}" alt="{{ ad.title }}" class="ias-img" loading="lazy">
+        <div class="ias-overlay">
+          <p class="ias-otitle">{{ ad.title }}</p>
+          {% if ad.subtitle %}<p class="ias-osub">{{ ad.subtitle }}</p>{% endif %}
+          <span class="ias-cta">View →</span>
+        </div>
       </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="English Comprehension" data-sub="Grades 4–6 reader pack">
-        <div class="ias-img ias-ph" style="--c1:#1a3a6b;--c2:#0d1f3d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">English G4–6</p><p class="ias-osub">Reader pack</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Science Lab Kit" data-sub="Hands-on CBC experiments">
-        <span class="ias-ribbon" style="background:#27AE60;">NEW</span>
-        <div class="ias-img ias-ph" style="--c1:#5a1a6b;--c2:#2d0d3d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Science Kit</p><p class="ias-osub">Hands-on CBC</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Teacher's Bundle" data-sub="All subjects, all levels">
-        <div class="ias-img ias-ph" style="--c1:#6b4a1a;--c2:#3d280d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Teacher Bundle</p><p class="ias-osub">All subjects</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Kinyarwanda Reader" data-sub="Primary storybooks">
-        <div class="ias-img ias-ph" style="--c1:#1a5a6b;--c2:#0d2d3d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Kinyarwanda</p><p class="ias-osub">Storybooks</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="School Wall Charts" data-sub="CBC curriculum posters">
-        <span class="ias-ribbon" style="background:#e67e22;">HOT</span>
-        <div class="ias-img ias-ph" style="--c1:#6b1a1a;--c2:#3d0d0d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Wall Charts</p><p class="ias-osub">CBC posters</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Digital Flashcards" data-sub="Interactive study tools">
-        <div class="ias-img ias-ph" style="--c1:#1a6b5a;--c2:#0d3d30;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Flashcards</p><p class="ias-osub">Study tools</p><span class="ias-cta">Shop →</span></div>
-      </a>
-      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Parent Guide" data-sub="CBC at home">
-        <div class="ias-img ias-ph" style="--c1:#4a6b1a;--c2:#283d0d;"></div>
-        <div class="ias-overlay"><p class="ias-otitle">Parent Guide</p><p class="ias-osub">CBC at home</p><span class="ias-cta">Shop →</span></div>
-      </a>
-    {% endif %}
-
+    {% endfor %}
   </div>
 
   <button class="ias-arrow ias-arrow--left"  id="iasArrowL" aria-label="Scroll left">&#8249;</button>
@@ -269,6 +204,7 @@
   </div>
 
 </div>
+{% endif %}
 
 
 <!-- ═══════════════════════════════════════════════════
@@ -306,7 +242,6 @@
   display: flex;
   align-items: center;
   white-space: nowrap;
-  /* speed set dynamically by JS from data-speed attribute */
   animation: isomoScroll 44s linear infinite;
   will-change: transform;
   padding-right: 44px;
@@ -393,77 +328,51 @@
   flex-wrap: wrap;
 }
 
-.isomo-hero-content {
-  flex: 1 1 260px;
-  min-width: 0;
-}
+.isomo-hero-content { flex: 1 1 260px; min-width: 0; }
 
 .isomo-hero-badge {
   display: inline-block;
-  background: #f5c518;
-  color: #0b1622;
-  font-size: 0.6rem;
-  font-weight: 800;
-  padding: 2px 8px;
-  border-radius: 20px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  background: #f5c518; color: #0b1622;
+  font-size: 0.6rem; font-weight: 800;
+  padding: 2px 8px; border-radius: 20px;
+  letter-spacing: 0.08em; text-transform: uppercase;
   margin-bottom: 8px;
 }
 
 .isomo-hero-headline {
   font-size: clamp(1.1rem, 3vw, 1.9rem);
-  font-weight: 800;
-  color: #fff;
-  margin: 0 0 8px;
-  line-height: 1.2;
-  letter-spacing: -0.01em;
+  font-weight: 800; color: #fff;
+  margin: 0 0 8px; line-height: 1.2; letter-spacing: -0.01em;
 }
 
 .isomo-hero-desc {
   font-size: clamp(0.78rem, 2vw, 0.95rem);
   color: rgba(255,255,255,0.82);
-  margin: 0 0 14px;
-  line-height: 1.5;
-  max-width: 420px;
+  margin: 0 0 14px; line-height: 1.5; max-width: 420px;
 }
 
 .isomo-hero-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  background: #fff;
-  color: #0b1622;
-  font-size: 0.82rem;
-  font-weight: 700;
-  padding: 9px 20px;
-  border-radius: 25px;
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #fff; color: #0b1622;
+  font-size: 0.82rem; font-weight: 700;
+  padding: 9px 20px; border-radius: 25px;
   text-decoration: none;
   transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
-  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25); white-space: nowrap;
 }
 .isomo-hero-cta:hover {
-  background: var(--ibr-gold);
-  transform: scale(1.04);
+  background: var(--ibr-gold); transform: scale(1.04);
   box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
-.isomo-hero-cta-arrow {
-  font-size: 1rem;
-  transition: transform 0.2s;
-}
+.isomo-hero-cta-arrow { font-size: 1rem; transition: transform 0.2s; }
 .isomo-hero-cta:hover .isomo-hero-cta-arrow { transform: translateX(3px); }
 
 .isomo-hero-img-wrap {
   flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
 }
 .isomo-hero-img {
-  max-height: 110px;
-  max-width: 160px;
-  object-fit: contain;
+  max-height: 110px; max-width: 160px; object-fit: contain;
   filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));
   transition: transform 0.3s;
 }
@@ -473,59 +382,40 @@
   to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* progress bar */
 .isomo-hero-progress {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 3px;
-  background: rgba(255,255,255,0.1);
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px; background: rgba(255,255,255,0.1);
 }
 .isomo-hero-progress-fill {
-  height: 100%;
-  background: var(--ibr-green);
-  width: 0%;
-  transition: none;
+  height: 100%; background: var(--ibr-green);
+  width: 0%; transition: none;
 }
 
-/* nav buttons */
 .isomo-hero-btn {
-  position: absolute;
-  top: 50%; transform: translateY(-50%);
+  position: absolute; top: 50%; transform: translateY(-50%);
   background: rgba(255,255,255,0.12);
   border: 1px solid rgba(255,255,255,0.2);
-  color: #fff;
-  width: 32px; height: 32px;
-  border-radius: 50%;
-  font-size: 1.3rem;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; z-index: 10;
-  transition: background 0.2s;
-  line-height: 1;
-  backdrop-filter: blur(4px);
+  color: #fff; width: 32px; height: 32px; border-radius: 50%;
+  font-size: 1.3rem; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10; transition: background 0.2s;
+  line-height: 1; backdrop-filter: blur(4px);
 }
 .isomo-hero-btn:hover { background: rgba(255,255,255,0.25); }
 .isomo-hero-prev { left: 8px; }
 .isomo-hero-next { right: 8px; }
 
-/* dots */
 .isomo-hero-dots {
-  position: absolute;
-  bottom: 10px; left: 50%;
+  position: absolute; bottom: 10px; left: 50%;
   transform: translateX(-50%);
   display: flex; gap: 6px; z-index: 10;
 }
 .isomo-hero-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
+  width: 7px; height: 7px; border-radius: 50%;
   background: rgba(255,255,255,0.35);
   border: none; cursor: pointer;
-  transition: background 0.25s, transform 0.25s;
-  padding: 0;
+  transition: background 0.25s, transform 0.25s; padding: 0;
 }
-.isomo-hero-dot.active {
-  background: var(--ibr-green);
-  transform: scale(1.3);
-}
+.isomo-hero-dot.active { background: var(--ibr-green); transform: scale(1.3); }
 
 
 /* ══════════════════════════════
@@ -538,8 +428,7 @@
   height: 90px;
   background: linear-gradient(100deg, #0b1622 0%, #0f2233 55%, #0b1622 100%);
   border-top: 2px solid var(--ibr-green);
-  display: flex;
-  align-items: center;
+  display: flex; align-items: center;
   padding: 0 98px 0 116px;
   box-shadow: 0 -6px 28px rgba(0,0,0,0.45);
   box-sizing: border-box;
@@ -589,7 +478,6 @@
 }
 .ias-inner::-webkit-scrollbar { display: none; }
 
-/* card */
 .ias-card {
   position: relative;
   flex: 0 0 88px; height: 70px;
@@ -620,14 +508,6 @@
 }
 .ias-card:hover .ias-img,
 .ias-card.ias-active .ias-img { filter: brightness(0.35) saturate(0.6); }
-
-.ias-ph {
-  width: 100%; height: 100%;
-  background: linear-gradient(135deg, var(--c1,#1a6b3a), var(--c2,#0d3d20));
-  display: block; transition: filter 0.28s;
-}
-.ias-card:hover .ias-ph,
-.ias-card.ias-active .ias-ph { filter: brightness(0.35) saturate(0.6); }
 
 .ias-overlay {
   position: absolute; inset: 0;
@@ -666,7 +546,6 @@
 .ias-arrow--left  { left:50px; }
 .ias-arrow--right { right:60px; }
 
-/* active text — desktop only */
 .ias-active-text {
   position: absolute; right: 96px; top:50%;
   transform: translateY(-50%);
@@ -684,11 +563,9 @@
    MOBILE RESPONSIVE
 ══════════════════════════════ */
 @media (max-width: 600px) {
-  /* Ticker — slightly smaller */
   #isomoTickerWrap { height: 32px; }
   .isomo-ticker-item { font-size: 0.72rem; }
 
-  /* Hero — stack vertically, hide image on very small screens */
   .isomo-hero-slide { padding: 16px 12px 28px; }
   .isomo-hero-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
   .isomo-hero-img-wrap { display: none; }
@@ -697,14 +574,10 @@
   .isomo-hero-cta { font-size: 0.76rem; padding: 7px 16px; }
   .isomo-hero-btn { width: 26px; height: 26px; font-size: 1rem; }
 
-  /* Bottom strip — compact, hide label and active text */
-  #isomoAdStrip {
-    height: 78px;
-    padding: 0 58px 0 72px;
-  }
+  #isomoAdStrip { height: 78px; padding: 0 58px 0 72px; }
   .ias-card { flex: 0 0 64px; height: 54px; }
   .ias-otitle { font-size: 0.54rem; }
-  .ias-osub   { display: none; }          /* hide subtitle on mobile */
+  .ias-osub   { display: none; }
   .ias-cta    { font-size: 0.46rem; padding: 2px 5px; }
   .ias-active-text { display: none; }
   .ias-label  { display: none; }
@@ -736,14 +609,11 @@
   const toggle     = document.getElementById('isomoTickerToggle');
   let tickerPaused = false;
 
-  // Apply admin-controlled speed from data-speed attribute
   if (track && tickerWrap) {
     const speed = parseInt(tickerWrap.dataset.speed, 10) || 44;
     track.style.animationDuration = speed + 's';
+    track.innerHTML += track.innerHTML; // duplicate for seamless loop
   }
-
-  // Duplicate for seamless infinite loop
-  if (track) track.innerHTML += track.innerHTML;
 
   if (toggle && track) {
     toggle.addEventListener('click', function () {
@@ -778,28 +648,21 @@
     dots.forEach((d, i)   => d.classList.toggle('active', i === idx));
     heroIdx = idx;
 
-    // Reset & animate progress bar
     cancelAnimationFrame(progressRAF);
     clearTimeout(heroTimer);
     const fill = document.getElementById('heroProgress' + idx);
-    if (fill) {
-      fill.style.transition = 'none';
-      fill.style.width = '0%';
-    }
+    if (fill) { fill.style.transition = 'none'; fill.style.width = '0%'; }
 
     const duration = getSliceDuration(idx);
-    progressStart = performance.now();
+    progressStart  = performance.now();
 
     function animateProgress(now) {
       const elapsed = now - progressStart;
       const pct = Math.min(100, (elapsed / duration) * 100);
       if (fill) fill.style.width = pct + '%';
-      if (pct < 100) {
-        progressRAF = requestAnimationFrame(animateProgress);
-      }
+      if (pct < 100) progressRAF = requestAnimationFrame(animateProgress);
     }
     progressRAF = requestAnimationFrame(animateProgress);
-
     heroTimer = setTimeout(() => showSlide(heroIdx + 1), duration);
   }
 
@@ -824,7 +687,6 @@
     });
   }
 
-  /* scroll arrows */
   const inner = document.getElementById('isomoAdInner');
   const btnL  = document.getElementById('iasArrowL');
   const btnR  = document.getElementById('iasArrowR');
@@ -854,9 +716,9 @@
   const TOTAL_SEC     = 30;
   const CIRCUMFERENCE = 94.25;
 
-  let adIdx        = 0;
-  let secondsLeft  = TOTAL_SEC;
-  let countTimer   = null;
+  let adIdx       = 0;
+  let secondsLeft = TOTAL_SEC;
+  let countTimer  = null;
   let userHovering = false;
 
   function setActive(idx) {
