@@ -5,6 +5,9 @@ from django.utils import timezone
 from django.contrib import admin
 from django import forms
 from django.utils.html import format_html, mark_safe
+import csv
+from django.http import HttpResponse
+
 from .models import (
     Level,
     Class,
@@ -19,6 +22,14 @@ from .models import (
     GeneratedLessonPlan,
     PLAN_DURATIONS,
     SUBSCRIPTION_LIMITS,
+    ChatHistory,
+    Interaction,
+    BotConfig,
+    BotResponse,
+    QuickReply,
+    TopBanner,
+    HeroBanner,
+    BottomAd,
 )
 
 
@@ -272,7 +283,6 @@ class UserProfileAdmin(admin.ModelAdmin):
         }),
     )
 
-    # ── Custom columns ──────────────────────────────────────────────
     def account_label(self, obj):
         if obj.user:
             return obj.user.email or obj.user.username
@@ -297,26 +307,8 @@ class UserProfileAdmin(admin.ModelAdmin):
     subscription_status.short_description = 'Status'
 
     def save_model(self, request, obj, form, change):
-        """
-        DYNAMIC SAVE — two modes:
-
-        🔄 RESET MODE (force_reset=True OR first-time activation):
-           → Auto-sets subscription_start to now()
-           → Calculates subscription_expiry from plan duration
-           → Sets lesson_limit from plan defaults
-           → Resets lessons_used to 0
-           Use for: new activation, renewing, switching plans
-
-        ✏️ MANUAL MODE (force_reset=False + already active):
-           → Saves exactly what admin typed
-           → lesson_limit and lessons_used kept as-is
-           Use for: custom overrides (e.g. give user 90 lessons instead of 50)
-
-        🚫 BLOCKED: is_premium=True with no plan selected
-        """
         from django.contrib import messages
 
-        # ── Block premium with no plan ───────────────────────────────
         if obj.is_premium and not obj.subscription_plan:
             messages.error(
                 request,
@@ -334,7 +326,6 @@ class UserProfileAdmin(admin.ModelAdmin):
             )
 
             if force_reset or first_time:
-                # ── RESET MODE: recalculate everything from plan ─────
                 obj.subscription_start  = timezone.now()
                 days = PLAN_DURATIONS.get(obj.subscription_plan, 5)
                 obj.subscription_expiry = obj.subscription_start + timedelta(days=days)
@@ -348,7 +339,6 @@ class UserProfileAdmin(admin.ModelAdmin):
                     f"Expires = {obj.subscription_expiry.strftime('%d %b %Y')}."
                 )
             else:
-                # ── MANUAL MODE: keep admin's typed values ───────────
                 messages.info(
                     request,
                     f"💾 Manual save: lesson_limit={obj.lesson_limit}, "
@@ -523,22 +513,19 @@ class ManualPaymentProofAdmin(admin.ModelAdmin):
         self.message_user(request, f'❌ {updated} proof(s) rejected.')
     reject_selected.short_description = '❌ Reject selected proofs'
 
-from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.models import User
-from .models import ChatHistory, Interaction, BotConfig, BotResponse
 
-# ============================================
-# ChatHistory Admin
-# ============================================
+# ===============================
+# CHAT HISTORY ADMIN
+# ===============================
 @admin.register(ChatHistory)
 class ChatHistoryAdmin(admin.ModelAdmin):
     list_display = ['id', 'user', 'intent', 'message_preview', 'direction', 'created_at']
-    list_filter = ['intent', 'direction', 'created_at']
+    list_filter  = ['intent', 'direction', 'created_at']
     search_fields = ['message', 'user__username', 'user__email']
     readonly_fields = ['created_at']
     date_hierarchy = 'created_at'
-    
+    actions = ['export_chat_history_csv']
+
     fieldsets = (
         ('User Info', {
             'fields': ('user', 'conversation_id', 'direction')
@@ -550,25 +537,42 @@ class ChatHistoryAdmin(admin.ModelAdmin):
         ('Metadata', {
             'fields': ('created_at',),
             'classes': ('collapse',)
-        })
+        }),
     )
-    
+
     def message_preview(self, obj):
         return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
     message_preview.short_description = 'Message'
 
+    def export_chat_history_csv(self, request, queryset):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="chat_history.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'User', 'Intent', 'Direction', 'Message'])
+        for chat in queryset:
+            writer.writerow([
+                chat.created_at,
+                chat.user.username if chat.user else 'Anonymous',
+                chat.intent or 'N/A',
+                chat.direction,
+                chat.message,
+            ])
+        return response
+    export_chat_history_csv.short_description = 'Export selected chats to CSV'
 
-# ============================================
-# Interaction Admin (for analytics)
-# ============================================
+
+# ===============================
+# INTERACTION ADMIN
+# ===============================
 @admin.register(Interaction)
 class InteractionAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'intent', 'user_message_preview', 'satisfied', 'timestamp']
-    list_filter = ['intent', 'satisfied', 'timestamp']
+    list_display  = ['id', 'user', 'intent', 'user_message_preview', 'satisfied', 'timestamp']
+    list_filter   = ['intent', 'satisfied', 'timestamp']
     search_fields = ['user_message', 'bot_response', 'user__username', 'user__email']
     readonly_fields = ['timestamp']
     date_hierarchy = 'timestamp'
-    
+    actions = ['export_interactions_csv']
+
     fieldsets = (
         ('User Info', {
             'fields': ('user',)
@@ -580,44 +584,61 @@ class InteractionAdmin(admin.ModelAdmin):
         ('Metadata', {
             'fields': ('timestamp',),
             'classes': ('collapse',)
-        })
+        }),
     )
-    
+
     def user_message_preview(self, obj):
         return obj.user_message[:50] + '...' if len(obj.user_message) > 50 else obj.user_message
     user_message_preview.short_description = 'User Message'
 
+    def export_interactions_csv(self, request, queryset):
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = 'attachment; filename="interactions.csv"'
+        writer = csv.writer(response)
+        writer.writerow(['Date', 'User', 'Intent', 'User Message', 'Bot Response', 'Satisfied'])
+        for interaction in queryset:
+            writer.writerow([
+                interaction.timestamp,
+                interaction.user.username if interaction.user else 'Anonymous',
+                interaction.intent,
+                interaction.user_message,
+                interaction.bot_response,
+                interaction.satisfied or 'N/A',
+            ])
+        return response
+    export_interactions_csv.short_description = 'Export selected interactions to CSV'
 
-# ============================================
-# BotConfig Admin
-# ============================================
+
+# ===============================
+# BOT CONFIG ADMIN
+# ===============================
 @admin.register(BotConfig)
 class BotConfigAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value_preview', 'updated_at']
+    list_display  = ['key', 'value_preview', 'updated_at']
     search_fields = ['key', 'value']
-    
+
     fieldsets = (
         ('Configuration', {
             'fields': ('key', 'value'),
             'classes': ('wide',)
         }),
     )
-    
+
     def value_preview(self, obj):
         return obj.value[:50] + '...' if len(obj.value) > 50 else obj.value
     value_preview.short_description = 'Value'
 
 
-# ============================================
-# BotResponse Admin (Admin-editable responses)
-# ============================================
+# ===============================
+# BOT RESPONSE ADMIN
+# ===============================
 @admin.register(BotResponse)
 class BotResponseAdmin(admin.ModelAdmin):
-    list_display = ['intent', 'is_active', 'priority', 'response_preview', 'updated_at']
+    list_display  = ['intent', 'is_active', 'priority', 'response_preview', 'updated_at']
     list_editable = ['is_active', 'priority']
-    list_filter = ['is_active', 'priority']
+    list_filter   = ['is_active', 'priority']
     search_fields = ['intent', 'response_template']
-    
+
     fieldsets = (
         ('Intent Settings', {
             'fields': ('intent', 'is_active', 'priority')
@@ -628,70 +649,22 @@ class BotResponseAdmin(admin.ModelAdmin):
             'description': 'Use variables: {username}, {remaining}, {email}, {plan}'
         }),
     )
-    
+
     def response_preview(self, obj):
         return obj.response_template[:50] + '...' if len(obj.response_template) > 50 else obj.response_template
     response_preview.short_description = 'Response'
 
 
-# ============================================
-# Export Actions (for ChatHistory and Interaction)
-# ============================================
-import csv
-from django.http import HttpResponse
-
-def export_chat_history_csv(modeladmin, request, queryset):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="chat_history.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'User', 'Intent', 'Direction', 'Message'])
-    
-    for chat in queryset:
-        writer.writerow([
-            chat.created_at,
-            chat.user.username if chat.user else 'Anonymous',
-            chat.intent or 'N/A',
-            chat.direction,
-            chat.message
-        ])
-    
-    return response
-export_chat_history_csv.short_description = "Export selected chats to CSV"
-
-def export_interactions_csv(modeladmin, request, queryset):
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="interactions.csv"'
-    
-    writer = csv.writer(response)
-    writer.writerow(['Date', 'User', 'Intent', 'User Message', 'Bot Response', 'Satisfied'])
-    
-    for interaction in queryset:
-        writer.writerow([
-            interaction.timestamp,
-            interaction.user.username if interaction.user else 'Anonymous',
-            interaction.intent,
-            interaction.user_message,
-            interaction.bot_response,
-            interaction.satisfied or 'N/A'
-        ])
-    
-    return response
-export_interactions_csv.short_description = "Export selected interactions to CSV"
-
-# Add export actions to admins
-ChatHistoryAdmin.actions = [export_chat_history_csv]
-InteractionAdmin.actions = [export_interactions_csv]
-
-from .models import QuickReply
-
+# ===============================
+# QUICK REPLY ADMIN
+# ===============================
 @admin.register(QuickReply)
 class QuickReplyAdmin(admin.ModelAdmin):
-    list_display = ['icon', 'text', 'message_preview', 'row', 'order', 'is_active']
+    list_display  = ['icon', 'text', 'message_preview', 'row', 'order', 'is_active']
     list_editable = ['row', 'order', 'is_active']
-    list_filter = ['row', 'is_active']
+    list_filter   = ['row', 'is_active']
     search_fields = ['text', 'message']
-    
+
     fieldsets = (
         ('Button Display', {
             'fields': ('text', 'icon', 'row', 'order')
@@ -701,7 +674,150 @@ class QuickReplyAdmin(admin.ModelAdmin):
             'description': 'This message will be sent to the bot when button is clicked'
         }),
     )
-    
+
     def message_preview(self, obj):
         return obj.message[:50] + '...' if len(obj.message) > 50 else obj.message
     message_preview.short_description = 'Message sent'
+
+
+# ===============================
+# TOP BANNER ADMIN
+# ===============================
+@admin.register(TopBanner)
+class TopBannerAdmin(admin.ModelAdmin):
+    list_display  = (
+        'text_preview', 'icon', 'badge', 'scroll_speed_display',
+        'show_on_landing', 'show_on_index', 'order', 'active'
+    )
+    list_editable = ('order', 'active', 'show_on_landing', 'show_on_index')
+    list_filter   = ('active', 'show_on_landing', 'show_on_index', 'show_on_pricing')
+    search_fields = ('text',)
+    ordering      = ('order',)
+    fieldsets = (
+        ('Content', {
+            'fields': ('text', 'url', 'icon', 'badge', 'badge_color', 'color', 'bg')
+        }),
+        ('Speed & Display', {
+            'fields': ('scroll_speed',),
+            'description': (
+                '⚡ Scroll speed controls how fast the ticker moves. '
+                '10 = very fast | 44 = default | 120 = very slow. '
+                "The first active banner's speed is used for all banners."
+            )
+        }),
+        ('Template Targeting — which pages to show on', {
+            'fields': ('show_on_landing', 'show_on_index', 'show_on_pricing')
+        }),
+        ('Ordering', {
+            'fields': ('order', 'active')
+        }),
+    )
+
+    def text_preview(self, obj):
+        return obj.text[:70] + ('…' if len(obj.text) > 70 else '')
+    text_preview.short_description = 'Announcement Text'
+
+    def scroll_speed_display(self, obj):
+        label = 'fast' if obj.scroll_speed < 25 else ('slow' if obj.scroll_speed > 70 else 'medium')
+        return f"{obj.scroll_speed}s ({label})"
+    scroll_speed_display.short_description = 'Speed'
+
+
+# ===============================
+# HERO BANNER ADMIN
+# ===============================
+@admin.register(HeroBanner)
+class HeroBannerAdmin(admin.ModelAdmin):
+    list_display  = (
+        'headline_preview', 'badge', 'duration_display',
+        'show_on_landing', 'show_on_index', 'order', 'active', 'image_thumb'
+    )
+    list_editable = ('order', 'active', 'show_on_landing', 'show_on_index')
+    list_filter   = ('active', 'show_on_landing', 'show_on_index', 'show_on_pricing')
+    search_fields = ('headline', 'description')
+    ordering      = ('order',)
+    fieldsets = (
+        ('Content', {
+            'fields': ('headline', 'description', 'cta_text', 'cta_url', 'image')
+        }),
+        ('Style', {
+            'fields': ('badge', 'badge_color', 'bg_color', 'bg_color2'),
+            'description': (
+                'bg_color = left/dark side.  bg_color2 = right/light side.  '
+                'Example: dark blue #0d1b2a → teal #1a5c6b for ocean feel.  '
+                'Or deep green #0d3a1a → lime #2a6b1a for nature feel.'
+            )
+        }),
+        ('Timing', {
+            'fields': ('duration',),
+            'description': (
+                '⏱ How many seconds this slide stays before auto-advancing.  '
+                '5 = snappy | 8 = default | 15 = slower | 30 = very slow.'
+            )
+        }),
+        ('Template Targeting — which pages to show on', {
+            'fields': ('show_on_landing', 'show_on_index', 'show_on_pricing')
+        }),
+        ('Ordering', {
+            'fields': ('order', 'active')
+        }),
+    )
+
+    def headline_preview(self, obj):
+        return obj.headline[:60] + ('…' if len(obj.headline) > 60 else '')
+    headline_preview.short_description = 'Headline'
+
+    def duration_display(self, obj):
+        return f"{obj.duration}s"
+    duration_display.short_description = 'Duration'
+
+    def image_thumb(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="height:36px;border-radius:4px;">',
+                obj.image.url
+            )
+        return '—'
+    image_thumb.short_description = 'Image'
+
+
+# ===============================
+# BOTTOM AD ADMIN
+# ===============================
+@admin.register(BottomAd)
+class BottomAdAdmin(admin.ModelAdmin):
+    list_display  = (
+        'title', 'subtitle_preview', 'badge',
+        'show_on_landing', 'show_on_index', 'order', 'active', 'image_thumb'
+    )
+    list_editable = ('order', 'active', 'show_on_landing', 'show_on_index')
+    list_filter   = ('active', 'show_on_landing', 'show_on_index', 'show_on_pricing')
+    search_fields = ('title', 'subtitle')
+    ordering      = ('order',)
+    fieldsets = (
+        ('Content', {
+            'fields': ('title', 'subtitle', 'image', 'url')
+        }),
+        ('Style', {
+            'fields': ('badge', 'badge_color')
+        }),
+        ('Template Targeting — which pages to show on', {
+            'fields': ('show_on_landing', 'show_on_index', 'show_on_pricing')
+        }),
+        ('Ordering', {
+            'fields': ('order', 'active')
+        }),
+    )
+
+    def subtitle_preview(self, obj):
+        return obj.subtitle[:50] + ('…' if len(obj.subtitle) > 50 else '')
+    subtitle_preview.short_description = 'Subtitle'
+
+    def image_thumb(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="height:36px;border-radius:4px;">',
+                obj.image.url
+            )
+        return '—'
+    image_thumb.short_description = 'Image'

@@ -13,19 +13,46 @@ from lessons.utils.resolve_profile import resolve_profile
 from lessons.models import UserProfile
 import json
 from django.utils import timezone
-from lessons.models import UserProfile, GeneratedLessonPlan
+from lessons.models import (
+    UserProfile, GeneratedLessonPlan,
+    TopBanner, HeroBanner, BottomAd,          # ← HeroBanner added
+)
 
+
+# ─────────────────────────────────────────────────────────────
+#  ADS HELPER  — call this in any view, pass the page flag
+# ─────────────────────────────────────────────────────────────
+def get_ads_context(page: str) -> dict:
+    """
+    Returns top_banners, hero_banners, bottom_ads filtered for `page`.
+
+    Usage in any view:
+        context.update(get_ads_context('landing'))   # landing page
+        context.update(get_ads_context('index'))     # index/dashboard
+        context.update(get_ads_context('pricing'))   # pricing page
+    """
+    flag = f'show_on_{page}'          # e.g. 'show_on_landing'
+    return {
+        'top_banners':  TopBanner.objects.filter(active=True,  **{flag: True}).order_by('order'),
+        'hero_banners': HeroBanner.objects.filter(active=True, **{flag: True}).order_by('order'),
+        'bottom_ads':   BottomAd.objects.filter(active=True,   **{flag: True}).order_by('order'),
+    }
 
 
 # -----------------------------
 # Landing & Pricing
 # -----------------------------
 def landing(request):
-    return render(request, 'landing.html')
+    context = {}
+    context.update(get_ads_context('landing'))
+    return render(request, 'landing.html', context)
+
 
 def pricing(request):
     plan = request.GET.get('plan', '')
-    return render(request, 'pricing.html', {'selected_plan': plan})
+    context = {'selected_plan': plan}
+    context.update(get_ads_context('pricing'))
+    return render(request, 'pricing.html', context)
 
 
 # ===============================
@@ -66,8 +93,6 @@ def register(request):
                 device_id=incoming_device_id, user__isnull=True
             ).first()
             if guest_profile:
-                # ✅ Merge guest profile into the new user account
-                # This preserves their lesson_used count from guest sessions
                 guest_profile.user = user
                 guest_profile.save()
                 profile = guest_profile
@@ -136,18 +161,45 @@ def login_user(request):
 # Logout
 # -----------------------------
 def logout_user(request):
-    # ✅ FIX 1: Clear device_id from session on logout
-    # Without this, the next page load would resolve the
-    # logged-out user's premium profile for the "guest"
     request.session.pop('device_id', None)
     logout(request)
     return redirect("landing")
+
+from django.shortcuts import render, redirect
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+def password_reset_direct(request):
+    error = None
+    success = None
+
+    if request.method == "POST":
+        email        = request.POST.get("email", "").strip().lower()
+        new_password = request.POST.get("new_password", "")
+        confirm      = request.POST.get("confirm_password", "")
+
+        if not email or not new_password or not confirm:
+            error = "All fields are required."
+        elif new_password != confirm:
+            error = "Passwords do not match."
+        elif len(new_password) < 6:
+            error = "Password must be at least 6 characters."
+        else:
+            try:
+                user = User.objects.get(email__iexact=email)
+                user.set_password(new_password)
+                user.save()
+                return redirect("/api/login/?password_reset=1")
+            except User.DoesNotExist:
+                error = "No account found with that email address."
+
+    return render(request, "password_reset_direct.html", {"error": error})
 
 
 # -----------------------------
 # INDEX
 # -----------------------------
-
 @never_cache
 def index(request):
     profile = None
@@ -193,10 +245,10 @@ def index(request):
                 for p in plans
             ],
         })
-    # Guests: dashboard_bootstrap stays None — no fetch needed on load,
-    # guest banner is handled lazily only when they generate a plan
 
-    return render(request, 'index.html', {
-        'profile':              profile,
-        'dashboard_bootstrap':  dashboard_bootstrap,
-    })
+    context = {
+        'profile':             profile,
+        'dashboard_bootstrap': dashboard_bootstrap,
+    }
+    context.update(get_ads_context('index'))
+    return render(request, 'index.html', context)

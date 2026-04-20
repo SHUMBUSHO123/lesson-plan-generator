@@ -497,4 +497,289 @@ class QuickReply(models.Model):
         verbose_name_plural = "Quick replies"
     
     def __str__(self):
-        return f"{self.icon} {self.text}"         
+        return f"{self.icon} {self.text}"       
+
+# ============================================================
+#  REPLACE everything from the first TopBanner class to the
+#  end of models.py with this block.
+#  The rest of your models.py (Level, Class, Subject, Unit,
+#  Lesson, UserProfile, Subscription, TeachingStrategy,
+#  LessonStrategyStep, GeneratedLessonPlan, ManualPaymentProof,
+#  ChatHistory, Interaction, BotConfig, BotResponse, QuickReply)
+#  stays exactly as-is above this point.
+# ============================================================
+
+
+class TopBanner(models.Model):
+    """
+    Scrolling ticker announcement shown at the very top of the page.
+
+    Admin controls
+    ──────────────
+    • text          → the announcement sentence
+    • icon          → emoji prefix e.g. 🎓
+    • badge         → short pill label e.g. NEW, HOT, SALE
+    • badge_color   → pill background colour (hex)
+    • color         → optional text colour override (hex)
+    • bg            → optional whole-item background override (hex)
+    • url           → click destination (use '#' for no link)
+    • scroll_speed  → ticker animation duration in seconds
+                      10 = very fast | 44 = default | 120 = very slow
+                      The FIRST active banner's speed drives the whole ticker.
+    • show_on_*     → tick which pages display this banner
+    • order         → lower number = appears first in the ticker
+    • active        → uncheck to hide without deleting
+    """
+
+    text        = models.CharField(
+        max_length=300,
+        help_text="Announcement text scrolling across the ticker."
+    )
+    url         = models.CharField(
+        max_length=500, blank=True, default='#',
+        help_text="Click destination URL. Use '#' for no link."
+    )
+    icon        = models.CharField(
+        max_length=10, blank=True, default='',
+        help_text="Emoji icon e.g. 🎓  📚  🏫"
+    )
+    badge       = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Short ribbon label e.g. NEW, HOT, SALE — leave blank for none."
+    )
+    badge_color = models.CharField(
+        max_length=20, blank=True, default='#e74c3c',
+        help_text="Badge background colour (hex) e.g. #e74c3c"
+    )
+    color       = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Text colour override e.g. #ffd700 — leave blank for default gold."
+    )
+    bg          = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Item background colour override e.g. #1a3a2a — leave blank for default dark."
+    )
+
+    scroll_speed = models.PositiveIntegerField(
+        default=44,
+        help_text=(
+            "Ticker animation duration in seconds. "
+            "Lower = faster.  10 = very fast | 44 = default | 120 = very slow. "
+            "Only the first active banner's speed is used for all banners."
+        )
+    )
+
+    # Template targeting
+    show_on_landing = models.BooleanField(
+        default=True, help_text="Show this banner on the Landing page."
+    )
+    show_on_index   = models.BooleanField(
+        default=True, help_text="Show this banner on the Index / Dashboard page."
+    )
+    show_on_pricing = models.BooleanField(
+        default=False, help_text="Show this banner on the Pricing page."
+    )
+
+    order      = models.PositiveIntegerField(
+        default=0, help_text="Lower numbers appear first in the ticker."
+    )
+    active     = models.BooleanField(
+        default=True, help_text="Uncheck to hide without deleting."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['order', 'created_at']
+        verbose_name        = 'Top Banner'
+        verbose_name_plural = 'Top Banners'
+
+    def __str__(self):
+        pages = []
+        if self.show_on_landing: pages.append('landing')
+        if self.show_on_index:   pages.append('index')
+        if self.show_on_pricing: pages.append('pricing')
+        page_str = ', '.join(pages) or 'no pages'
+        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.text[:60]}"
+
+
+class HeroBanner(models.Model):
+    """
+    Full-width hero carousel slide shown directly below the ticker.
+
+    Admin controls
+    ──────────────
+    • headline      → big bold title  e.g. 'Get 50% Off CBC Books'
+    • description   → supporting sentence (optional)
+    • cta_text      → button label  e.g. 'Shop Now', 'Get Started'
+    • cta_url       → button destination URL
+    • image         → product/brand image shown on the RIGHT side of the slide
+    • badge         → small pill above headline  e.g. SALE, NEW, BUNDLE DEAL
+    • badge_color   → pill background colour (hex)
+    • bg_color      → LEFT / top gradient colour  e.g. #0d1b2a
+    • bg_color2     → RIGHT / bottom gradient colour  e.g. #1a3a5c
+    • duration      → seconds this slide stays before auto-advancing
+                      3 = snappy | 8 = default | 15 = relaxed | 30 = very slow
+    • show_on_*     → tick which pages display this slide
+    • order         → lower number = appears earlier in the carousel
+    • active        → uncheck to hide without deleting
+
+    The carousel is ONLY rendered when at least one active HeroBanner
+    exists for the current page — if none exist the section is hidden.
+    """
+
+    headline    = models.CharField(
+        max_length=120,
+        help_text="Big title text e.g. 'Get 50% Off CBC Mathematics Books'"
+    )
+    description = models.CharField(
+        max_length=250, blank=True, default='',
+        help_text="Supporting sentence shown below the headline (optional)."
+    )
+    cta_text    = models.CharField(
+        max_length=40, blank=True, default='Learn More',
+        help_text="Button label e.g. Shop Now, Get Started, Download Free."
+    )
+    cta_url     = models.CharField(
+        max_length=500, blank=True, default='#',
+        help_text="Button destination URL e.g. https://affiliate.com/link"
+    )
+    image       = models.ImageField(
+        upload_to='hero_banners/', blank=True, null=True,
+        help_text="Product/brand image shown on the right side of the slide (optional)."
+    )
+
+    badge       = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Small pill above headline e.g. SALE, NEW, HOT — leave blank for none."
+    )
+    badge_color = models.CharField(
+        max_length=20, blank=True, default='#f5c518',
+        help_text="Badge background colour (hex) e.g. #f5c518 (gold), #e74c3c (red)."
+    )
+
+    bg_color    = models.CharField(
+        max_length=20, default='#0d1b2a',
+        help_text="Left / top gradient colour e.g. #0d1b2a (dark blue)."
+    )
+    bg_color2   = models.CharField(
+        max_length=20, default='#1a3a5c',
+        help_text="Right / bottom gradient colour e.g. #1a3a5c (teal blue)."
+    )
+
+    duration    = models.PositiveIntegerField(
+        default=8,
+        help_text=(
+            "Seconds this slide stays visible before auto-advancing to the next. "
+            "3 = snappy | 8 = default | 15 = relaxed | 30 = very slow."
+        )
+    )
+
+    # Template targeting
+    show_on_landing = models.BooleanField(
+        default=True, help_text="Show this slide on the Landing page."
+    )
+    show_on_index   = models.BooleanField(
+        default=True, help_text="Show this slide on the Index / Dashboard page."
+    )
+    show_on_pricing = models.BooleanField(
+        default=False, help_text="Show this slide on the Pricing page."
+    )
+
+    order      = models.PositiveIntegerField(
+        default=0, help_text="Lower numbers appear earlier in the carousel."
+    )
+    active     = models.BooleanField(
+        default=True, help_text="Uncheck to hide without deleting."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['order', 'created_at']
+        verbose_name        = 'Hero Banner'
+        verbose_name_plural = 'Hero Banners'
+
+    def __str__(self):
+        pages = []
+        if self.show_on_landing: pages.append('landing')
+        if self.show_on_index:   pages.append('index')
+        if self.show_on_pricing: pages.append('pricing')
+        page_str = ', '.join(pages) or 'no pages'
+        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.headline[:60]}"
+
+
+class BottomAd(models.Model):
+    """
+    Photo card shown in the fixed bottom ad strip.
+
+    Admin controls
+    ──────────────
+    • title         → headline shown on hover overlay
+    • subtitle      → short description shown on hover (optional)
+    • image         → card photo — square or portrait, 200×200 px minimum
+    • url           → click destination URL
+    • badge         → corner ribbon text e.g. SALE, NEW, HOT
+    • badge_color   → ribbon background colour (hex)
+    • show_on_*     → tick which pages display this card
+    • order         → lower number = appears further left in the strip
+    • active        → uncheck to hide without deleting
+
+    The strip always renders (with placeholder cards if none exist in DB).
+    When real BottomAd records exist they replace the placeholders.
+    """
+
+    title       = models.CharField(
+        max_length=120,
+        help_text="Headline shown on the hover overlay e.g. 'Mathematics Grade 5'."
+    )
+    subtitle    = models.CharField(
+        max_length=200, blank=True, default='',
+        help_text="Short description on hover e.g. 'CBC-aligned workbook' (optional)."
+    )
+    image       = models.ImageField(
+        upload_to='bottom_ads/',
+        help_text="Card photo. Square or portrait, 200×200 px minimum recommended."
+    )
+    url         = models.CharField(
+        max_length=500, blank=True, default='#',
+        help_text="Click destination URL e.g. https://affiliate.com/product"
+    )
+    badge       = models.CharField(
+        max_length=20, blank=True, default='',
+        help_text="Corner ribbon text e.g. SALE, NEW, HOT — leave blank for none."
+    )
+    badge_color = models.CharField(
+        max_length=20, blank=True, default='#e74c3c',
+        help_text="Ribbon background colour (hex) e.g. #e74c3c (red), #27AE60 (green)."
+    )
+
+    # Template targeting
+    show_on_landing = models.BooleanField(
+        default=True, help_text="Show this card on the Landing page."
+    )
+    show_on_index   = models.BooleanField(
+        default=True, help_text="Show this card on the Index / Dashboard page."
+    )
+    show_on_pricing = models.BooleanField(
+        default=False, help_text="Show this card on the Pricing page."
+    )
+
+    order      = models.PositiveIntegerField(
+        default=0, help_text="Lower numbers appear further left in the strip."
+    )
+    active     = models.BooleanField(
+        default=True, help_text="Uncheck to hide without deleting."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering            = ['order', 'created_at']
+        verbose_name        = 'Bottom Ad'
+        verbose_name_plural = 'Bottom Ads'
+
+    def __str__(self):
+        pages = []
+        if self.show_on_landing: pages.append('landing')
+        if self.show_on_index:   pages.append('index')
+        if self.show_on_pricing: pages.append('pricing')
+        page_str = ', '.join(pages) or 'no pages'
+        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.title}"

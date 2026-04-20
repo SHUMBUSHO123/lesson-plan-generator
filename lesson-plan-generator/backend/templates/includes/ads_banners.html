@@ -1,0 +1,908 @@
+{% comment %}
+=============================================================
+  ads_banners.html  —  IsomoPlus Reusable Ads Component
+  Place at: templates/includes/ads_banners.html
+  Include on any page: {% include "includes/ads_banners.html" %}
+=============================================================
+
+  CONTEXT YOUR VIEW MUST PASS:
+  ─────────────────────────────
+  from .models import TopBanner, HeroBanner, BottomAd
+
+  context['top_banners']  = TopBanner.objects.filter(active=True, show_on_landing=True).order_by('order')
+  context['hero_banners'] = HeroBanner.objects.filter(active=True, show_on_landing=True).order_by('order')
+  context['bottom_ads']   = BottomAd.objects.filter(active=True, show_on_landing=True).order_by('order')
+
+  Replace show_on_landing=True with the relevant template flag per page:
+    Landing page  → show_on_landing=True
+    Index page    → show_on_index=True
+    Pricing page  → show_on_pricing=True
+
+  MODELS NEEDED:
+  ─────────────
+  See banners_models_admin.py for full models + admin setup.
+
+  TICKER SPEED:
+  ─────────────
+  Admin → Top Banners → each banner has a "scroll_speed" field (10-120s).
+  The JS reads the first banner's speed as the global ticker speed.
+  Default = 44 seconds (medium pace).
+
+  HERO CAROUSEL:
+  ──────────────
+  Admin → Hero Banners → Add
+    • headline    → big title text
+    • description → supporting text
+    • cta_text    → button label e.g. "Shop Now"
+    • cta_url     → affiliate/product link
+    • image       → product/brand image (shown right side)
+    • bg_color    → left gradient color  e.g. #1a3a6b
+    • bg_color2   → right gradient color e.g. #0d1f3d
+    • badge       → ribbon text e.g. SALE, NEW
+    • badge_color → ribbon bg color
+    • duration    → seconds this slide shows (5–30, default 8)
+    • show_on_*   → which pages to display on
+
+  BOTTOM ADS PHOTO CARDS:
+  ────────────────────────
+  Admin → Bottom Ads → Add
+    • image, title, subtitle, url, badge, active, order
+    • show_on_* → which pages to display on
+=============================================================
+{% endcomment %}
+
+<!-- ═══════════════════════════════════════════════════
+     1. STICKY TOP TICKER BANNER
+     Speed is controlled per-banner via scroll_speed field
+════════════════════════════════════════════════════════ -->
+<div id="isomoTickerWrap" class="isomo-ticker-wrap" role="marquee" aria-label="Announcements"
+     data-speed="{% if top_banners %}{{ top_banners.0.scroll_speed|default:44 }}{% else %}44{% endif %}">
+
+  <div class="isomo-ticker-track" id="isomoTickerTrack">
+
+    {% if top_banners %}
+      {% for b in top_banners %}
+        <a href="{{ b.url|default:'#' }}"
+           class="isomo-ticker-item"
+           target="_blank"
+           rel="noopener noreferrer"
+           style="{% if b.color %}color:{{ b.color }};{% endif %}{% if b.bg %}background:{{ b.bg }};{% endif %}">
+          {% if b.icon %}<span class="ti-icon">{{ b.icon }}</span>{% endif %}
+          {% if b.badge %}<span class="ti-badge" style="{% if b.badge_color %}background:{{ b.badge_color }};{% endif %}">{{ b.badge }}</span>{% endif %}
+          <span class="ti-text">{{ b.text }}</span>
+          <span class="ti-sep" aria-hidden="true">✦</span>
+        </a>
+      {% endfor %}
+    {% else %}
+      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
+        <span class="ti-icon">🎓</span><span class="ti-badge">NEW</span>
+        <span class="ti-text">CBC Lesson Plans now available for Grades 1–9 — Generate yours in seconds!</span>
+        <span class="ti-sep">✦</span>
+      </a>
+      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
+        <span class="ti-icon">📚</span>
+        <span class="ti-text">Download unlimited PDF &amp; DOCX lesson plans with a Term subscription</span>
+        <span class="ti-sep">✦</span>
+      </a>
+      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
+        <span class="ti-icon">🏫</span><span class="ti-badge" style="background:#27AE60;">HOT</span>
+        <span class="ti-text">School bulk licences available — contact us for group pricing</span>
+        <span class="ti-sep">✦</span>
+      </a>
+      <a href="#" class="isomo-ticker-item" target="_blank" rel="noopener noreferrer">
+        <span class="ti-icon">🌍</span>
+        <span class="ti-text">Now supporting English · Kinyarwanda · Kiswahili · Français</span>
+        <span class="ti-sep">✦</span>
+      </a>
+    {% endif %}
+
+  </div>
+  <button class="isomo-ticker-toggle" id="isomoTickerToggle" aria-label="Pause" title="Pause/Resume">⏸</button>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     2. HERO BANNER CAROUSEL
+     Only renders if hero_banners context is passed
+════════════════════════════════════════════════════════ -->
+{% if hero_banners %}
+<div id="isomoHero" class="isomo-hero-wrap" aria-label="Featured promotions">
+
+  <div class="isomo-hero-track" id="isomoHeroTrack">
+    {% for h in hero_banners %}
+    <div class="isomo-hero-slide {% if forloop.first %}active{% endif %}"
+         data-duration="{{ h.duration|default:8 }}"
+         style="background: linear-gradient(135deg,
+           {{ h.bg_color|default:'#0d1b2a' }} 0%,
+           {{ h.bg_color2|default:'#1a3a5c' }} 100%);">
+
+      <div class="isomo-hero-inner">
+
+        <!-- Left: text content -->
+        <div class="isomo-hero-content">
+          {% if h.badge %}
+            <span class="isomo-hero-badge"
+                  style="{% if h.badge_color %}background:{{ h.badge_color }};{% endif %}">
+              {{ h.badge }}
+            </span>
+          {% endif %}
+          <h2 class="isomo-hero-headline">{{ h.headline }}</h2>
+          {% if h.description %}
+            <p class="isomo-hero-desc">{{ h.description }}</p>
+          {% endif %}
+          {% if h.cta_url %}
+            <a href="{{ h.cta_url }}"
+               target="_blank"
+               rel="noopener noreferrer sponsored"
+               class="isomo-hero-cta">
+              {{ h.cta_text|default:"Learn More" }}
+              <span class="isomo-hero-cta-arrow">→</span>
+            </a>
+          {% endif %}
+        </div>
+
+        <!-- Right: image -->
+        {% if h.image %}
+        <div class="isomo-hero-img-wrap">
+          <img src="{{ h.image.url }}"
+               alt="{{ h.headline }}"
+               class="isomo-hero-img"
+               loading="lazy"
+               onerror="this.parentElement.style.display='none'">
+        </div>
+        {% endif %}
+
+      </div><!-- /.isomo-hero-inner -->
+
+      <!-- Progress bar for this slide -->
+      <div class="isomo-hero-progress">
+        <div class="isomo-hero-progress-fill" id="heroProgress{{ forloop.counter0 }}"></div>
+      </div>
+
+    </div><!-- /.isomo-hero-slide -->
+    {% endfor %}
+  </div>
+
+  <!-- Controls (only if more than 1 slide) -->
+  {% if hero_banners|length > 1 %}
+  <button class="isomo-hero-btn isomo-hero-prev" id="heroPrev" aria-label="Previous">&#8249;</button>
+  <button class="isomo-hero-btn isomo-hero-next" id="heroNext" aria-label="Next">&#8250;</button>
+  <div class="isomo-hero-dots" id="isomoDots">
+    {% for h in hero_banners %}
+    <button class="isomo-hero-dot {% if forloop.first %}active{% endif %}"
+            data-idx="{{ forloop.counter0 }}"
+            aria-label="Slide {{ forloop.counter }}"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+</div><!-- /#isomoHero -->
+{% endif %}
+
+
+<!-- ═══════════════════════════════════════════════════
+     3. FIXED BOTTOM PHOTO AD STRIP (30s rotation)
+════════════════════════════════════════════════════════ -->
+<div id="isomoAdStrip" class="isomo-ad-strip" aria-label="Sponsored resources">
+
+  <button class="ias-close" id="iasClose" title="Close ads">✕</button>
+  <span class="ias-label">Ads</span>
+
+  <!-- Countdown ring -->
+  <div class="ias-timer-wrap" title="Next spotlight in…">
+    <svg class="ias-timer-svg" viewBox="0 0 36 36">
+      <circle class="ias-timer-bg"   cx="18" cy="18" r="15"/>
+      <circle class="ias-timer-fill" id="iasTimerFill" cx="18" cy="18" r="15"
+              stroke-dasharray="94.25" stroke-dashoffset="0"/>
+    </svg>
+    <span class="ias-timer-num" id="iasTimerNum">30</span>
+  </div>
+
+  <!-- Scrollable cards -->
+  <div class="ias-inner" id="isomoAdInner">
+
+    {% if bottom_ads %}
+      {% for ad in bottom_ads %}
+        <a href="{{ ad.url|default:'#' }}"
+           class="ias-card"
+           data-title="{{ ad.title }}"
+           data-sub="{{ ad.subtitle|default:'' }}"
+           target="_blank" rel="noopener noreferrer">
+          {% if ad.badge %}
+            <span class="ias-ribbon" style="{% if ad.badge_color %}background:{{ ad.badge_color }};{% endif %}">{{ ad.badge }}</span>
+          {% endif %}
+          <img src="{{ ad.image.url }}" alt="{{ ad.title }}" class="ias-img" loading="lazy">
+          <div class="ias-overlay">
+            <p class="ias-otitle">{{ ad.title }}</p>
+            {% if ad.subtitle %}<p class="ias-osub">{{ ad.subtitle }}</p>{% endif %}
+            <span class="ias-cta">View →</span>
+          </div>
+        </a>
+      {% endfor %}
+    {% else %}
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Mathematics Grade 5" data-sub="CBC-aligned workbook">
+        <span class="ias-ribbon" style="background:#e74c3c;">SALE</span>
+        <div class="ias-img ias-ph" style="--c1:#1a6b3a;--c2:#0d3d20;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Mathematics G5</p><p class="ias-osub">CBC workbook</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="English Comprehension" data-sub="Grades 4–6 reader pack">
+        <div class="ias-img ias-ph" style="--c1:#1a3a6b;--c2:#0d1f3d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">English G4–6</p><p class="ias-osub">Reader pack</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Science Lab Kit" data-sub="Hands-on CBC experiments">
+        <span class="ias-ribbon" style="background:#27AE60;">NEW</span>
+        <div class="ias-img ias-ph" style="--c1:#5a1a6b;--c2:#2d0d3d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Science Kit</p><p class="ias-osub">Hands-on CBC</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Teacher's Bundle" data-sub="All subjects, all levels">
+        <div class="ias-img ias-ph" style="--c1:#6b4a1a;--c2:#3d280d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Teacher Bundle</p><p class="ias-osub">All subjects</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Kinyarwanda Reader" data-sub="Primary storybooks">
+        <div class="ias-img ias-ph" style="--c1:#1a5a6b;--c2:#0d2d3d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Kinyarwanda</p><p class="ias-osub">Storybooks</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="School Wall Charts" data-sub="CBC curriculum posters">
+        <span class="ias-ribbon" style="background:#e67e22;">HOT</span>
+        <div class="ias-img ias-ph" style="--c1:#6b1a1a;--c2:#3d0d0d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Wall Charts</p><p class="ias-osub">CBC posters</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Digital Flashcards" data-sub="Interactive study tools">
+        <div class="ias-img ias-ph" style="--c1:#1a6b5a;--c2:#0d3d30;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Flashcards</p><p class="ias-osub">Study tools</p><span class="ias-cta">Shop →</span></div>
+      </a>
+      <a href="#" class="ias-card" target="_blank" rel="noopener noreferrer" data-title="Parent Guide" data-sub="CBC at home">
+        <div class="ias-img ias-ph" style="--c1:#4a6b1a;--c2:#283d0d;"></div>
+        <div class="ias-overlay"><p class="ias-otitle">Parent Guide</p><p class="ias-osub">CBC at home</p><span class="ias-cta">Shop →</span></div>
+      </a>
+    {% endif %}
+
+  </div>
+
+  <button class="ias-arrow ias-arrow--left"  id="iasArrowL" aria-label="Scroll left">&#8249;</button>
+  <button class="ias-arrow ias-arrow--right" id="iasArrowR" aria-label="Scroll right">&#8250;</button>
+
+  <!-- Active ad text (desktop only) -->
+  <div class="ias-active-text" id="iasActiveText">
+    <span class="ias-active-title" id="iasActiveTitle"></span>
+    <span class="ias-active-sub"   id="iasActiveSub"></span>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     STYLES
+════════════════════════════════════════════════════════ -->
+<style>
+/* ── Tokens ── */
+#isomoTickerWrap,
+#isomoHero,
+#isomoAdStrip {
+  --ibr-green:  #27AE60;
+  --ibr-blue:   #2D9CDB;
+  --ibr-dark:   #0b1622;
+  --ibr-gold:   #f5c518;
+  --ibr-radius: 9px;
+}
+
+/* ══════════════════════════════
+   TICKER
+══════════════════════════════ */
+#isomoTickerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 900;
+  width: 100%;
+  height: 36px;
+  background: var(--ibr-dark);
+  border-bottom: 2px solid var(--ibr-green);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.isomo-ticker-track {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  /* speed set dynamically by JS from data-speed attribute */
+  animation: isomoScroll 44s linear infinite;
+  will-change: transform;
+  padding-right: 44px;
+}
+.isomo-ticker-track.paused { animation-play-state: paused; }
+
+@keyframes isomoScroll {
+  from { transform: translateX(100vw); }
+  to   { transform: translateX(-100%); }
+}
+
+.isomo-ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding-right: 40px;
+  color: var(--ibr-gold);
+  text-decoration: none;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  pointer-events: all;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.isomo-ticker-item:hover {
+  color: var(--ibr-green);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ti-icon { font-size: 0.9rem; }
+.ti-text { color: #c8e6ff; font-weight: 400; }
+.ti-sep  { color: var(--ibr-green); margin-left: 40px; font-size: 0.65rem; }
+.ti-badge {
+  background: #e74c3c; color: #fff;
+  font-size: 0.56rem; font-weight: 800;
+  padding: 1px 5px; border-radius: 3px;
+  letter-spacing: 0.06em; text-transform: uppercase;
+}
+.isomo-ticker-toggle {
+  position: absolute; right: 0; top: 0; bottom: 0; width: 36px;
+  background: rgba(11,22,34,0.97);
+  border: none; border-left: 1px solid rgba(39,174,96,0.25);
+  color: var(--ibr-green); font-size: 0.9rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s; z-index: 2;
+}
+.isomo-ticker-toggle:hover { background: rgba(39,174,96,0.15); }
+
+
+/* ══════════════════════════════
+   HERO CAROUSEL
+══════════════════════════════ */
+.isomo-hero-wrap {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #0b1622;
+}
+.isomo-hero-track { position: relative; width: 100%; }
+
+.isomo-hero-slide {
+  display: none;
+  width: 100%;
+  padding: 20px 16px 32px;
+  box-sizing: border-box;
+  position: relative;
+  animation: heroFadeIn 0.5s ease;
+}
+.isomo-hero-slide.active { display: block; }
+
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.isomo-hero-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.isomo-hero-content {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.isomo-hero-badge {
+  display: inline-block;
+  background: #f5c518;
+  color: #0b1622;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.isomo-hero-headline {
+  font-size: clamp(1.1rem, 3vw, 1.9rem);
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 8px;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.isomo-hero-desc {
+  font-size: clamp(0.78rem, 2vw, 0.95rem);
+  color: rgba(255,255,255,0.82);
+  margin: 0 0 14px;
+  line-height: 1.5;
+  max-width: 420px;
+}
+
+.isomo-hero-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #fff;
+  color: #0b1622;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 9px 20px;
+  border-radius: 25px;
+  text-decoration: none;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+  white-space: nowrap;
+}
+.isomo-hero-cta:hover {
+  background: var(--ibr-gold);
+  transform: scale(1.04);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+.isomo-hero-cta-arrow {
+  font-size: 1rem;
+  transition: transform 0.2s;
+}
+.isomo-hero-cta:hover .isomo-hero-cta-arrow { transform: translateX(3px); }
+
+.isomo-hero-img-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.isomo-hero-img {
+  max-height: 110px;
+  max-width: 160px;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0,0,0,0.4));
+  transition: transform 0.3s;
+}
+.isomo-hero-slide.active .isomo-hero-img { animation: heroImgIn 0.6s 0.15s both; }
+@keyframes heroImgIn {
+  from { opacity: 0; transform: scale(0.85) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* progress bar */
+.isomo-hero-progress {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.1);
+}
+.isomo-hero-progress-fill {
+  height: 100%;
+  background: var(--ibr-green);
+  width: 0%;
+  transition: none;
+}
+
+/* nav buttons */
+.isomo-hero-btn {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #fff;
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 10;
+  transition: background 0.2s;
+  line-height: 1;
+  backdrop-filter: blur(4px);
+}
+.isomo-hero-btn:hover { background: rgba(255,255,255,0.25); }
+.isomo-hero-prev { left: 8px; }
+.isomo-hero-next { right: 8px; }
+
+/* dots */
+.isomo-hero-dots {
+  position: absolute;
+  bottom: 10px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 6px; z-index: 10;
+}
+.isomo-hero-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.35);
+  border: none; cursor: pointer;
+  transition: background 0.25s, transform 0.25s;
+  padding: 0;
+}
+.isomo-hero-dot.active {
+  background: var(--ibr-green);
+  transform: scale(1.3);
+}
+
+
+/* ══════════════════════════════
+   BOTTOM AD STRIP
+══════════════════════════════ */
+#isomoAdStrip {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 800;
+  height: 90px;
+  background: linear-gradient(100deg, #0b1622 0%, #0f2233 55%, #0b1622 100%);
+  border-top: 2px solid var(--ibr-green);
+  display: flex;
+  align-items: center;
+  padding: 0 98px 0 116px;
+  box-shadow: 0 -6px 28px rgba(0,0,0,0.45);
+  box-sizing: border-box;
+  transition: transform 0.4s cubic-bezier(.55,0,.1,1);
+}
+#isomoAdStrip.hidden { transform: translateY(100%); }
+
+.ias-close {
+  position: absolute; top: 5px; right: 6px;
+  width: 18px; height: 18px;
+  background: rgba(255,255,255,0.07); border: none; border-radius: 50%;
+  color: #777; font-size: 0.62rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.ias-close:hover { background: #e74c3c; color: #fff; }
+
+.ias-label {
+  position: absolute; left: 48px; top: 50%;
+  transform: translateY(-50%) rotate(-90deg);
+  font-size: 0.46rem; font-weight: 800; letter-spacing: 0.14em;
+  text-transform: uppercase; color: rgba(255,255,255,0.2);
+  white-space: nowrap; pointer-events: none;
+}
+
+.ias-timer-wrap {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  width: 38px; height: 38px;
+}
+.ias-timer-svg { width: 38px; height: 38px; transform: rotate(-90deg); }
+.ias-timer-bg  { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 3; }
+.ias-timer-fill {
+  fill: none; stroke: var(--ibr-green); stroke-width: 3; stroke-linecap: round;
+  transition: stroke-dashoffset 1s linear, stroke 0.6s;
+}
+.ias-timer-num {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; font-weight: 700; color: var(--ibr-green);
+}
+
+.ias-inner {
+  display: flex; gap: 10px;
+  overflow-x: auto; scroll-behavior: smooth;
+  scrollbar-width: none; -ms-overflow-style: none;
+  flex: 1; padding: 6px 0; height: 100%; align-items: center;
+}
+.ias-inner::-webkit-scrollbar { display: none; }
+
+/* card */
+.ias-card {
+  position: relative;
+  flex: 0 0 88px; height: 70px;
+  border-radius: var(--ibr-radius);
+  overflow: hidden; display: block;
+  text-decoration: none;
+  border: 2px solid transparent;
+  transition: border-color 0.3s,
+              transform 0.28s cubic-bezier(.34,1.56,.64,1),
+              box-shadow 0.28s;
+  flex-shrink: 0; cursor: pointer;
+}
+.ias-card:hover {
+  transform: translateY(-5px) scale(1.07);
+  border-color: var(--ibr-blue);
+  box-shadow: 0 8px 22px rgba(45,156,219,0.4);
+  z-index: 5;
+}
+.ias-card.ias-active {
+  transform: translateY(-5px) scale(1.07);
+  border-color: var(--ibr-gold);
+  box-shadow: 0 8px 22px rgba(245,197,24,0.35);
+  z-index: 5;
+}
+.ias-img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: filter 0.28s;
+}
+.ias-card:hover .ias-img,
+.ias-card.ias-active .ias-img { filter: brightness(0.35) saturate(0.6); }
+
+.ias-ph {
+  width: 100%; height: 100%;
+  background: linear-gradient(135deg, var(--c1,#1a6b3a), var(--c2,#0d3d20));
+  display: block; transition: filter 0.28s;
+}
+.ias-card:hover .ias-ph,
+.ias-card.ias-active .ias-ph { filter: brightness(0.35) saturate(0.6); }
+
+.ias-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  justify-content: center; align-items: center;
+  padding: 5px; text-align: center;
+  opacity: 0; transform: translateY(5px);
+  transition: opacity 0.22s, transform 0.22s;
+  pointer-events: none;
+}
+.ias-card:hover .ias-overlay,
+.ias-card.ias-active .ias-overlay { opacity: 1; transform: translateY(0); }
+
+.ias-otitle { color:#fff; font-size:0.6rem; font-weight:700; margin:0 0 2px; line-height:1.2; text-shadow:0 1px 4px rgba(0,0,0,0.8); }
+.ias-osub   { color:#a8e6c3; font-size:0.52rem; margin:0 0 4px; line-height:1.2; }
+.ias-cta    { background:var(--ibr-green); color:#fff; font-size:0.5rem; font-weight:700; padding:2px 7px; border-radius:10px; letter-spacing:0.04em; white-space:nowrap; }
+
+.ias-ribbon {
+  position: absolute; top:5px; left:-2px;
+  background:#e74c3c; color:#fff; font-size:0.48rem; font-weight:800;
+  padding:1px 6px 1px 4px; border-radius:0 3px 3px 0;
+  letter-spacing:0.07em; text-transform:uppercase;
+  z-index:3; box-shadow:1px 1px 4px rgba(0,0,0,0.35);
+}
+
+.ias-arrow {
+  position: absolute; top:50%; transform:translateY(-50%);
+  background: rgba(39,174,96,0.12);
+  border: 1px solid rgba(39,174,96,0.28);
+  color: var(--ibr-green);
+  width:28px; height:28px; border-radius:50%; font-size:1.15rem;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:10; transition: background 0.2s, transform 0.15s; line-height:1;
+}
+.ias-arrow:hover { background:var(--ibr-green); color:#fff; transform:translateY(-50%) scale(1.12); }
+.ias-arrow--left  { left:50px; }
+.ias-arrow--right { right:60px; }
+
+/* active text — desktop only */
+.ias-active-text {
+  position: absolute; right: 96px; top:50%;
+  transform: translateY(-50%);
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 2px;
+  max-width: 150px; text-align: right;
+  pointer-events: none; opacity: 0; transition: opacity 0.4s;
+}
+.ias-active-text.visible { opacity: 1; }
+.ias-active-title { color:var(--ibr-gold); font-size:0.68rem; font-weight:700; line-height:1.25; }
+.ias-active-sub   { color:#78c89a; font-size:0.58rem; line-height:1.25; }
+
+
+/* ══════════════════════════════
+   MOBILE RESPONSIVE
+══════════════════════════════ */
+@media (max-width: 600px) {
+  /* Ticker — slightly smaller */
+  #isomoTickerWrap { height: 32px; }
+  .isomo-ticker-item { font-size: 0.72rem; }
+
+  /* Hero — stack vertically, hide image on very small screens */
+  .isomo-hero-slide { padding: 16px 12px 28px; }
+  .isomo-hero-inner { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .isomo-hero-img-wrap { display: none; }
+  .isomo-hero-headline { font-size: 1.05rem; }
+  .isomo-hero-desc { font-size: 0.75rem; }
+  .isomo-hero-cta { font-size: 0.76rem; padding: 7px 16px; }
+  .isomo-hero-btn { width: 26px; height: 26px; font-size: 1rem; }
+
+  /* Bottom strip — compact, hide label and active text */
+  #isomoAdStrip {
+    height: 78px;
+    padding: 0 58px 0 72px;
+  }
+  .ias-card { flex: 0 0 64px; height: 54px; }
+  .ias-otitle { font-size: 0.54rem; }
+  .ias-osub   { display: none; }          /* hide subtitle on mobile */
+  .ias-cta    { font-size: 0.46rem; padding: 2px 5px; }
+  .ias-active-text { display: none; }
+  .ias-label  { display: none; }
+  .ias-arrow--left  { left: 34px; }
+  .ias-arrow--right { right: 26px; }
+  .ias-timer-wrap   { left: 4px; width: 30px; height: 30px; }
+  .ias-timer-svg    { width: 30px; height: 30px; }
+}
+
+@media (min-width: 601px) and (max-width: 900px) {
+  .isomo-hero-img { max-height: 80px; max-width: 120px; }
+  .isomo-hero-headline { font-size: 1.3rem; }
+  #isomoAdStrip { padding: 0 80px 0 90px; }
+  .ias-card { flex: 0 0 76px; height: 62px; }
+  .ias-active-text { max-width: 110px; right: 82px; }
+}
+</style>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+
+  /* ══════ TICKER ══════ */
+  const tickerWrap = document.getElementById('isomoTickerWrap');
+  const track      = document.getElementById('isomoTickerTrack');
+  const toggle     = document.getElementById('isomoTickerToggle');
+  let tickerPaused = false;
+
+  // Apply admin-controlled speed from data-speed attribute
+  if (track && tickerWrap) {
+    const speed = parseInt(tickerWrap.dataset.speed, 10) || 44;
+    track.style.animationDuration = speed + 's';
+  }
+
+  // Duplicate for seamless infinite loop
+  if (track) track.innerHTML += track.innerHTML;
+
+  if (toggle && track) {
+    toggle.addEventListener('click', function () {
+      tickerPaused = !tickerPaused;
+      track.classList.toggle('paused', tickerPaused);
+      toggle.textContent = tickerPaused ? '▶' : '⏸';
+      toggle.setAttribute('aria-label', tickerPaused ? 'Resume' : 'Pause');
+    });
+  }
+
+
+  /* ══════ HERO CAROUSEL ══════ */
+  const slides    = Array.from(document.querySelectorAll('.isomo-hero-slide'));
+  const dots      = Array.from(document.querySelectorAll('.isomo-hero-dot'));
+  const prevBtn   = document.getElementById('heroPrev');
+  const nextBtn   = document.getElementById('heroNext');
+  let heroIdx     = 0;
+  let heroTimer   = null;
+  let progressRAF = null;
+  let progressStart = null;
+
+  function getSliceDuration(idx) {
+    return (parseInt(slides[idx]?.dataset.duration, 10) || 8) * 1000;
+  }
+
+  function showSlide(idx) {
+    if (!slides.length) return;
+    if (idx < 0) idx = slides.length - 1;
+    if (idx >= slides.length) idx = 0;
+
+    slides.forEach((s, i) => s.classList.toggle('active', i === idx));
+    dots.forEach((d, i)   => d.classList.toggle('active', i === idx));
+    heroIdx = idx;
+
+    // Reset & animate progress bar
+    cancelAnimationFrame(progressRAF);
+    clearTimeout(heroTimer);
+    const fill = document.getElementById('heroProgress' + idx);
+    if (fill) {
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+    }
+
+    const duration = getSliceDuration(idx);
+    progressStart = performance.now();
+
+    function animateProgress(now) {
+      const elapsed = now - progressStart;
+      const pct = Math.min(100, (elapsed / duration) * 100);
+      if (fill) fill.style.width = pct + '%';
+      if (pct < 100) {
+        progressRAF = requestAnimationFrame(animateProgress);
+      }
+    }
+    progressRAF = requestAnimationFrame(animateProgress);
+
+    heroTimer = setTimeout(() => showSlide(heroIdx + 1), duration);
+  }
+
+  if (slides.length) {
+    showSlide(0);
+    if (prevBtn) prevBtn.addEventListener('click', () => { clearTimeout(heroTimer); showSlide(heroIdx - 1); });
+    if (nextBtn) nextBtn.addEventListener('click', () => { clearTimeout(heroTimer); showSlide(heroIdx + 1); });
+    dots.forEach(dot => dot.addEventListener('click', () => {
+      clearTimeout(heroTimer);
+      showSlide(parseInt(dot.dataset.idx, 10));
+    }));
+  }
+
+
+  /* ══════ BOTTOM AD STRIP ══════ */
+  const strip    = document.getElementById('isomoAdStrip');
+  const closeBtn = document.getElementById('iasClose');
+  if (closeBtn && strip) {
+    closeBtn.addEventListener('click', function () {
+      strip.classList.add('hidden');
+      setTimeout(() => strip.classList.remove('hidden'), 5 * 60 * 1000);
+    });
+  }
+
+  /* scroll arrows */
+  const inner = document.getElementById('isomoAdInner');
+  const btnL  = document.getElementById('iasArrowL');
+  const btnR  = document.getElementById('iasArrowR');
+  const STEP  = 200;
+  if (btnL) btnL.addEventListener('click', () => inner?.scrollBy({ left: -STEP, behavior: 'smooth' }));
+  if (btnR) btnR.addEventListener('click', () => inner?.scrollBy({ left:  STEP, behavior: 'smooth' }));
+
+  function refreshArrows() {
+    if (!inner || !btnL || !btnR) return;
+    const max = inner.scrollWidth - inner.clientWidth;
+    btnL.style.opacity = inner.scrollLeft > 4 ? '1' : '0.3';
+    btnR.style.opacity = inner.scrollLeft < max - 4 ? '1' : '0.3';
+  }
+  if (inner) {
+    inner.addEventListener('scroll', refreshArrows, { passive: true });
+    requestAnimationFrame(refreshArrows);
+  }
+
+  /* 30-second rotating spotlight */
+  const cards       = Array.from(document.querySelectorAll('.ias-card'));
+  const timerFill   = document.getElementById('iasTimerFill');
+  const timerNum    = document.getElementById('iasTimerNum');
+  const activeText  = document.getElementById('iasActiveText');
+  const activeTitle = document.getElementById('iasActiveTitle');
+  const activeSub   = document.getElementById('iasActiveSub');
+
+  const TOTAL_SEC     = 30;
+  const CIRCUMFERENCE = 94.25;
+
+  let adIdx        = 0;
+  let secondsLeft  = TOTAL_SEC;
+  let countTimer   = null;
+  let userHovering = false;
+
+  function setActive(idx) {
+    cards.forEach((c, i) => c.classList.toggle('ias-active', i === idx));
+    if (cards[idx] && inner) {
+      const card   = cards[idx];
+      const target = card.offsetLeft - inner.clientWidth / 2 + card.clientWidth / 2;
+      inner.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+    }
+    const t = cards[idx]?.dataset.title || '';
+    const s = cards[idx]?.dataset.sub   || '';
+    if (activeTitle) activeTitle.textContent = t;
+    if (activeSub)   activeSub.textContent   = s;
+    if (activeText)  activeText.classList.toggle('visible', !!(t || s));
+  }
+
+  function paintTimer(sec) {
+    if (!timerFill || !timerNum) return;
+    timerFill.style.strokeDashoffset = CIRCUMFERENCE * (1 - sec / TOTAL_SEC);
+    timerNum.textContent = sec;
+    timerFill.style.stroke = sec > 15 ? '#27AE60' : sec > 7 ? '#f5c518' : '#e74c3c';
+  }
+
+  function advanceAd() {
+    adIdx = (adIdx + 1) % cards.length;
+    secondsLeft = TOTAL_SEC;
+    setActive(adIdx);
+    paintTimer(secondsLeft);
+  }
+
+  function startCountdown() {
+    clearInterval(countTimer);
+    countTimer = setInterval(function () {
+      if (userHovering) return;
+      secondsLeft--;
+      paintTimer(secondsLeft);
+      if (secondsLeft <= 0) advanceAd();
+    }, 1000);
+  }
+
+  cards.forEach(function (card, idx) {
+    card.addEventListener('mouseenter', function () { userHovering = true;  setActive(idx); adIdx = idx; });
+    card.addEventListener('mouseleave', function () { userHovering = false; secondsLeft = TOTAL_SEC; paintTimer(secondsLeft); });
+  });
+
+  if (cards.length) { setActive(0); paintTimer(TOTAL_SEC); startCountdown(); }
+
+})();
+</script>

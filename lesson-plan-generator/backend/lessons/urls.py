@@ -1,10 +1,11 @@
 # File: /lesson-plan-generator/backend/lessons/urls.py
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
 from .views_separated import payment_views
-from .views_separated.auth_views import register, login_user, logout_user
+from .views_separated.auth_views import register, login_user, logout_user,password_reset_direct
 from lessons.views_separated.lesson_views import download_lesson_pdf,  download_lesson_word
 from lessons.views_separated.bot_views import chat_bot_api, user_status_api
 from .views_separated.crud_views import (
@@ -38,6 +39,11 @@ urlpatterns = [
     path("login/",    login_user, name="login"),
     path("logout/",   logout_user, name="logout"),
     path("pricing/",  pricing,    name="pricing"),
+    path('password-reset/', password_reset_direct, name='password_reset'),
+    path('password-reset/',         auth_views.PasswordResetView.as_view(),         name='password_reset'),
+    path('password-reset/done/',    auth_views.PasswordResetDoneView.as_view(),     name='password_reset_done'),
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(),  name='password_reset_confirm'),
+    path('reset/done/',             auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path("payment/",  payment_views.payment_page, name="payment"),
 
     # ── Auth / User API ──
