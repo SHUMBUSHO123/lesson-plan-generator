@@ -5,8 +5,62 @@ from django.utils import timezone
 from datetime import timedelta
 from django.conf import settings
 from django.db.models import F
-from django.conf import settings
 from django.contrib.auth.models import User
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Cloudinary import — safe for both dev (local storage) and prod (Cloudinary).
+# CloudinaryField is only used when USE_CLOUDINARY=True in settings.
+# In dev, standard ImageField is used instead so no Cloudinary account needed.
+# ──────────────────────────────────────────────────────────────────────────────
+USE_CLOUDINARY = getattr(settings, 'USE_CLOUDINARY', False)
+
+if USE_CLOUDINARY:
+    from cloudinary.models import CloudinaryField
+
+
+def image_field(folder, **kwargs):
+    """
+    Factory that returns the right field type based on environment.
+
+    In dev  (USE_CLOUDINARY=False) → standard Django ImageField
+            Images saved to MEDIA_ROOT/folder/ on local disk.
+
+    In prod (USE_CLOUDINARY=True)  → CloudinaryField
+            Images uploaded to Cloudinary under the given folder.
+            .url still works identically in templates.
+
+    Usage inside a model:
+        image = image_field('hero_banners', blank=True, null=True,
+                            help_text="Product/brand image …")
+    """
+    if USE_CLOUDINARY:
+        return CloudinaryField(
+            'image',
+            folder=folder,
+            **kwargs
+        )
+    else:
+        upload_to = kwargs.pop('upload_to', folder + '/')
+        return models.ImageField(upload_to=upload_to, **kwargs)
+
+
+def video_field(folder, **kwargs):
+    """
+    Same factory for video files.
+
+    In dev  → FileField saved to MEDIA_ROOT/folder/
+    In prod → CloudinaryField with resource_type='video'
+    """
+    if USE_CLOUDINARY:
+        return CloudinaryField(
+            'video',
+            resource_type='video',
+            folder=folder,
+            **kwargs
+        )
+    else:
+        upload_to = kwargs.pop('upload_to', folder + '/')
+        return models.FileField(upload_to=upload_to, **kwargs)
 
 
 # -----------------------------
@@ -29,13 +83,13 @@ LANGUAGE_CHOICES = [
 
 class Level(models.Model):
     name      = models.CharField(max_length=50)
-    language  = models.CharField(                        # ← NEW
+    language  = models.CharField(
         max_length=5,
         choices=LANGUAGE_CHOICES,
         default='en',
         help_text="Curriculum language this level belongs to"
     )
-    is_active = models.BooleanField(default=True)        # ✅ Soft delete
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"[{self.language.upper()}] {self.name}"
@@ -44,7 +98,7 @@ class Level(models.Model):
 class Class(models.Model):
     level     = models.ForeignKey(Level, related_name='classes', on_delete=models.CASCADE)
     name      = models.CharField(max_length=50)
-    is_active = models.BooleanField(default=True)        # ✅ Soft delete
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.level.name} - {self.name}"
@@ -53,7 +107,7 @@ class Class(models.Model):
 class Subject(models.Model):
     class_field = models.ForeignKey(Class, related_name='subjects', on_delete=models.CASCADE)
     name        = models.CharField(max_length=50)
-    is_active   = models.BooleanField(default=True)      # ✅ Soft delete
+    is_active   = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.class_field.name} - {self.name}"
@@ -65,13 +119,13 @@ class Unit(models.Model):
     title               = models.CharField(max_length=100)
     key_unit_competence = models.TextField()
     total_lessons       = models.PositiveIntegerField(default=0)
-    language            = models.CharField(             # ← NEW
+    language            = models.CharField(
         max_length=5,
         choices=LANGUAGE_CHOICES,
         default='en',
         help_text="Language this unit is written in"
     )
-    is_active           = models.BooleanField(default=True)  # ✅ Soft delete
+    is_active           = models.BooleanField(default=True)
 
     def __str__(self):
         return f"[{self.language.upper()}] {self.subject.name} - Unit {self.number}: {self.title}"
@@ -82,14 +136,14 @@ class Lesson(models.Model):
     number     = models.PositiveIntegerField()
     title      = models.TextField()
     references = models.TextField(blank=True, null=True)
-    language   = models.CharField(                      # ← NEW
+    language   = models.CharField(
         max_length=5,
         choices=LANGUAGE_CHOICES,
         default='en',
         help_text="Language this lesson is written in"
     )
     is_premium = models.BooleanField(default=True)
-    is_active  = models.BooleanField(default=True)      # ✅ Soft delete
+    is_active  = models.BooleanField(default=True)
 
     def __str__(self):
         return f"[{self.language.upper()}] Lesson {self.number}: {self.title}"
@@ -182,13 +236,10 @@ class UserProfile(models.Model):
         instead of the plan default 50) without it being overwritten.
         Only falls back to plan default if lesson_limit is NULL.
         """
-        # ① Admin manually set a specific limit — always use it
         if self.lesson_limit is not None:
             return self.lesson_limit
-        # ② No manual limit — fall back to plan default
         if self.is_premium and self.subscription_plan:
             return SUBSCRIPTION_LIMITS.get(self.subscription_plan, FREE_LESSON_LIMIT)
-        # ③ Free user with no limit set
         return FREE_LESSON_LIMIT
 
     def can_generate_plan(self):
@@ -197,11 +248,6 @@ class UserProfile(models.Model):
         return self.lessons_used < self.get_current_lesson_limit()
 
     def use_lesson(self):
-        """
-        Increment lesson counter.
-        Premium users with active subscription skip increment —
-        their counter is managed separately via use_lesson_atomic.
-        """
         if self.is_subscription_active() or self.has_unlimited_access():
             return
         UserProfile.objects.filter(pk=self.pk).update(lessons_used=F('lessons_used') + 1)
@@ -211,7 +257,7 @@ class UserProfile(models.Model):
             return False
         if self.subscription_expiry:
             return timezone.now() <= self.subscription_expiry
-        return True  # No expiry = permanent admin grant
+        return True
 
     def expire_subscription_if_needed(self):
         if self.subscription_expiry and timezone.now() > self.subscription_expiry:
@@ -249,7 +295,7 @@ class UserProfile(models.Model):
         self.save(update_fields=['is_active'])
 
     def save(self, *args, **kwargs):
-        if not self.pk:  # new object
+        if not self.pk:
             if not self.is_premium and self.lesson_limit is None:
                 self.lesson_limit = FREE_LESSON_LIMIT
 
@@ -328,7 +374,7 @@ class LessonStrategyStep(models.Model):
     )
 
     class Meta:
-        ordering      = ["step_order"]
+        ordering        = ["step_order"]
         unique_together = ["lesson", "strategy", "step_order"]
 
     def __str__(self):
@@ -356,8 +402,8 @@ class GeneratedLessonPlan(models.Model):
     created_at    = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering         = ['-created_at']
-        verbose_name     = 'Generated Lesson Plan'
+        ordering            = ['-created_at']
+        verbose_name        = 'Generated Lesson Plan'
         verbose_name_plural = 'Generated Lesson Plans'
 
     def __str__(self):
@@ -366,6 +412,10 @@ class GeneratedLessonPlan(models.Model):
 
 # -----------------------------
 # Manual Payment Proof
+# ─────────────────────────────
+# screenshot field:
+#   dev  → ImageField  → saved to MEDIA_ROOT/payment_proofs/YYYY/MM/
+#   prod → CloudinaryField → uploaded to Cloudinary folder payment_proofs/
 # -----------------------------
 class ManualPaymentProof(models.Model):
 
@@ -390,7 +440,17 @@ class ManualPaymentProof(models.Model):
     plan         = models.CharField(max_length=20, choices=PLAN_CHOICES, default='monthly')
     tx_id        = models.CharField(max_length=100, blank=True, null=True)
     amount       = models.CharField(max_length=20,  blank=True, null=True)
-    screenshot   = models.ImageField(upload_to='payment_proofs/%Y/%m/', blank=True, null=True)
+
+    # ── storage-aware screenshot field ──────────────────────────────────────
+    screenshot   = image_field(
+        'payment_proofs',
+        upload_to='payment_proofs/%Y/%m/',   # only used by ImageField in dev
+        blank=True,
+        null=True,
+        help_text="MoMo / bank transfer screenshot."
+    )
+    # ────────────────────────────────────────────────────────────────────────
+
     status       = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     admin_note   = models.TextField(blank=True, help_text='Optional note when approving or rejecting')
     submitted_at = models.DateTimeField(auto_now_add=True)
@@ -440,79 +500,84 @@ class ManualPaymentProof(models.Model):
 
 
 class ChatHistory(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    user            = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
     conversation_id = models.CharField(max_length=100)
-    message = models.TextField()
-    direction = models.CharField(max_length=10)  # 'incoming' or 'outgoing'
-    intent = models.CharField(max_length=50, null=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    
+    message         = models.TextField()
+    direction       = models.CharField(max_length=10)  # 'incoming' or 'outgoing'
+    intent          = models.CharField(max_length=50, null=True)
+    created_at      = models.DateTimeField(auto_now_add=True)
+
+
 class Interaction(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
-    intent = models.CharField(max_length=50)
+    user         = models.ForeignKey(User, on_delete=models.CASCADE, null=True)
+    intent       = models.CharField(max_length=50)
     user_message = models.TextField()
     bot_response = models.TextField()
-    satisfied = models.BooleanField(null=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
-    
+    satisfied    = models.BooleanField(null=True)
+    timestamp    = models.DateTimeField(auto_now_add=True)
+
+
 class BotConfig(models.Model):
-    """Dynamic configuration - change bot behavior without redeploying"""
-    key = models.CharField(max_length=100, unique=True)
-    value = models.TextField()
+    """Dynamic configuration — change bot behavior without redeploying"""
+    key        = models.CharField(max_length=100, unique=True)
+    value      = models.TextField()
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     @classmethod
     def get(cls, key, default=None):
         try:
             return cls.objects.get(key=key).value
         except cls.DoesNotExist:
             return default
-        
+
+
 class BotResponse(models.Model):
     """Admin-editable bot responses"""
-    intent = models.CharField(max_length=50, unique=True)
+    intent            = models.CharField(max_length=50, unique=True)
     response_template = models.TextField(help_text="Use {username}, {remaining}, etc.")
-    is_active = models.BooleanField(default=True)
-    priority = models.IntegerField(default=1)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    
+    is_active         = models.BooleanField(default=True)
+    priority          = models.IntegerField(default=1)
+    created_at        = models.DateTimeField(auto_now_add=True)
+    updated_at        = models.DateTimeField(auto_now=True)
+
     def __str__(self):
         return f"{self.intent} - {'Active' if self.is_active else 'Inactive'}"
-       
+
 
 class QuickReply(models.Model):
     """Quick reply buttons that appear in chat"""
-    text = models.CharField(max_length=100, help_text="Button text shown to user")
-    message = models.CharField(max_length=500, help_text="Message sent to bot when clicked")
-    icon = models.CharField(max_length=10, blank=True, help_text="Emoji icon (e.g., 📝, 💰)")
-    order = models.IntegerField(default=0, help_text="Display order")
-    row = models.IntegerField(default=1, help_text="Which row (1 or 2)")
-    is_active = models.BooleanField(default=True)
+    text       = models.CharField(max_length=100, help_text="Button text shown to user")
+    message    = models.CharField(max_length=500, help_text="Message sent to bot when clicked")
+    icon       = models.CharField(max_length=10, blank=True, help_text="Emoji icon (e.g., 📝, 💰)")
+    order      = models.IntegerField(default=0, help_text="Display order")
+    row        = models.IntegerField(default=1, help_text="Which row (1 or 2)")
+    is_active  = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        ordering = ['row', 'order']
-        verbose_name_plural = "Quick replies"
-    
-    def __str__(self):
-        return f"{self.icon} {self.text}"       
 
-# ============================================================
-#  REPLACE everything from the first TopBanner class to the
-#  end of models.py with this block.
-#  The rest of your models.py (Level, Class, Subject, Unit,
-#  Lesson, UserProfile, Subscription, TeachingStrategy,
-#  LessonStrategyStep, GeneratedLessonPlan, ManualPaymentProof,
-#  ChatHistory, Interaction, BotConfig, BotResponse, QuickReply)
-#  stays exactly as-is above this point.
-# ============================================================
+    class Meta:
+        ordering       = ['row', 'order']
+        verbose_name_plural = "Quick replies"
+
+    def __str__(self):
+        return f"{self.icon} {self.text}"
+
+
+# =============================================================================
+# AD MODELS
+# =============================================================================
+# Image / video storage:
+#   dev  (USE_CLOUDINARY=False) → files saved to MEDIA_ROOT on local disk
+#   prod (USE_CLOUDINARY=True)  → files uploaded to Cloudinary via API
+#
+# Template usage is IDENTICAL in both cases — {{ obj.image.url }} works.
+# =============================================================================
 
 
 class TopBanner(models.Model):
     """
     Scrolling ticker announcement shown at the very top of the page.
+    No image/video on this model — text + colours only.
 
     Admin controls
     ──────────────
@@ -525,7 +590,6 @@ class TopBanner(models.Model):
     • url           → click destination (use '#' for no link)
     • scroll_speed  → ticker animation duration in seconds
                       10 = very fast | 44 = default | 120 = very slow
-                      The FIRST active banner's speed drives the whole ticker.
     • show_on_*     → tick which pages display this banner
     • order         → lower number = appears first in the ticker
     • active        → uncheck to hide without deleting
@@ -559,7 +623,6 @@ class TopBanner(models.Model):
         max_length=20, blank=True, default='',
         help_text="Item background colour override e.g. #1a3a2a — leave blank for default dark."
     )
-
     scroll_speed = models.PositiveIntegerField(
         default=44,
         help_text=(
@@ -569,23 +632,12 @@ class TopBanner(models.Model):
         )
     )
 
-    # Template targeting
-    show_on_landing = models.BooleanField(
-        default=True, help_text="Show this banner on the Landing page."
-    )
-    show_on_index   = models.BooleanField(
-        default=True, help_text="Show this banner on the Index / Dashboard page."
-    )
-    show_on_pricing = models.BooleanField(
-        default=False, help_text="Show this banner on the Pricing page."
-    )
+    show_on_landing = models.BooleanField(default=True,  help_text="Show on the Landing page.")
+    show_on_index   = models.BooleanField(default=True,  help_text="Show on the Index / Dashboard page.")
+    show_on_pricing = models.BooleanField(default=False, help_text="Show on the Pricing page.")
 
-    order      = models.PositiveIntegerField(
-        default=0, help_text="Lower numbers appear first in the ticker."
-    )
-    active     = models.BooleanField(
-        default=True, help_text="Uncheck to hide without deleting."
-    )
+    order      = models.PositiveIntegerField(default=0, help_text="Lower numbers appear first.")
+    active     = models.BooleanField(default=True, help_text="Uncheck to hide without deleting.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -594,37 +646,33 @@ class TopBanner(models.Model):
         verbose_name_plural = 'Top Banners'
 
     def __str__(self):
-        pages = []
-        if self.show_on_landing: pages.append('landing')
-        if self.show_on_index:   pages.append('index')
-        if self.show_on_pricing: pages.append('pricing')
-        page_str = ', '.join(pages) or 'no pages'
-        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.text[:60]}"
+        pages = [p for p, f in [('landing', self.show_on_landing), ('index', self.show_on_index), ('pricing', self.show_on_pricing)] if f]
+        return f"[{'ON' if self.active else 'OFF'}] [{', '.join(pages) or 'no pages'}] {self.text[:60]}"
 
 
 class HeroBanner(models.Model):
     """
     Full-width hero carousel slide shown directly below the ticker.
 
+    image field storage:
+        dev  → ImageField  → MEDIA_ROOT/hero_banners/
+        prod → CloudinaryField → Cloudinary folder: hero_banners/
+
     Admin controls
     ──────────────
-    • headline      → big bold title  e.g. 'Get 50% Off CBC Books'
+    • headline      → big bold title
     • description   → supporting sentence (optional)
-    • cta_text      → button label  e.g. 'Shop Now', 'Get Started'
+    • cta_text      → button label
     • cta_url       → button destination URL
-    • image         → product/brand image shown on the RIGHT side of the slide
-    • badge         → small pill above headline  e.g. SALE, NEW, BUNDLE DEAL
+    • image         → product/brand image shown on the RIGHT side
+    • badge         → small pill above headline
     • badge_color   → pill background colour (hex)
-    • bg_color      → LEFT / top gradient colour  e.g. #0d1b2a
-    • bg_color2     → RIGHT / bottom gradient colour  e.g. #1a3a5c
+    • bg_color      → left/top gradient colour
+    • bg_color2     → right/bottom gradient colour
     • duration      → seconds this slide stays before auto-advancing
-                      3 = snappy | 8 = default | 15 = relaxed | 30 = very slow
     • show_on_*     → tick which pages display this slide
-    • order         → lower number = appears earlier in the carousel
+    • order         → lower number = appears earlier in carousel
     • active        → uncheck to hide without deleting
-
-    The carousel is ONLY rendered when at least one active HeroBanner
-    exists for the current page — if none exist the section is hidden.
     """
 
     headline    = models.CharField(
@@ -643,10 +691,19 @@ class HeroBanner(models.Model):
         max_length=500, blank=True, default='#',
         help_text="Button destination URL e.g. https://affiliate.com/link"
     )
-    image       = models.ImageField(
-        upload_to='hero_banners/', blank=True, null=True,
-        help_text="Product/brand image shown on the right side of the slide (optional)."
+
+    # ── storage-aware image field ────────────────────────────────────────────
+    image = image_field(
+        'hero_banners',
+        upload_to='hero_banners/',   # only used by ImageField in dev
+        blank=True,
+        null=True,
+        help_text=(
+            "Product/brand image shown on the right side of the slide. "
+            "dev: saved locally | prod: uploaded to Cloudinary."
+        )
     )
+    # ────────────────────────────────────────────────────────────────────────
 
     badge       = models.CharField(
         max_length=20, blank=True, default='',
@@ -656,7 +713,6 @@ class HeroBanner(models.Model):
         max_length=20, blank=True, default='#f5c518',
         help_text="Badge background colour (hex) e.g. #f5c518 (gold), #e74c3c (red)."
     )
-
     bg_color    = models.CharField(
         max_length=20, default='#0d1b2a',
         help_text="Left / top gradient colour e.g. #0d1b2a (dark blue)."
@@ -665,32 +721,20 @@ class HeroBanner(models.Model):
         max_length=20, default='#1a3a5c',
         help_text="Right / bottom gradient colour e.g. #1a3a5c (teal blue)."
     )
-
     duration    = models.PositiveIntegerField(
         default=8,
         help_text=(
-            "Seconds this slide stays visible before auto-advancing to the next. "
+            "Seconds this slide stays visible before auto-advancing. "
             "3 = snappy | 8 = default | 15 = relaxed | 30 = very slow."
         )
     )
 
-    # Template targeting
-    show_on_landing = models.BooleanField(
-        default=True, help_text="Show this slide on the Landing page."
-    )
-    show_on_index   = models.BooleanField(
-        default=True, help_text="Show this slide on the Index / Dashboard page."
-    )
-    show_on_pricing = models.BooleanField(
-        default=False, help_text="Show this slide on the Pricing page."
-    )
+    show_on_landing = models.BooleanField(default=True,  help_text="Show on the Landing page.")
+    show_on_index   = models.BooleanField(default=True,  help_text="Show on the Index / Dashboard page.")
+    show_on_pricing = models.BooleanField(default=False, help_text="Show on the Pricing page.")
 
-    order      = models.PositiveIntegerField(
-        default=0, help_text="Lower numbers appear earlier in the carousel."
-    )
-    active     = models.BooleanField(
-        default=True, help_text="Uncheck to hide without deleting."
-    )
+    order      = models.PositiveIntegerField(default=0, help_text="Lower numbers appear earlier in the carousel.")
+    active     = models.BooleanField(default=True, help_text="Uncheck to hide without deleting.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -699,17 +743,17 @@ class HeroBanner(models.Model):
         verbose_name_plural = 'Hero Banners'
 
     def __str__(self):
-        pages = []
-        if self.show_on_landing: pages.append('landing')
-        if self.show_on_index:   pages.append('index')
-        if self.show_on_pricing: pages.append('pricing')
-        page_str = ', '.join(pages) or 'no pages'
-        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.headline[:60]}"
+        pages = [p for p, f in [('landing', self.show_on_landing), ('index', self.show_on_index), ('pricing', self.show_on_pricing)] if f]
+        return f"[{'ON' if self.active else 'OFF'}] [{', '.join(pages) or 'no pages'}] {self.headline[:60]}"
 
 
 class BottomAd(models.Model):
     """
     Photo card shown in the fixed bottom ad strip.
+
+    image field storage:
+        dev  → ImageField  → MEDIA_ROOT/bottom_ads/
+        prod → CloudinaryField → Cloudinary folder: bottom_ads/
 
     Admin controls
     ──────────────
@@ -722,23 +766,28 @@ class BottomAd(models.Model):
     • show_on_*     → tick which pages display this card
     • order         → lower number = appears further left in the strip
     • active        → uncheck to hide without deleting
-
-    The strip always renders (with placeholder cards if none exist in DB).
-    When real BottomAd records exist they replace the placeholders.
     """
 
-    title       = models.CharField(
+    title    = models.CharField(
         max_length=120,
         help_text="Headline shown on the hover overlay e.g. 'Mathematics Grade 5'."
     )
-    subtitle    = models.CharField(
+    subtitle = models.CharField(
         max_length=200, blank=True, default='',
         help_text="Short description on hover e.g. 'CBC-aligned workbook' (optional)."
     )
-    image       = models.ImageField(
-        upload_to='bottom_ads/',
-        help_text="Card photo. Square or portrait, 200×200 px minimum recommended."
+
+    # ── storage-aware image field ────────────────────────────────────────────
+    image = image_field(
+        'bottom_ads',
+        upload_to='bottom_ads/',   # only used by ImageField in dev
+        help_text=(
+            "Card photo. Square or portrait, 200×200 px minimum. "
+            "dev: saved locally | prod: uploaded to Cloudinary."
+        )
     )
+    # ────────────────────────────────────────────────────────────────────────
+
     url         = models.CharField(
         max_length=500, blank=True, default='#',
         help_text="Click destination URL e.g. https://affiliate.com/product"
@@ -752,23 +801,12 @@ class BottomAd(models.Model):
         help_text="Ribbon background colour (hex) e.g. #e74c3c (red), #27AE60 (green)."
     )
 
-    # Template targeting
-    show_on_landing = models.BooleanField(
-        default=True, help_text="Show this card on the Landing page."
-    )
-    show_on_index   = models.BooleanField(
-        default=True, help_text="Show this card on the Index / Dashboard page."
-    )
-    show_on_pricing = models.BooleanField(
-        default=False, help_text="Show this card on the Pricing page."
-    )
+    show_on_landing = models.BooleanField(default=True,  help_text="Show on the Landing page.")
+    show_on_index   = models.BooleanField(default=True,  help_text="Show on the Index / Dashboard page.")
+    show_on_pricing = models.BooleanField(default=False, help_text="Show on the Pricing page.")
 
-    order      = models.PositiveIntegerField(
-        default=0, help_text="Lower numbers appear further left in the strip."
-    )
-    active     = models.BooleanField(
-        default=True, help_text="Uncheck to hide without deleting."
-    )
+    order      = models.PositiveIntegerField(default=0, help_text="Lower numbers appear further left.")
+    active     = models.BooleanField(default=True, help_text="Uncheck to hide without deleting.")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -777,9 +815,5 @@ class BottomAd(models.Model):
         verbose_name_plural = 'Bottom Ads'
 
     def __str__(self):
-        pages = []
-        if self.show_on_landing: pages.append('landing')
-        if self.show_on_index:   pages.append('index')
-        if self.show_on_pricing: pages.append('pricing')
-        page_str = ', '.join(pages) or 'no pages'
-        return f"[{'ON' if self.active else 'OFF'}] [{page_str}] {self.title}"
+        pages = [p for p, f in [('landing', self.show_on_landing), ('index', self.show_on_index), ('pricing', self.show_on_pricing)] if f]
+        return f"[{'ON' if self.active else 'OFF'}] [{', '.join(pages) or 'no pages'}] {self.title}"

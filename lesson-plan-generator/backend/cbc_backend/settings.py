@@ -19,6 +19,7 @@ else:
 # ---------------------------
 SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-for-dev')
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS')
 if ALLOWED_HOSTS:
     ALLOWED_HOSTS = ALLOWED_HOSTS.split(',')
@@ -34,6 +35,32 @@ SESSION_ENGINE          = 'django.contrib.sessions.backends.db'
 
 
 # ---------------------------
+# CLOUDINARY — master switch
+# ---------------------------
+# How this works:
+#   dev  (.env.local has USE_CLOUDINARY=False or key missing)
+#        → USE_CLOUDINARY = False
+#        → ImageField saves files to MEDIA_ROOT on local disk
+#        → cloudinary_storage NOT added to INSTALLED_APPS
+#        → DEFAULT_FILE_STORAGE stays as Django default
+#        → no Cloudinary credentials needed at all
+#
+#   prod (Render env var USE_CLOUDINARY=True + credentials set)
+#        → USE_CLOUDINARY = True
+#        → CloudinaryField uploads to Cloudinary via API
+#        → cloudinary_storage added to INSTALLED_APPS
+#        → DEFAULT_FILE_STORAGE = MediaCloudinaryStorage
+#
+# Your .env.local for dev:         USE_CLOUDINARY=False  (or just omit it)
+# Render environment variables:    USE_CLOUDINARY=True
+#                                  CLOUDINARY_CLOUD_NAME=xxx
+#                                  CLOUDINARY_API_KEY=xxx
+#                                  CLOUDINARY_API_SECRET=xxx
+# ---------------------------
+USE_CLOUDINARY = os.getenv('USE_CLOUDINARY', 'False') == 'True'
+
+
+# ---------------------------
 # APPLICATIONS
 # ---------------------------
 INSTALLED_APPS = [
@@ -42,7 +69,23 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
+]
+
+# cloudinary_storage MUST come before django.contrib.staticfiles
+# and ONLY when Cloudinary is active — adding it without credentials
+# causes an import error on startup in dev.
+if USE_CLOUDINARY:
+    INSTALLED_APPS += [
+        'cloudinary_storage',
+        'django.contrib.staticfiles',
+        'cloudinary',
+    ]
+else:
+    INSTALLED_APPS += [
+        'django.contrib.staticfiles',
+    ]
+
+INSTALLED_APPS += [
     'rest_framework',
     'lessons',
     'corsheaders',
@@ -64,7 +107,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True  # restrict in production
+CORS_ALLOW_ALL_ORIGINS = True   # tighten in production if needed
 ROOT_URLCONF = 'cbc_backend.urls'
 
 
@@ -92,6 +135,17 @@ WSGI_APPLICATION = 'cbc_backend.wsgi.application'
 # ---------------------------
 # DATABASE
 # ---------------------------
+# How this works:
+#   dev  (.env.local has USE_SUPABASE=False or key missing)
+#        → SQLite on local disk — no network, no timeout errors
+#
+#   prod (Render env var USE_SUPABASE=True + URL set)
+#        → PostgreSQL via Supabase pooler
+#
+# Your .env.local for dev: USE_SUPABASE=False  (or just omit it)
+# Render environment variables: USE_SUPABASE=True
+#                               SUPABASE_DATABASE_URL=postgresql://...
+# ---------------------------
 USE_SUPABASE = os.getenv('USE_SUPABASE', 'False') == 'True'
 SUPABASE_DATABASE_URL = os.getenv('SUPABASE_DATABASE_URL')
 
@@ -104,6 +158,7 @@ if USE_SUPABASE and SUPABASE_DATABASE_URL:
         )
     }
 else:
+    # ✅ Dev: SQLite — zero config, works offline, no timeout errors
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -127,17 +182,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # INTERNATIONALIZATION
 # ---------------------------
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
-USE_I18N = True
-USE_TZ = True
+TIME_ZONE     = 'UTC'
+USE_I18N      = True
+USE_TZ        = True
 
 
 # ---------------------------
 # STATIC FILES
 # ---------------------------
-STATIC_URL = '/static/'
+STATIC_URL       = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT      = os.path.join(BASE_DIR, 'staticfiles')
 
 if DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
@@ -146,10 +201,44 @@ else:
 
 
 # ---------------------------
-# MEDIA FILES (screenshot uploads)
+# MEDIA FILES
+# ---------------------------
+# dev  (USE_CLOUDINARY=False):
+#      Files saved to MEDIA_ROOT/  on local disk.
+#      Django serves them via MEDIA_URL in development.
+#      No Cloudinary account or credentials needed.
+#
+# prod (USE_CLOUDINARY=True):
+#      Files uploaded to Cloudinary automatically.
+#      {{ obj.image.url }} returns Cloudinary CDN URL.
+#      MEDIA_ROOT is unused but kept so nothing breaks.
 # ---------------------------
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+if USE_CLOUDINARY:
+    # ── Cloudinary credentials (Render env vars only) ──────────────────────
+    # Setup steps:
+    #   1. https://cloudinary.com → free account → Dashboard
+    #   2. Copy Cloud Name, API Key, API Secret
+    #   3. Add to Render environment variables:
+    #        USE_CLOUDINARY=True
+    #        CLOUDINARY_CLOUD_NAME=your_cloud_name
+    #        CLOUDINARY_API_KEY=your_api_key
+    #        CLOUDINARY_API_SECRET=your_api_secret
+    # ────────────────────────────────────────────────────────────────────────
+    CLOUDINARY_STORAGE = {
+        'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+        'API_KEY':    os.getenv('CLOUDINARY_API_KEY'),
+        'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+    }
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+    # ── expose USE_CLOUDINARY to models.py via settings ────────────────────
+    # models.py reads:  USE_CLOUDINARY = getattr(settings, 'USE_CLOUDINARY', False)
+    # This is the single source of truth. No duplication needed.
+
+# If USE_CLOUDINARY is False, DEFAULT_FILE_STORAGE stays as Django's default:
+#   django.core.files.storage.FileSystemStorage  → local disk
 
 
 # ---------------------------
@@ -197,8 +286,8 @@ SITE_URL = os.getenv('SITE_URL', 'https://lesson-plan-generator-va4h.onrender.co
 # ---------------------------
 # PWA / SERVICE WORKER
 # ---------------------------
-PWA_APP_NAME         = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
-PWA_APP_DESCRIPTION  = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
+PWA_APP_NAME            = os.getenv('PWA_APP_NAME', 'CBC Lesson Generator')
+PWA_APP_DESCRIPTION     = os.getenv('PWA_APP_DESCRIPTION', 'Offline-enabled lesson plan app')
 PWA_SERVICE_WORKER_PATH = '/sw.js'
 
 
