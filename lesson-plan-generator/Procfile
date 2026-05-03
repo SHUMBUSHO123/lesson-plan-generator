@@ -1,1 +1,1 @@
-web: cd lesson-plan-generator/backend && python3 manage.py collectstatic --noinput && gunicorn cbc_backend.wsgi:application --bind 0.0.0.0:$PORT --log-file -
+web: cd backend && gunicorn cbc_backend.wsgi:application --bind 0.0.0.0:$PORT --log-file -
