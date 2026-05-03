@@ -194,12 +194,7 @@ STATIC_URL       = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT      = os.path.join(BASE_DIR, 'staticfiles')
 
-# AFTER
-if DEBUG:
-    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
-else:
-    STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-    #                                          ↑ removed "Manifest"
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # ---------------------------
 # MEDIA FILES
