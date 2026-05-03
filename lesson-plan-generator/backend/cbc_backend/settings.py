@@ -216,6 +216,7 @@ else:
 # ---------------------------
 MEDIA_URL  = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+WHITENOISE_ROOT = BASE_DIR / 'staticfiles'
 
 if USE_CLOUDINARY:
     # ── Cloudinary credentials (Render env vars only) ──────────────────────
