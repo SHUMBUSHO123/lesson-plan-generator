@@ -5,7 +5,7 @@ __pycache__/
 
 # Django
 db.sqlite3
-/staticfiles/
+
 
 # Environment
 .env.local
@@ -18,6 +18,4 @@ db.sqlite3
 .vscode/
 .idea/
 
-# Django collected static files
-staticfiles/
-backend/staticfiles/
+
