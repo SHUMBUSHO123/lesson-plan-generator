@@ -34,6 +34,8 @@ def image_field(folder, **kwargs):
                             help_text="Product/brand image …")
     """
     if USE_CLOUDINARY:
+        # CloudinaryField does NOT accept upload_to — strip it out first
+        kwargs.pop('upload_to', None)
         return CloudinaryField(
             'image',
             folder=folder,
@@ -52,6 +54,8 @@ def video_field(folder, **kwargs):
     In prod → CloudinaryField with resource_type='video'
     """
     if USE_CLOUDINARY:
+        # CloudinaryField does NOT accept upload_to — strip it out first
+        kwargs.pop('upload_to', None)
         return CloudinaryField(
             'video',
             resource_type='video',
