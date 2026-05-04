@@ -1,27 +1,23 @@
-# File: /lesson-plan-generator/backend/lessons/urls.py
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
+from django.views.generic import TemplateView
+from django.views.static import serve
 from .views_separated import payment_views
-from .views_separated.auth_views import register, login_user, logout_user,password_reset_direct
-from lessons.views_separated.lesson_views import download_lesson_pdf,  download_lesson_word
+from .views_separated.auth_views import register, login_user, logout_user, password_reset_direct
+from lessons.views_separated.lesson_views import download_lesson_pdf, download_lesson_word
 from lessons.views_separated.bot_views import chat_bot_api, user_status_api
 from .views_separated.crud_views import (
     LevelViewSet, ClassViewSet, SubjectViewSet, UnitViewSet, LessonViewSet
 )
 from .views_separated.lesson_views import (
-    generate_lesson_plan,
-    check_access,
-    get_user_prefill,
-    get_user_dashboard,
-    bulk_zip_download,
+    generate_lesson_plan, check_access, get_user_prefill, get_user_dashboard, bulk_zip_download,
 )
 from .views import landing, pricing, get_logged_in_user_device_id, index
 from lessons.views_separated.bot_views import get_quick_replies
 
-# ── Router ──
 router = DefaultRouter()
 router.register(r'levels',   LevelViewSet,   basename='level')
 router.register(r'classes',  ClassViewSet,   basename='class')
@@ -29,10 +25,7 @@ router.register(r'subjects', SubjectViewSet, basename='subject')
 router.register(r'units',    UnitViewSet,    basename='unit')
 router.register(r'lessons',  LessonViewSet,  basename='lesson')
 
-# ── URL Patterns ──
 urlpatterns = [
-
-    # ── Pages ──
     path("",          landing,    name="landing"),
     path("index/",    index,      name="index"),
     path("register/", register,   name="register"),
@@ -40,31 +33,21 @@ urlpatterns = [
     path("logout/",   logout_user, name="logout"),
     path("pricing/",  pricing,    name="pricing"),
     path('password-reset/', password_reset_direct, name='password_reset'),
-    path('password-reset/',         auth_views.PasswordResetView.as_view(),         name='password_reset'),
     path('password-reset/done/',    auth_views.PasswordResetDoneView.as_view(),     name='password_reset_done'),
     path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(),  name='password_reset_confirm'),
     path('reset/done/',             auth_views.PasswordResetCompleteView.as_view(), name='password_reset_complete'),
     path("payment/",  payment_views.payment_page, name="payment"),
-
-    # ── Auth / User API ──
     path("get_logged_in_user_device_id/", get_logged_in_user_device_id, name="get_logged_in_user_device_id"),
     path("get_user_prefill/",             get_user_prefill,             name="get_user_prefill"),
     path("dashboard/",                    get_user_dashboard,           name="user_dashboard"),
-
-    # ── Lesson API ──
     path("generate_lesson_plan/", generate_lesson_plan, name="generate_lesson_plan"),
     path("check-access/",         check_access,         name="check_access"),
     path("plans/zip/",            bulk_zip_download,    name="bulk_zip_download"),
-    
-
     path('download_pdf/', download_lesson_pdf),
     path('download_word/', download_lesson_word),
     path('chatbot/', chat_bot_api, name='chatbot_api'),
     path('user/status/', user_status_api, name='user_status_api'),
     path('quick-replies/', get_quick_replies, name='quick_replies'),
-
-    # ── Payment API ──
-    # ✅ FIXED: name was 'process_mtn_payment', template uses 'initiate_mtn_payment'
     path("initiate-mtn-payment/",  payment_views.initiate_mtn_payment, name="initiate_mtn_payment"),
     path("confirm-payment/",       payment_views.confirm_payment,      name="confirm_payment"),
     path("submit-payment-proof/",  payment_views.submit_payment_proof, name="submit_payment_proof"),
@@ -72,10 +55,12 @@ urlpatterns = [
     path("subscription-success/",  payment_views.subscription_success, name="subscription_success"),
     path("subscription-pending/",  payment_views.subscription_pending, name="subscription_pending"),
 
+    # ── Fix 404s ──
+    path('offline.html', TemplateView.as_view(template_name='offline.html'), name='offline'),
+    path('favicon.ico', serve, {'path': 'icons/icon-192.png', 'document_root': settings.STATIC_ROOT}),
 ]
 
 urlpatterns += router.urls
 
-# ── Serve media files in development (screenshot uploads) ──
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
