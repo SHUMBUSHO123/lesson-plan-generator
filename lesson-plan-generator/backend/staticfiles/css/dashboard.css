@@ -1,0 +1,389 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   CBC LESSON PLAN GENERATOR — DASHBOARD PANEL STYLES
+   Location: /lesson-plan-generator/backend/static/css/dashboard.css
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Panel Shell ──────────────────────────────────────────────────────────── */
+.dashboard-panel {
+    width: 100%;
+    background: linear-gradient(135deg, #1a2332 0%, #243447 100%);
+    border-bottom: 3px solid #4CAF50;
+    padding: 0 20px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+/* ── Guest Banner ─────────────────────────────────────────────────────────── */
+.dash-guest-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    color: #c8d8e8;
+    font-size: 14px;
+    flex-wrap: wrap;
+}
+
+.dash-guest-icon {
+    font-size: 20px;
+}
+
+.dash-upgrade-link {
+    margin-left: auto;
+    color: #4CAF50;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 0.2s;
+}
+
+.dash-upgrade-link:hover {
+    color: #81C784;
+}
+
+/* ── Dashboard Header ─────────────────────────────────────────────────────── */
+.dash-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0 10px;
+}
+
+.dash-title {
+    margin: 0;
+    color: #e0eaf4;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.dash-collapse-btn {
+    background: transparent;
+    border: 1px solid #3a5068;
+    color: #7fa8c8;
+    border-radius: 6px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.dash-collapse-btn:hover {
+    background: #2e4560;
+    color: #c8d8e8;
+}
+
+/* ── Collapsible Body ─────────────────────────────────────────────────────── */
+.dash-body {
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+    max-height: 900px;
+}
+
+.dash-body.collapsed {
+    max-height: 0;
+}
+
+/* ── Stats Row ────────────────────────────────────────────────────────────── */
+.dash-stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding-bottom: 16px;
+}
+
+.dash-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 14px 16px;
+    transition: background 0.2s;
+}
+
+.dash-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dash-card-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #7fa8c8;
+    margin-bottom: 4px;
+}
+
+.dash-card-value {
+    font-size: 28px;
+    font-weight: 800;
+    color: #e0eaf4;
+    line-height: 1.1;
+}
+
+.dash-card-sub {
+    font-size: 11px;
+    color: #5d8aaa;
+    margin-top: 3px;
+}
+
+/* Progress bar */
+.dash-progress-bar {
+    margin-top: 8px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.dash-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4CAF50, #81C784);
+    border-radius: 4px;
+    transition: width 0.6s ease;
+}
+
+/* Card accent borders */
+.dash-card--usage     { border-left: 3px solid #4CAF50; }
+.dash-card--remaining { border-left: 3px solid #2196F3; }
+.dash-card--plan      { border-left: 3px solid #FF9800; }
+.dash-card--perms     { border-left: 3px solid #9C27B0; }
+
+/* Permission badges */
+.dash-perms-list {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+.dash-perm {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #7fa8c8;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: all 0.2s;
+}
+
+.dash-perm.active {
+    background: rgba(76, 175, 80, 0.25);
+    color: #81C784;
+    border-color: #4CAF50;
+}
+
+/* ── Recent Plans Section ─────────────────────────────────────────────────── */
+.dash-recent-section {
+    padding-bottom: 18px;
+}
+
+.dash-recent-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dash-recent-title {
+    margin: 0;
+    color: #c8d8e8;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.dash-recent-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* Action Buttons */
+.dash-select-all-btn,
+.dash-zip-btn {
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid;
+    transition: all 0.2s;
+}
+
+.dash-select-all-btn {
+    background: transparent;
+    border-color: #3a5068;
+    color: #7fa8c8;
+}
+
+.dash-select-all-btn:hover {
+    background: #2e4560;
+    color: #c8d8e8;
+}
+
+.dash-zip-btn {
+    background: #4CAF50;
+    border-color: #4CAF50;
+    color: #fff;
+}
+
+.dash-zip-btn:hover:not(:disabled) {
+    background: #388E3C;
+    border-color: #388E3C;
+}
+
+.dash-zip-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ── Table ────────────────────────────────────────────────────────────────── */
+.dash-table-wrapper {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.dash-table thead {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.dash-table th {
+    padding: 9px 12px;
+    text-align: left;
+    color: #7fa8c8;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 600;
+    white-space: nowrap;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dash-table td {
+    padding: 9px 12px;
+    color: #c8d8e8;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+}
+
+.dash-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.dash-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.dash-th-check {
+    width: 36px;
+}
+
+.dash-table input[type="checkbox"] {
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+    accent-color: #4CAF50;
+}
+
+.dash-subject-badge {
+    display: inline-block;
+    background: rgba(33, 150, 243, 0.2);
+    color: #64B5F6;
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.dash-lesson-title-cell {
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-date-cell {
+    font-size: 11px;
+    color: #5d8aaa;
+    white-space: nowrap;
+}
+
+/* ── Loading & Empty States ───────────────────────────────────────────────── */
+.dash-loading {
+    text-align: center;
+    padding: 20px;
+    color: #5d8aaa;
+    font-size: 14px;
+}
+
+.dash-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-top-color: #4CAF50;
+    border-radius: 50%;
+    animation: dashSpin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+@keyframes dashSpin {
+    to { transform: rotate(360deg); }
+}
+
+.dash-empty {
+    text-align: center;
+    padding: 22px;
+    color: #5d8aaa;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+    .dashboard-panel {
+        padding: 0 12px;
+    }
+
+    .dash-stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .dash-card-value {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dash-stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .dash-recent-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .dash-recent-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* Hide Class and Term columns on very small screens */
+    .dash-table th:nth-child(4),
+    .dash-table td:nth-child(4),
+    .dash-table th:nth-child(5),
+    .dash-table td:nth-child(5) {
+        display: none;
+    }
+}
