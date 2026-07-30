@@ -5,18 +5,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | CBC Lesson Planner</title>
-  
+  {% include "includes/favicon.html" %}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body { height: 100%; }
 
     body {
       min-height: 100vh;
       background: #f4f7f5;
       font-family: 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .auth-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .auth-branding { display: none; }
+
+    .auth-form-side {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      padding: 1.25rem;
     }
 
     .card {
@@ -24,8 +37,15 @@
       border-radius: 16px;
       box-shadow: 0 4px 40px rgba(0,0,0,0.10);
       width: 100%;
-      max-width: 400px;
-      padding: 2.5rem 2rem;
+      max-width: 440px;
+      padding: clamp(1.75rem, 6vw, 2.75rem) clamp(1.5rem, 5vw, 2.25rem);
+    }
+
+    .card-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.75rem;
     }
 
     .back-btn {
@@ -33,7 +53,7 @@
       color: #6b7280;
       font-size: 0.85rem;
       text-decoration: none;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0;
     }
     .back-btn:hover { color: #1a7a4a; }
 
@@ -41,7 +61,7 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      margin-bottom: 1.8rem;
+      margin-bottom: 2.2rem;
     }
     .logo-icon {
       width: 38px; height: 38px;
@@ -53,16 +73,15 @@
     .logo-text { font-size: 1rem; font-weight: 700; color: #1a1a2e; }
     .logo-sub  { font-size: 0.72rem; color: #6b7280; }
 
-    h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.25rem; }
-    .sub { font-size: 0.85rem; color: #6b7280; margin-bottom: 1.6rem; }
+    h1 { font-size: 1.6rem; font-weight: 700; color: #1a1a2e; margin-bottom: 0.4rem; }
+    .sub { font-size: 0.85rem; color: #6b7280; margin-bottom: 1.8rem; }
 
-    /* ── Messages ── */
     .msg {
-      padding: 0.8rem 1rem;
+      padding: 0.85rem 1rem;
       border-radius: 10px;
       font-size: 0.84rem;
       font-weight: 500;
-      margin-bottom: 1.2rem;
+      margin-bottom: 1.4rem;
       display: flex;
       align-items: flex-start;
       gap: 8px;
@@ -71,23 +90,22 @@
     .msg-success { background: #e8f5ee; color: #1a7a4a; border-left: 3px solid #1a7a4a; }
     .msg-info    { background: #fdf6e3; color: #c8971f; border-left: 3px solid #c8971f; }
 
-    /* ── Fields ── */
-    .field { margin-bottom: 1rem; }
+    .field { margin-bottom: 1.35rem; }
     label {
       display: block;
       font-size: 0.82rem;
       font-weight: 600;
       color: #1a1a2e;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.4rem;
     }
     input[type="email"],
     input[type="password"],
     input[type="text"] {
       width: 100%;
-      padding: 0.72rem 1rem;
+      padding: 0.8rem 1rem;
       border: 1.5px solid #d1d5db;
       border-radius: 10px;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       font-family: inherit;
       color: #1a1a2e;
       background: #fff;
@@ -105,35 +123,36 @@
     .eye {
       position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
       background: none; border: none; cursor: pointer;
-      color: #6b7280; padding: 4px;
+      color: #6b7280; padding: 8px;
       display: flex; align-items: center;
     }
     .eye:hover { color: #1a7a4a; }
-    .eye svg { width: 17px; height: 17px; }
+    .eye svg { width: 18px; height: 18px; }
 
     .forgot {
       display: block;
       text-align: right;
-      font-size: 0.77rem;
+      font-size: 0.78rem;
       color: #1a7a4a;
       text-decoration: none;
-      margin-top: 0.4rem;
+      margin-top: 0.5rem;
       font-weight: 500;
     }
     .forgot:hover { text-decoration: underline; }
 
     .btn {
       width: 100%;
-      padding: 0.82rem;
+      padding: 0.9rem;
       background: #1a7a4a;
       color: #fff;
       border: none;
       border-radius: 10px;
-      font-size: 0.95rem;
+      font-size: 0.98rem;
       font-weight: 600;
       font-family: inherit;
       cursor: pointer;
-      margin-top: 0.5rem;
+      margin-top: 0.6rem;
+      min-height: 48px;
       transition: background 0.2s, transform 0.15s;
     }
     .btn:hover  { background: #125c38; }
@@ -143,7 +162,7 @@
       text-align: center;
       font-size: 0.78rem;
       color: #9ca3af;
-      margin: 1.3rem 0 1rem;
+      margin: 1.6rem 0 1.2rem;
       position: relative;
     }
     .divider::before, .divider::after {
@@ -155,98 +174,139 @@
 
     .foot {
       text-align: center;
-      font-size: 0.84rem;
+      font-size: 0.86rem;
       color: #6b7280;
     }
     .foot a { color: #1a7a4a; font-weight: 600; text-decoration: none; }
     .foot a:hover { text-decoration: underline; }
+
+    @media (max-width: 380px) {
+      .card { padding: 1.5rem 1.25rem; }
+    }
+
+    @media (min-width: 900px) {
+      .auth-branding {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex: 1;
+        padding: 4rem;
+        background: linear-gradient(135deg, #1a7a4a, #125c38);
+        color: #fff;
+      }
+      .auth-branding h2 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; line-height: 1.3; }
+      .auth-branding p { font-size: 1rem; opacity: 0.9; line-height: 1.6; max-width: 380px; }
+      .auth-branding .brand-perks { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.7rem; }
+      .auth-branding .brand-perk { font-size: 0.95rem; display: flex; align-items: center; gap: 8px; }
+    }
   </style>
 </head>
 <body>
-<div class="card">
 
-  <a href="{% url 'landing' %}" class="back-btn">← Back to home</a>
+  <div class="auth-layout">
 
-  <div class="logo">
-    <div class="logo-icon">📚</div>
-    <div>
-      <div class="logo-text">IsomoPlus</div>
-      <div class="logo-sub">CBC Lesson Planner</div>
+    <div class="auth-branding">
+      <h2>CBC Lesson Plans, Done in Seconds</h2>
+      <p>Join teachers across Rwanda creating curriculum-aligned lesson plans without the hours of manual work.</p>
+      <div class="brand-perks">
+        <span class="brand-perk">✓ 3 free plans to start</span>
+        <span class="brand-perk">✓ All CBC levels supported</span>
+        <span class="brand-perk">✓ Download as PDF or Word</span>
+      </div>
     </div>
+
+    <div class="auth-form-side">
+      <div class="card">
+
+        <div class="card-top-row">
+          <a href="{% url 'landing' %}" class="back-btn">← Back to home</a>
+          {% include "includes/share_dropdown.html" %}
+        </div>
+
+        <div class="logo">
+          <div class="logo-icon">📚</div>
+          <div>
+            <div class="logo-text">IsomoPlus</div>
+            <div class="logo-sub">CBC Lesson Planner</div>
+          </div>
+        </div>
+
+        <h1>Welcome back</h1>
+        <p class="sub">Sign in to continue generating lesson plans.</p>
+
+        {% if error %}
+          <div class="msg msg-error">⚠️ {{ error }}</div>
+        {% endif %}
+
+        {% if messages %}
+          {% for message in messages %}
+            <div class="msg {% if message.tags == 'error' %}msg-error{% elif message.tags == 'success' %}msg-success{% else %}msg-info{% endif %}">
+              {% if message.tags == 'error' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
+              {{ message }}
+            </div>
+          {% endfor %}
+        {% endif %}
+
+        {% if request.GET.registered %}
+          <div class="msg msg-success">✅ Account created! Please sign in to continue.</div>
+        {% endif %}
+
+        {% if request.GET.password_reset %}
+          <div class="msg msg-success">✅ Password updated. Sign in with your new password.</div>
+        {% endif %}
+
+        <form method="POST">
+          {% csrf_token %}
+          {% if request.GET.plan %}
+            <input type="hidden" name="plan" value="{{ request.GET.plan }}">
+          {% endif %}
+
+          <div class="field">
+            <label for="email">Email address</label>
+            <input type="email" name="email" id="email" placeholder="you@example.com" required autocomplete="email">
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <div class="pw-wrap">
+              <input type="password" name="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
+              <button type="button" class="eye" id="eyeBtn" aria-label="Show/hide password">
+                <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </div>
+            <a href="{% url 'password_reset' %}" class="forgot">Forgot password?</a>
+          </div>
+
+          <button type="submit" class="btn">Sign in →</button>
+        </form>
+
+        <div class="divider">or</div>
+        <div class="foot">
+          Don't have an account? <a href="{% url 'register' %}">Create one free</a>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 
-  <h1>Welcome back</h1>
-  <p class="sub">Sign in to continue generating lesson plans.</p>
+  <script>
+    const eyeBtn  = document.getElementById('eyeBtn');
+    const pwInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+    eyeBtn.addEventListener('click', () => {
+      const show = pwInput.type === 'password';
+      pwInput.type = show ? 'text' : 'password';
+      eyeIcon.innerHTML = show
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+    });
+  </script>
 
-  {% if error %}
-    <div class="msg msg-error">⚠️ {{ error }}</div>
-  {% endif %}
-
-  {% if messages %}
-    {% for message in messages %}
-      <div class="msg {% if message.tags == 'error' %}msg-error{% elif message.tags == 'success' %}msg-success{% else %}msg-info{% endif %}">
-        {% if message.tags == 'error' %}⚠️{% elif message.tags == 'success' %}✅{% else %}ℹ️{% endif %}
-        {{ message }}
-      </div>
-    {% endfor %}
-  {% endif %}
-
-  {% if request.GET.registered %}
-    <div class="msg msg-success">✅ Account created! Please sign in to continue.</div>
-  {% endif %}
-
-  {% if request.GET.password_reset %}
-    <div class="msg msg-success">✅ Password updated. Sign in with your new password.</div>
-  {% endif %}
-
-  <form method="POST">
-    {% csrf_token %}
-    {% if request.GET.plan %}
-      <input type="hidden" name="plan" value="{{ request.GET.plan }}">
-    {% endif %}
-
-    <div class="field">
-      <label for="email">Email address</label>
-      <input type="email" name="email" id="email" placeholder="you@example.com" required autocomplete="email">
-    </div>
-
-    <div class="field">
-      <label for="password">Password</label>
-      <div class="pw-wrap">
-        <input type="password" name="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
-        <button type="button" class="eye" id="eyeBtn" aria-label="Show/hide password">
-          <svg id="eyeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-            <circle cx="12" cy="12" r="3"/>
-          </svg>
-        </button>
-      </div>
-      <a href="{% url 'password_reset' %}" class="forgot">Forgot password?</a>
-    </div>
-
-    <button type="submit" class="btn">Sign in →</button>
-  </form>
-
-  <div class="divider">or</div>
-  <div class="foot">
-    Don't have an account? <a href="{% url 'register' %}">Create one free</a>
-  </div>
-{% include "includes/share_dropdown.html" %}
-</div>
-
-<script>
-  const eyeBtn  = document.getElementById('eyeBtn');
-  const pwInput = document.getElementById('password');
-  const eyeIcon = document.getElementById('eyeIcon');
-  eyeBtn.addEventListener('click', () => {
-    const show = pwInput.type === 'password';
-    pwInput.type = show ? 'text' : 'password';
-    eyeIcon.innerHTML = show
-      ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
-      : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
-  });
-</script>
-{% include "includes/share_buttons.html" %}
-{% include "includes/whatsapp_chat.html" %}
+  {% include "includes/share_buttons.html" %}
+  {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>

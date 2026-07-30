@@ -194,6 +194,63 @@
             text-align: center;
         }
         .sen-count-inline span { font-size: 0.78rem; color: #666; }
+       @media (max-width: 600px) {
+    .navbar {
+        flex-wrap: wrap;
+        gap: 8px 10px;
+        padding: 10px 14px;
+    }
+    .nav-left .brand {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+    .nav-right {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+    .nav-user {
+        font-size: 0.78rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 42vw;
+        flex-shrink: 1;
+    }
+    .nav-user-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        flex-shrink: 0;
+    }
+}
+
+#shareToggleBtn {
+    font-size: 0.75rem;
+    padding: 7px 14px;
+    background: #4CAF50;
+    color: #fff;
+    border-radius: 16px;
+    gap: 4px;
+    white-space: nowrap;
+    font-weight: 600;
+}
+#shareToggleBtn svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+    color: #fff;
+}
+.brand-arrow {
+    display: inline-block;
+    margin-right: 6px;
+}    
     </style>
 </head>
 
@@ -813,21 +870,27 @@ window.applyUITranslations = function(lang) {
 </script>
 
 <nav class="navbar">
-    <div class="nav-left">
-        <a href="{% url 'landing' %}" class="brand">CBC Lesson Plan Generator</a>
+    <div class="nav-left">          
+        <a href="{% url 'landing' %}" class="brand">
+            <span class="brand-arrow" aria-hidden="true">←</span>
+            CBC Lesson Plan Generator</a>
     </div>
     <div class="nav-right">
-        {% if user.is_authenticated %}
-            <span>👋</span>
-            <span class="nav-user"  data-username="{{ user.username }}"> Hello, {{ user.username }}</span>
+    {% if user.is_authenticated %}
+        <span>👋</span>
+        <span class="nav-user" data-username="{{ user.username }}"> Hello, {{ user.username }}</span>
+        <div class="nav-user-actions">
             {% include "includes/share_dropdown.html" %}
             <a href="{% url 'logout' %}" class="nav-link">Logout</a>
-        {% else %}
-            <a href="{% url 'login' %}" class="nav-link">Login</a>
+        </div>
+    {% else %}
+        <a href="{% url 'login' %}" class="nav-link">Login</a>
+        <div class="nav-user-actions">
             {% include "includes/share_dropdown.html" %}
             <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
-        {% endif %}
-    </div>
+        </div>
+    {% endif %}
+</div>
 </nav>
 {% include "includes/ads_banners.html" %}
 <!-- Dashboard Panel -->
@@ -1426,7 +1489,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </footer>
-{% include "includes/share_buttons.html" %}
+
 {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>
