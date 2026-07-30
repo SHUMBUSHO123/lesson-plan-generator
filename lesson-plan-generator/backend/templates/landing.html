@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CBC Lesson Plan Generator</title>
     {% load static %}
+    {% include "includes/favicon.html" %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <style>
         /* ---------- Base ---------- */
@@ -331,10 +332,12 @@
         <div class="nav-links">
             {% if user.is_authenticated %}
                 <span class="nav-user">👋 {{ user.username }}</span>
+                {% include "includes/share_dropdown.html" %}
                 <a href="{% url 'index' %}"  class="nav-link btn-dashboard">Dashboard</a>
                 <a href="{% url 'logout' %}" class="nav-link btn-logout">Logout</a>
             {% else %}
                 <a href="{% url 'login' %}"    class="nav-link">Login</a>
+                {% include "includes/share_dropdown.html" %}
                 <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
             {% endif %}
         </div>
@@ -421,7 +424,7 @@
     <footer>
         &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
     </footer>
-
+    {% include "includes/share_buttons.html" %}
     {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>

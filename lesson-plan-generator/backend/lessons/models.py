@@ -424,9 +424,9 @@ class GeneratedLessonPlan(models.Model):
 class ManualPaymentProof(models.Model):
 
     PLAN_CHOICES = [
-        ('weekly',  'Weekly — 200 RWF'),
-        ('monthly', 'Monthly — 500 RWF'),
-        ('term',    'Term — 1000 RWF'),
+        ('weekly',  'Weekly — 500 RWF'),
+        ('monthly', 'Monthly — 1500 RWF'),
+        ('term',    'Term — 3500 RWF'),
     ]
 
     STATUS_CHOICES = [

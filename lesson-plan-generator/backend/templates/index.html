@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -35,6 +36,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="CBC Lesson Gen">
 
+    {% include "includes/favicon.html" %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
 
@@ -816,10 +818,13 @@ window.applyUITranslations = function(lang) {
     </div>
     <div class="nav-right">
         {% if user.is_authenticated %}
-            <span class="nav-user" data-username="{{ user.username }}">Hello, {{ user.username }}</span>
+            <span>👋</span>
+            <span class="nav-user"  data-username="{{ user.username }}"> Hello, {{ user.username }}</span>
+            {% include "includes/share_dropdown.html" %}
             <a href="{% url 'logout' %}" class="nav-link">Logout</a>
         {% else %}
             <a href="{% url 'login' %}" class="nav-link">Login</a>
+            {% include "includes/share_dropdown.html" %}
             <a href="{% url 'register' %}" class="nav-link btn-primary">Register</a>
         {% endif %}
     </div>
@@ -1421,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </footer>
-
+{% include "includes/share_buttons.html" %}
 {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>

@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | CBC Lesson Planner</title>
+  {% include "includes/favicon.html" %}
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -230,7 +231,7 @@
   <div class="foot">
     Don't have an account? <a href="{% url 'register' %}">Create one free</a>
   </div>
-
+{% include "includes/share_dropdown.html" %}
 </div>
 
 <script>
@@ -245,7 +246,7 @@
       : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
   });
 </script>
-
+{% include "includes/share_buttons.html" %}
 {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>

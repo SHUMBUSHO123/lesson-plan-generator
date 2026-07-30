@@ -276,7 +276,7 @@ def generate_bot_response(intent, user_message, user_data, subscription_data, la
             return "📝 **To generate a lesson plan, you need an account!**\n\n🔗 **Register here:** /register/\n\nIt's free and gives you 3 lesson plans to start!"
     
     if intent == 'pricing':
-        return "💰 **IsomoPlus Subscription Plans:**\n\n📅 **Weekly** - RWF 200\n📆 **Monthly** - RWF 500 ⭐ **Best Value!**\n📚 **Term** - RWF 1000\n\n**Free Plan:** 3 lesson plans to try!\n\n🔗 **Subscribe:** /pricing/\n\nWould you like to know more about any plan?"
+        return "💰 **IsomoPlus Subscription Plans:**\n\n📅 **Weekly** - RWF 500\n📆 **Monthly** - RWF 1500 ⭐ **Best Value!**\n📚 **Term** - RWF 3500\n\n**Free Plan:** 3 lesson plans to try!\n\n🔗 **Subscribe:** /pricing/\n\nWould you like to know more about any plan?"
     
     if intent == 'download':
         if is_premium:

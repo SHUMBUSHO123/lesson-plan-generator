@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pricing - CBC Lesson Plan Generator</title>
   {% load static %}
+  {% include "includes/favicon.html" %}
   <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <style>
     body { font-family: 'Inter', sans-serif; background: #f5f7fa; margin: 0; color: #333; }
@@ -117,7 +118,7 @@
     <!-- ── Weekly Plan ── -->
     <div class="card">
       <h3>Weekly</h3>
-      <p class="price">200 RWF</p>
+      <p class="price">500 RWF</p>
       <p class="duration">per week</p>
       <ul>
         <li>✔ Unlimited lesson plans for 7 days</li>
@@ -141,7 +142,7 @@
     <!-- ── Monthly Plan ── -->
     <div class="card featured">
       <h3>Monthly</h3>
-      <p class="price">500 RWF</p>
+      <p class="price">1500 RWF</p>
       <p class="duration">per month</p>
       <ul>
         <li>✔ Unlimited lesson plans for 30 days</li>
@@ -163,7 +164,7 @@
     <!-- ── Term Plan ── -->
     <div class="card">
       <h3>Term</h3>
-      <p class="price">1000 RWF</p>
+      <p class="price">3500 RWF</p>
       <p class="duration">per term (90 days)</p>
       <ul>
         <li>✔ Unlimited lesson plans for 90 days</li>
@@ -194,7 +195,7 @@
 <footer>
   &copy; IsomoPlus 2026 CBC Lesson Plan Generator. All rights reserved.
 </footer>
-
+{% include "includes/share_buttons.html" %}
 {% include "includes/whatsapp_chat.html" %}
 </body>
 </html>
